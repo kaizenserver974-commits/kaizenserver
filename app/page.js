@@ -13,7 +13,7 @@ const CHEMIN = [
   { t: "Kaizen analyse", d: "Il propose et vous ajustez." },
   { t: "Récapitulatif & estimation", d: "Budget, délai, première version." },
   { t: "Maquette cliquable", d: "Voyez votre application." },
-  { t: "Suivi jusqu'au lancement", d: "Et ses évolutions." },
+  { t: "Commande & suivi", d: "Commandez, on construit avec vous." },
 ];
 
 const EXEMPLES = [
@@ -38,7 +38,7 @@ export default function Accueil() {
             {ATOUTS.map((a) => <div key={a.t} className="atout"><span aria-hidden="true">{a.i}</span>{a.t}</div>)}
           </div>
           <div className="actions">
-            <a className="btn grand" href="/nouveau">Commencer mon projet →</a>
+            <a className="btn grand" href="/nouveau">Commander mon application →</a>
             <a className="btn secondaire grand" href="#exemples">Voir des exemples</a>
           </div>
         </div>
@@ -96,10 +96,10 @@ export default function Accueil() {
 
         <div className="bandeau-cta">
           <div>
-            <h2>Prêt à lancer votre idée ?</h2>
-            <p className="discret">Créez votre avatar et obtenez votre maquette en quelques minutes.</p>
+            <h2>Prêt à commander votre application ?</h2>
+            <p className="discret">Décrivez votre idée, voyez la maquette, puis commandez en quelques clics. Ce n'est pas un paiement : on vous recontacte avec un devis.</p>
           </div>
-          <a className="btn grand" href="/nouveau">Créer mon projet →</a>
+          <a className="btn grand" href="/nouveau">Commander mon application →</a>
         </div>
       </section>
     </main>

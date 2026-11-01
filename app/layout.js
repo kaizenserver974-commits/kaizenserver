@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
               <a href="/#comment">Comment ça marche</a>
               <a href="/#exemples">Exemples</a>
               <a href="/projets">Mes projets</a>
-              <a href="/nouveau" className="btn petit btn-entete">Créer <span className="masque-mobile">mon projet</span></a>
+              <a href="/nouveau" className="btn petit btn-entete">Commander <span className="masque-mobile">mon appli</span></a>
             </nav>
           </div>
         </header>

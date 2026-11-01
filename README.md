@@ -6,7 +6,8 @@ Kaizen guide une personne qui ne connaît rien au développement, de son idée j
 2. **Précision du besoin** : type d'application, support, fonctionnalités, public, style, budget et délai. Kaizen propose, la personne choisit.
 3. **Récapitulatif** : cahier des charges simplifié (utilisateurs, parcours, écrans, première version et « plus tard », données, points d'attention) et **estimation** coût/délai.
 4. **Maquette cliquable** : aperçu visuel de l'application (ordinateur / téléphone), téléchargeable.
-5. **Suivi** : frise Idée → Cadrage → Maquette → Développement → Mise en ligne → Évolution, conseils à chaque étape, journal et ajout d'évolutions.
+5. **Commande** : la personne choisit une formule (première version, projet complet, no-code, ou « j'en parle d'abord »), laisse ses coordonnées et envoie sa commande. Vous la recevez par e-mail avec un numéro (`KZ-AAAAMMJJ-XXXX`), et le client reçoit une confirmation. Ce n'est pas un paiement : vous le recontactez avec un devis.
+6. **Suivi** : frise Idée → Cadrage → Maquette → Développement → Mise en ligne → Évolution, conseils à chaque étape, journal et ajout d'évolutions.
 
 ## Design
 
@@ -46,7 +47,8 @@ npm test                     # tests du moteur
 
 1. Créer un dépôt GitHub `kaizen` et y copier le contenu de ce dossier.
 2. Dans Vercel : *Add New → Project*, importer le dépôt (framework Next.js détecté).
-3. Variables : `OPENAI_API_KEY` (facultatif), `OPENAI_MODEL` (facultatif, défaut `gpt-5-mini`), `NEXT_PUBLIC_KAIZEN_EMAIL` (facultatif : adresse qui reçoit les demandes).
+3. Variables pour **activer les commandes** : `RESEND_API_KEY` (clé Resend), `KAIZEN_EMAIL` (votre adresse, qui reçoit les commandes) et `KAIZEN_EMAIL_FROM` (expéditeur d'un domaine vérifié dans Resend). Sans elles, le site affiche honnêtement que la commande en ligne n'est pas activée et propose de copier ou télécharger le dossier.
+4. Autres variables : `OPENAI_API_KEY` (facultatif), `OPENAI_MODEL` (facultatif, défaut `gpt-5-mini`), `NEXT_PUBLIC_KAIZEN_EMAIL` (facultatif : adresse qui reçoit les demandes).
 
 ## Structure
 
@@ -65,6 +67,8 @@ npm test                     # tests du moteur
 
 ## Captures
 
+![Commande](docs/captures/commande-formulaire.png)
+![Confirmation](docs/captures/commande-confirmation.png)
 ![Accueil](docs/captures/personnages-accueil.png)
 ![Choix du personnage](docs/captures/personnages-choix.png)
 ![En jeu](docs/captures/personnages-jeu.png)

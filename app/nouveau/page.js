@@ -13,7 +13,7 @@ import {
   UNIVERS, BADGES, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
 } from "../../lib/jeu.js";
 
-const ETAPES = ["Idée", "Type", "Fonctionnalités", "Style", "Budget & délai", "Récapitulatif", "Maquette", "Suivi"];
+const ETAPES = ["Idée", "Type", "Fonctionnalités", "Style", "Budget & délai", "Récapitulatif", "Maquette", "Commander", "Suivi"];
 
 const EXEMPLES = [
   "Je veux une application pour que mes clients réservent leurs séances de coaching et paient en ligne.",
@@ -54,8 +54,13 @@ function Parcours() {
   useEffect(() => {
     const id = params.get("id");
     const existant = id ? chargerProjet(id) : null;
-    if (existant) { setProjet(existant); return; }
-    const p = nouveauProjet();
+    if (existant) {
+      // Anciens projets : le suivi était l'étape 7 avant l'ajout de « Commander ».
+      if (!existant.schema && existant.etape === 7) existant.etape = 8;
+      setProjet({ ...existant, schema: 2 });
+      return;
+    }
+    const p = { ...nouveauProjet(), schema: 2 };
     const ideeProposee = params.get("idee");
     if (ideeProposee) p.idee = ideeProposee.slice(0, 2000);
     setProjet(p);
@@ -158,10 +163,11 @@ function Parcours() {
   const univers = enJeu ? trouverUnivers(projet.jeu.univers) : null;
   const etape = projet.etape || 0;
   const accessible = (i) =>
-    i <= 1 ? Boolean(projet.analyse) || i === 0 :
+    i === 0 ? true :
     i <= 4 ? Boolean(projet.analyse) :
-    i === 5 ? Boolean(projet.recap) :
-    Boolean(projet.maquette);
+    i === 5 || i === 7 ? Boolean(projet.recap) :
+    i === 6 ? Boolean(projet.maquette) :
+    Boolean(projet.maquette || projet.commande);
 
   return (
     <main
@@ -192,9 +198,10 @@ function Parcours() {
         {etape === 2 && <EtapeFonctionnalites projet={projet} maj={maj} suivant={() => allerA(3, ["fonctionnalites", ...(projet.personnalisees.length ? ["perso"] : [])])} precedent={() => allerA(1)} />}
         {etape === 3 && <EtapeStyle projet={projet} maj={maj} suivant={() => allerA(4, ["style"])} precedent={() => allerA(2)} />}
         {etape === 4 && <EtapeBudget projet={projet} maj={maj} suivant={preparerRecap} precedent={() => allerA(3)} />}
-        {etape === 5 && <EtapeRecap projet={projet} modifier={() => allerA(1)} suivant={projet.maquette ? () => allerA(6) : genererMaquette} actualiser={preparerRecap} />}
+        {etape === 5 && <EtapeRecap projet={projet} modifier={() => allerA(1)} suivant={projet.maquette ? () => allerA(6) : genererMaquette} actualiser={preparerRecap} commander={() => allerA(7)} />}
         {etape === 6 && <EtapeMaquette projet={projet} regenerer={genererMaquette} precedent={() => allerA(5)} suivant={() => allerA(7)} />}
-        {etape === 7 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
+        {etape === 7 && <EtapeCommande projet={projet} maj={maj} noter={noter} precedent={() => allerA(projet.maquette ? 6 : 5)} suivant={() => allerA(8)} />}
+        {etape === 8 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
       </div>
 
       {gain && enJeu && <Recompense key={gain.cle} gain={gain} univers={univers} />}
@@ -616,7 +623,7 @@ function Estimation({ estimation }) {
   );
 }
 
-function EtapeRecap({ projet, modifier, suivant, actualiser }) {
+function EtapeRecap({ projet, modifier, suivant, actualiser, commander }) {
   const r = projet.recap;
   if (!r) return null;
   return (
@@ -657,7 +664,7 @@ function EtapeRecap({ projet, modifier, suivant, actualiser }) {
       <Liste titre="Prochaines étapes" items={r.prochainesEtapes} />
       {r.source === "regles" && <p className="note">Récapitulatif préparé par le moteur de règles de Kaizen (IA non configurée).</p>}
 
-      <EnvoiDemande projet={projet} />
+      <EnvoiDemande projet={projet} commander={commander} />
 
       <div className="navigation sans-impression">
         <div className="actions">
@@ -693,10 +700,8 @@ function texteDossier(projet) {
   return lignes.join("\n");
 }
 
-function EnvoiDemande({ projet }) {
+function EnvoiDemande({ projet, commander }) {
   const [message, setMessage] = useState("");
-  const email = process.env.NEXT_PUBLIC_KAIZEN_EMAIL;
-  const sujet = `Nouveau projet KaizenServer : ${projet.recap?.titre || projet.nom || "mon application"}`;
   async function copier() {
     try {
       await navigator.clipboard.writeText(texteDossier(projet));
@@ -708,16 +713,127 @@ function EnvoiDemande({ projet }) {
   return (
     <div className="envoi sans-impression">
       <h3>🚀 Parfait ! Votre projet est prêt</h3>
-      <p className="discret">Transmettez ce dossier à la personne ou à l'équipe qui réalisera votre application pour obtenir un devis précis.</p>
+      <p className="discret">{projet.commande ? `Commande n° ${projet.commande.numero} envoyée le ${new Date(projet.commande.date).toLocaleDateString("fr-FR")}.` : "Commandez votre application : l'équipe KaizenServer étudie votre projet et revient vers vous avec un devis précis."}</p>
       <div className="actions">
-        {email && (
-          <a className="btn" href={`mailto:${email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(texteDossier(projet).slice(0, 1800))}`}>Envoyer ma demande ✈</a>
-        )}
-        <button className={`btn ${email ? "secondaire" : ""}`} onClick={copier}>Copier mon dossier</button>
+        {!projet.commande && commander && <button className="btn grand" onClick={commander}>Commander mon application 🛒</button>}
+        <button className="btn secondaire" onClick={copier}>Copier mon dossier</button>
         <button className="btn secondaire" onClick={() => window.print()}>Télécharger en PDF</button>
       </div>
       {message && <p className="succes" role="status">{message}</p>}
     </div>
+  );
+}
+
+function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
+  const contact = projet.contact || {};
+  const [formule, setFormule] = useState(projet.commande?.formule || "v1");
+  const [consentement, setConsentement] = useState(false);
+  const [envoi, setEnvoi] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [nonConfigure, setNonConfigure] = useState(false);
+  const [piege, setPiege] = useState("");
+  const e = projet.estimation;
+  const setContact = (champ, valeur) => maj({ contact: { ...contact, [champ]: valeur } });
+
+  const formules = [
+    { id: "v1", label: "Première version", detail: e ? `${euros(e.v1.coutMin)} – ${euros(e.v1.coutMax)} · ~${e.v1.semaines} sem.` : "", conseil: true },
+    { id: "complet", label: "Projet complet", detail: e ? `${euros(e.complet.coutMin)} – ${euros(e.complet.coutMax)} · ~${e.complet.semaines} sem.` : "" },
+    { id: "nocode", label: "Solution no-code", detail: e ? `${euros(e.nocode.coutMin)} – ${euros(e.nocode.coutMax)} · ~${e.nocode.semaines} sem.` : "" },
+    { id: "conseil", label: "J'en parle d'abord", detail: "Un échange pour choisir ensemble" },
+  ];
+
+  async function commander() {
+    setErreur(""); setNonConfigure(false); setEnvoi(true);
+    try {
+      const r = await fetch("/api/commande", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projet, recap: projet.recap, contact, formule, consentement, siteWeb: piege }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setNonConfigure(Boolean(d.nonConfigure)); throw new Error(d.erreur || "L'envoi a échoué. Réessayez."); }
+      maj({
+        commande: { numero: d.numero, date: d.date || new Date().toISOString(), formule, confirmationEnvoyee: d.confirmationEnvoyee },
+        statut: ["idee", "cadrage", "maquette"].includes(projet.statut) ? "maquette" : projet.statut,
+        journal: noter(projet, `Commande envoyée (n° ${d.numero})`),
+      }, ["commande"]);
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnvoi(false);
+    }
+  }
+
+  if (projet.commande) {
+    return (
+      <section className="carte etape commande-ok">
+        <div className="confettis" aria-hidden="true">🎉</div>
+        <h1 className="h-page">Commande envoyée !</h1>
+        <p className="resume">Merci {contact.nom || ""} : la commande de <b>{projet.recap?.titre || projet.nom || "votre application"}</b> est bien partie.</p>
+        <div className="recap-resume">
+          <div><span aria-hidden="true">🧾</span><p><small>Numéro</small><b>{projet.commande.numero}</b></p></div>
+          <div><span aria-hidden="true">📅</span><p><small>Date</small><b>{new Date(projet.commande.date).toLocaleDateString("fr-FR")}</b></p></div>
+          <div><span aria-hidden="true">📦</span><p><small>Formule</small><b>{formules.find((f) => f.id === projet.commande.formule)?.label}</b></p></div>
+        </div>
+        <p className="discret">
+          {projet.commande.confirmationEnvoyee !== false ? `Un e-mail de confirmation a été envoyé à ${contact.email}. ` : ""}
+          L'équipe KaizenServer étudie votre projet et revient vers vous pour en parler et vous proposer un devis précis.
+        </p>
+        <div className="navigation">
+          <button className="btn secondaire" onClick={() => window.print()}>Télécharger mon dossier</button>
+          <button className="btn" onClick={suivant}>Suivre mon projet →</button>
+        </div>
+      </section>
+    );
+  }
+
+  const valide = (contact.nom || "").trim().length >= 2 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email || "") && consentement;
+
+  return (
+    <section className="carte etape">
+      <p className="surtitre">Dernière ligne droite</p>
+      <h1 className="h-page">Commander mon application</h1>
+      <p className="discret">Choisissez une formule et laissez vos coordonnées. Ce n'est pas un paiement : l'équipe vous recontacte pour valider le projet et vous envoyer un devis précis.</p>
+
+      <p className="petit-titre">1. Votre formule</p>
+      <div className="choix-grille">
+        {formules.map((f) => (
+          <button key={f.id} className={`choix ${formule === f.id ? "choisi" : ""}`} onClick={() => setFormule(f.id)}>
+            <strong>{f.label} {f.conseil && <em className="badge">Conseillé</em>}</strong>
+            <span>{f.detail}</span>
+          </button>
+        ))}
+      </div>
+
+      <p className="petit-titre">2. Vos coordonnées</p>
+      <div className="formulaire-deux">
+        <label className="champ"><span>Prénom et nom *</span><input autoComplete="name" value={contact.nom || ""} maxLength={100} onChange={(ev) => setContact("nom", ev.target.value)} placeholder="Votre nom complet" /></label>
+        <label className="champ"><span>E-mail *</span><input type="email" autoComplete="email" value={contact.email || ""} maxLength={160} onChange={(ev) => setContact("email", ev.target.value)} placeholder="vous@exemple.fr" /></label>
+        <label className="champ"><span>Téléphone</span><input type="tel" autoComplete="tel" value={contact.telephone || ""} maxLength={30} onChange={(ev) => setContact("telephone", ev.target.value)} placeholder="06 12 34 56 78" /></label>
+        <label className="champ"><span>Entreprise / association</span><input autoComplete="organization" value={contact.entreprise || ""} maxLength={120} onChange={(ev) => setContact("entreprise", ev.target.value)} placeholder="Facultatif" /></label>
+      </div>
+      <label className="champ"><span>Un message pour l'équipe ?</span><textarea rows={3} maxLength={1500} value={contact.message || ""} onChange={(ev) => setContact("message", ev.target.value)} placeholder="Disponibilités pour un appel, questions…" /></label>
+      <input className="piege" tabIndex={-1} autoComplete="off" aria-hidden="true" value={piege} onChange={(ev) => setPiege(ev.target.value)} />
+
+      <label className="case consentement">
+        <input type="checkbox" checked={consentement} onChange={(ev) => setConsentement(ev.target.checked)} />
+        <span>J'accepte que KaizenServer utilise ces informations pour me recontacter au sujet de mon projet. *</span>
+      </label>
+
+      {erreur && <p className="alerte erreur" style={{ marginTop: 14 }}>{erreur}</p>}
+      {nonConfigure && (
+        <div className="actions" style={{ marginTop: 8 }}>
+          <button className="btn secondaire" onClick={() => navigator.clipboard?.writeText(`${texteDossier(projet)}\n\nContact : ${contact.nom} · ${contact.email} · ${contact.telephone || ""}`)}>Copier mon dossier</button>
+          <button className="btn secondaire" onClick={() => window.print()}>Télécharger en PDF</button>
+        </div>
+      )}
+
+      <div className="navigation">
+        <button className="btn secondaire" onClick={precedent}>Retour</button>
+        <button className="btn grand" disabled={!valide || envoi} onClick={commander}>{envoi ? "Envoi en cours…" : "Envoyer ma commande ✈"}</button>
+      </div>
+      <p className="note"><span aria-hidden="true">🔒</span> Vos coordonnées servent uniquement à vous recontacter au sujet de ce projet.</p>
+    </section>
   );
 }
 
@@ -756,7 +872,7 @@ function EtapeMaquette({ projet, regenerer, precedent, suivant }) {
           <button className="btn secondaire" onClick={regenerer}>Nouvelle proposition</button>
           <button className="btn secondaire" onClick={telecharger}>Télécharger</button>
         </div>
-        <button className="btn" onClick={suivant}>Suivre mon projet</button>
+        <button className="btn grand" onClick={suivant}>{projet.commande ? "Voir ma commande" : "Commander cette application 🛒"}</button>
       </div>
     </section>
   );
@@ -837,7 +953,7 @@ function EtapeSuivi({ projet, maj, noter, actualiser }) {
 const CONSEILS = {
   idee: "Terminez le parcours guidé pour obtenir votre récapitulatif et votre maquette.",
   cadrage: "Relisez le récapitulatif. Retirez tout ce qui n'est pas indispensable pour la première version.",
-  maquette: "Montrez la maquette à 3 à 5 futurs utilisateurs. Notez leurs remarques dans le journal, puis demandez un devis en joignant le récapitulatif (bouton Imprimer / PDF).",
+  maquette: "Si ce n'est pas encore fait, commandez votre application (étape « Commander »). Montrez aussi la maquette à 3 à 5 futurs utilisateurs. Notez leurs remarques dans le journal, puis demandez un devis en joignant le récapitulatif (bouton Imprimer / PDF).",
   developpement: "Prévoyez un point chaque semaine avec la personne qui développe. Testez vous-même chaque nouvelle fonctionnalité et notez les corrections dans le journal.",
   mise_en_ligne: "Vérifiez les mentions légales, la politique de confidentialité et faites tester l'application par quelques vrais utilisateurs avant de la faire connaître.",
   evolution: "Regardez ce que vos utilisateurs utilisent vraiment. Ajoutez les évolutions une par une, en commençant par celles qu'ils demandent le plus.",

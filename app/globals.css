@@ -390,3 +390,14 @@ textarea { resize: vertical; margin-top: 10px; }
   .perso-apercu { grid-template-columns: auto 1fr; justify-items: start; text-align: left; align-items: center; column-gap: 14px; padding: 12px; }
   .perso-apercu > :first-child { grid-row: span 3; width: 84px; height: 84px; }
 }
+
+/* ---------- Commande ---------- */
+.formulaire-deux { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; }
+.formulaire-deux .champ { margin-top: 12px; }
+.piege { position: absolute !important; left: -9999px !important; width: 1px !important; height: 1px !important; opacity: 0; }
+.consentement { margin-top: 18px; align-items: flex-start; }
+.consentement span { font-size: 14px; color: var(--texte); }
+.commande-ok { text-align: left; }
+.commande-ok .confettis { font-size: 54px; animation: rebond-simple 0.6s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes rebond-simple { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (max-width: 620px) { .formulaire-deux { grid-template-columns: 1fr; } }

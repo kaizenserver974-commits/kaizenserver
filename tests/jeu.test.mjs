@@ -2,9 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { nouveauJeu, recompenser, niveau, recit, UNIVERS } from "../lib/jeu.js";
 
-test("chaque univers a un nom de niveau et un récit pour les 8 étapes", () => {
+test("chaque univers a un nom de niveau et un récit pour les 9 étapes", () => {
   assert.ok(UNIVERS.length >= 4);
-  for (const u of UNIVERS) { assert.equal(u.niveaux.length, 8); assert.equal(u.recits.length, 8); }
+  for (const u of UNIVERS) { assert.equal(u.niveaux.length, 9); assert.equal(u.recits.length, 9); }
 });
 
 test("une récompense n'est gagnée qu'une fois", () => {
