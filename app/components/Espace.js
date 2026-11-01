@@ -24,24 +24,27 @@ export function FriseStatut({ valeur }) {
   );
 }
 
-export function FilMessages({ messages, moi, envoyer, placeholder }) {
+export function FilMessages({ messages, moi, envoyer, placeholder, conseil = false }) {
   const [texte, setTexte] = useState("");
+  const [estConseil, setEstConseil] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
   async function soumettre(e) {
     e.preventDefault();
     if (!texte.trim()) return;
     setEnvoi(true); setErreur("");
-    try { await envoyer(texte.trim()); setTexte(""); } catch (err) { setErreur(err.message); } finally { setEnvoi(false); }
+    try { await envoyer(texte.trim(), estConseil ? "conseil" : "message"); setTexte(""); setEstConseil(false); } catch (err) { setErreur(err.message); } finally { setEnvoi(false); }
   }
   return (
     <div className="fil">
       <div className="fil-messages" aria-live="polite">
         {messages.length === 0 && <p className="discret">Aucun message pour l'instant.</p>}
         {messages.map((m) => (
-          <div key={m.id} className={`message ${m.auteur === moi ? "moi" : "autre"}`}>
+          <div key={m.id} className={`message ${m.auteur === moi ? "moi" : "autre"} ${m.type === "conseil" ? "conseil-maitre" : ""}`}>
+            {m.auteur === "equipe" && m.auteur !== moi && <img className="message-avatar" src="/personnages/server.svg" alt="" width="32" height="32" />}
+            {m.type === "conseil" && <strong className="etiquette-conseil">💡 Conseil du maître du jeu</strong>}
             <p>{m.contenu}</p>
-            <small>{m.auteur === "equipe" ? "Équipe KaizenServer" : "Client"} · {heure(m.created_at)}</small>
+            <small>{m.auteur === "equipe" ? "Server · Maître du jeu" : "Client"} · {heure(m.created_at)}</small>
           </div>
         ))}
       </div>
@@ -49,6 +52,7 @@ export function FilMessages({ messages, moi, envoyer, placeholder }) {
         <textarea rows={2} maxLength={4000} value={texte} placeholder={placeholder} onChange={(e) => setTexte(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) soumettre(e); }} />
         <button className="btn" disabled={envoi || !texte.trim()}>{envoi ? "Envoi…" : "Envoyer"}</button>
       </form>
+      {conseil && <label className="note"><input type="checkbox" checked={estConseil} onChange={(e) => setEstConseil(e.target.checked)} /> Envoyer comme 💡 conseil du maître du jeu</label>}
       {erreur && <p className="alerte erreur">{erreur}</p>}
     </div>
   );
@@ -58,7 +62,7 @@ export function CarteDevis({ d, repondre }) {
   const [attente, setAttente] = useState(false);
   const [erreur, setErreur] = useState("");
   async function choisir(decision) {
-    if (decision === "accepte" && !window.confirm(`Accepter ce devis de ${euros(d.montant)} ?`)) return;
+    if (decision === "accepte" && !window.confirm(`Accepter l'offre de ${euros(d.montant)} ?`)) return;
     setAttente(true); setErreur("");
     try { await repondre(decision); } catch (e) { setErreur(e.message); } finally { setAttente(false); }
   }
@@ -66,14 +70,14 @@ export function CarteDevis({ d, repondre }) {
   return (
     <article className={`devis devis-${d.statut}`}>
       <div className="devis-tete">
-        <div><small className="discret">Devis du {date(d.created_at)}</small><p className="prix">{euros(d.montant)}</p></div>
+        <div><small className="discret">Offre de Server du {date(d.created_at)}</small><p className="prix">{euros(d.montant)}</p></div>
         <span className="badge">{etiquette}</span>
       </div>
       {d.delai_semaines && <p className="discret">Délai estimé : environ {d.delai_semaines} semaine{d.delai_semaines > 1 ? "s" : ""}</p>}
       {d.details && <p className="devis-details">{d.details}</p>}
       {repondre && d.statut === "envoye" && (
         <div className="actions">
-          <button className="btn" disabled={attente} onClick={() => choisir("accepte")}>Accepter le devis</button>
+          <button className="btn" disabled={attente} onClick={() => choisir("accepte")}>Accepter l'offre</button>
           <button className="btn secondaire" disabled={attente} onClick={() => choisir("refuse")}>Refuser</button>
         </div>
       )}

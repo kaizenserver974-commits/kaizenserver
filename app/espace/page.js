@@ -8,8 +8,8 @@ import { FriseStatut, FilMessages, CarteDevis, date } from "../components/Espace
 
 const ONGLETS = [
   { id: "commandes", label: "Mes commandes", icone: "📦" },
-  { id: "devis", label: "Devis", icone: "🧾" },
-  { id: "messages", label: "Messages", icone: "✉️" },
+  { id: "devis", label: "Offres de Server", icone: "🧾" },
+  { id: "messages", label: "Maître du jeu", icone: "👑" },
   { id: "profil", label: "Profil", icone: "👤" },
 ];
 
@@ -69,7 +69,7 @@ function Espace() {
       <div className="titre-ligne">
         <div><p className="surtitre">Mon espace</p><h1 className="h-page">Bonjour {commandes[0]?.nom?.split(" ")[0] || ""} 👋</h1></div>
         <div className="actions">
-          {donnees.admin && <a className="btn contour petit" href="/admin">Espace équipe</a>}
+          {donnees.admin && <a className="btn contour petit" href="/admin">Espace Server</a>}
           <a className="btn petit" href="/nouveau">Nouveau projet</a>
         </div>
       </div>
@@ -96,14 +96,14 @@ function Espace() {
           </div>
           <FriseStatut valeur={c.statut} />
           <div className="actions">
-            <button className="btn secondaire petit" onClick={() => { setChoisie(c.id); changerOnglet("messages"); }}>✉️ Messages ({c.messages.length})</button>
-            {c.devis.length > 0 && <button className="btn secondaire petit" onClick={() => changerOnglet("devis")}>🧾 Devis ({c.devis.length})</button>}
+            <button className="btn secondaire petit" onClick={() => { setChoisie(c.id); changerOnglet("messages"); }}>👑 Maître du jeu ({c.messages.length})</button>
+            {c.devis.length > 0 && <button className="btn secondaire petit" onClick={() => changerOnglet("devis")}>🧾 Offres ({c.devis.length})</button>}
           </div>
         </article>
       ))}
 
       {onglet === "devis" && commandes.length > 0 && (tousDevis.length === 0
-        ? <div className="carte vide"><p>Pas encore de devis : l'équipe étudie votre projet et vous enverra une proposition ici.</p></div>
+        ? <div className="carte vide"><img src="/personnages/server.svg" alt="" width="64" height="64" /><p>Server, le maître du jeu, étudie votre projet : son offre (tarif, délai) apparaîtra ici.</p></div>
         : tousDevis.map((d) => (
           <div key={d.id} className="carte">
             <p className="discret">{d.commande.recap?.titre || "Mon application"} · N° {d.commande.numero}</p>
@@ -120,8 +120,8 @@ function Espace() {
               </select>
             </label>
           )}
-          <h2>Échanges avec l'équipe</h2>
-          <FilMessages messages={commande.messages} moi="client" placeholder="Écrivez à l'équipe KaizenServer…" envoyer={(contenu) => action({ action: "message", commandeId: commande.id, contenu })} />
+          <div className="maitre"><img src="/personnages/server.svg" alt="" width="56" height="56" /><div><strong>Server · Maître du jeu</strong><p>Posez vos questions : je vous réponds ici, avec mes conseils pour votre projet.</p></div></div>
+          <FilMessages messages={commande.messages} moi="client" placeholder="Écrivez à Server, le maître du jeu…" envoyer={(contenu) => action({ action: "message", commandeId: commande.id, contenu })} />
         </div>
       )}
 

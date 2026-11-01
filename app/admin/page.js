@@ -6,6 +6,7 @@ import { STATUTS, statut } from "../../lib/espace.js";
 import { FriseStatut, FilMessages, CarteDevis, date, euros } from "../components/Espace.js";
 import { TYPES, BUDGETS, DELAIS, PRIORITES, trouver, fonctionnalite } from "../../lib/catalogue.js";
 import { FORMULES } from "../../lib/commande.js";
+import { estimer, euros as eurosRond } from "../../lib/moteur.js";
 
 export default function Admin() {
   const sb = supabaseNavigateur();
@@ -42,15 +43,15 @@ export default function Admin() {
   if (etat !== "pret") {
     const textes = {
       chargement: "Chargement…",
-      inactif: "L'espace équipe n'est pas encore activé (configuration Supabase manquante).",
-      deconnecte: "Connectez-vous avec une adresse de l'équipe.",
-      interdit: "Accès réservé à l'équipe KaizenServer.",
+      inactif: "L'espace Server n'est pas encore activé (configuration Supabase manquante).",
+      deconnecte: "Connectez-vous avec l'adresse de Server.",
+      interdit: "Accès réservé à Server, le maître du jeu.",
       erreur,
     };
     return (
       <main className="conteneur page">
         <section className="carte connexion-carte">
-          <h1 className="h-page">Espace équipe</h1>
+          <h1 className="h-page">Espace Server · Maître du jeu</h1>
           <p className="discret">{textes[etat]}</p>
           {etat === "deconnecte" && <a className="btn" href="/connexion">Se connecter</a>}
         </section>
@@ -61,7 +62,7 @@ export default function Admin() {
   return (
     <main className="conteneur page">
       <div className="titre-ligne">
-        <div><p className="surtitre">Espace équipe</p><h1 className="h-page">Commandes</h1></div>
+        <div className="maitre-titre"><img src="/personnages/server.svg" alt="" width="60" height="60" /><div><p className="surtitre">Espace Server · Maître du jeu</p><h1 className="h-page">Commandes</h1></div></div>
         <div className="actions">
           {donnees.nonLus > 0 && <span className="badge">✉️ {donnees.nonLus} message{donnees.nonLus > 1 ? "s" : ""} non lu{donnees.nonLus > 1 ? "s" : ""}</span>}
           <select value={filtre} onChange={(e) => setFiltre(e.target.value)} aria-label="Filtre" style={{ width: "auto" }}>
@@ -106,14 +107,15 @@ export default function Admin() {
             </div>
 
             <div className="carte">
-              <h2>Devis</h2>
+              <h2>Votre offre au client</h2>
+              <ReperePrive projet={c.projet} />
               {c.devis.map((d) => <CarteDevis key={d.id} d={d} />)}
               <NouveauDevis envoyer={(d) => action({ action: "devis", commandeId: c.id, ...d })} />
             </div>
 
             <div className="carte">
-              <h2>Messages</h2>
-              <FilMessages messages={c.messages} moi="equipe" placeholder="Répondre au client (il sera prévenu par e-mail)…" envoyer={(contenu) => action({ action: "message", commandeId: c.id, contenu })} />
+              <h2>Messages et conseils</h2>
+              <FilMessages conseil messages={c.messages} moi="equipe" placeholder="Répondre au client ou lui donner un conseil (il sera prévenu par e-mail)…" envoyer={(contenu, type) => action({ action: "message", commandeId: c.id, contenu, type })} />
             </div>
           </section>
         )}
@@ -139,7 +141,7 @@ function NouveauDevis({ envoyer }) {
   const [f, setF] = useState({ montant: "", delaiSemaines: "", details: "" });
   const [erreur, setErreur] = useState("");
   const [envoi, setEnvoi] = useState(false);
-  if (!ouvert) return <button className="btn" onClick={() => setOuvert(true)}>+ Créer un devis</button>;
+  if (!ouvert) return <button className="btn" onClick={() => setOuvert(true)}>+ Envoyer une offre (tarif, délai)</button>;
   async function soumettre(e) {
     e.preventDefault(); setErreur(""); setEnvoi(true);
     try { await envoyer(f); setF({ montant: "", delaiSemaines: "", details: "" }); setOuvert(false); } catch (err) { setErreur(err.message); } finally { setEnvoi(false); }
@@ -150,13 +152,27 @@ function NouveauDevis({ envoyer }) {
         <label className="champ"><span>Montant (€ TTC) *</span><input inputMode="decimal" required value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} placeholder="6500" /></label>
         <label className="champ"><span>Délai (semaines)</span><input inputMode="numeric" value={f.delaiSemaines} onChange={(e) => setF({ ...f, delaiSemaines: e.target.value })} placeholder="8" /></label>
       </div>
-      <label className="champ"><span>Détails</span><textarea rows={4} maxLength={4000} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} placeholder="Contenu de la prestation, étapes, conditions de paiement…" /></label>
+      <label className="champ"><span>Détails</span><textarea rows={4} maxLength={4000} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} placeholder="Contenu, étapes, conseils, conditions de paiement…" /></label>
       {f.montant && <p className="note">Le client verra : {Number.isFinite(Number(f.montant.replace(",", "."))) ? euros(Number(f.montant.replace(",", "."))) : "montant invalide"}</p>}
       {erreur && <p className="alerte erreur">{erreur}</p>}
       <div className="actions" style={{ marginTop: 12 }}>
-        <button className="btn" disabled={envoi}>{envoi ? "Envoi…" : "Envoyer le devis au client"}</button>
+        <button className="btn" disabled={envoi}>{envoi ? "Envoi…" : "Envoyer l'offre au client"}</button>
         <button type="button" className="btn secondaire" onClick={() => setOuvert(false)}>Annuler</button>
       </div>
     </form>
+  );
+}
+
+// Repère calculé par le moteur, visible uniquement par Server : c'est vous
+// qui fixez le tarif et le délai communiqués au client.
+function ReperePrive({ projet }) {
+  if (!projet?.idee) return null;
+  const e = estimer({ ...projet, personnalisees: projet.personnalisees || [], fonctionnalites: projet.fonctionnalites || [] });
+  return (
+    <details className="repere">
+      <summary>🔒 Repère interne (jamais montré au client)</summary>
+      <p>Première version : {eurosRond(e.v1.coutMin)} – {eurosRond(e.v1.coutMax)} · ~{e.v1.semaines} sem. · Complet : {eurosRond(e.complet.coutMin)} – {eurosRond(e.complet.coutMax)} · ~{e.complet.semaines} sem. · No-code : {eurosRond(e.nocode.coutMin)} – {eurosRond(e.nocode.coutMax)}</p>
+      {e.alertes.map((a) => <p key={a} className="note">⚠️ {a}</p>)}
+    </details>
   );
 }

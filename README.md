@@ -4,7 +4,7 @@ Kaizen guide une personne qui ne connaît rien au développement, de son idée j
 
 1. **Idée** : la personne décrit son idée avec ses mots.
 2. **Précision du besoin** : type d'application, support, fonctionnalités, public, style, budget et délai. Kaizen propose, la personne choisit.
-3. **Récapitulatif** : cahier des charges simplifié (utilisateurs, parcours, écrans, première version et « plus tard », données, points d'attention) et **estimation** coût/délai.
+3. **Récapitulatif** : cahier des charges simplifié (utilisateurs, parcours, écrans, première version et « plus tard », données, points d'attention). **Aucun tarif ni délai automatique** : c'est Server, le maître du jeu, qui les donne.
 4. **Maquette cliquable** : aperçu visuel de l'application (ordinateur / téléphone), téléchargeable.
 5. **Commande** : la personne choisit une formule (première version, projet complet, no-code, ou « j'en parle d'abord »), laisse ses coordonnées et envoie sa commande. Vous la recevez par e-mail avec un numéro (`KZ-AAAAMMJJ-XXXX`), et le client reçoit une confirmation. Ce n'est pas un paiement : vous le recontactez avec un devis.
 6. **Suivi** : frise Idée → Cadrage → Maquette → Développement → Mise en ligne → Évolution, conseils à chaque étape, journal et ajout d'évolutions.
@@ -13,7 +13,7 @@ Kaizen guide une personne qui ne connaît rien au développement, de son idée j
 
 - **Se connecter** (`/connexion`) : lien de connexion par e-mail, sans mot de passe (Supabase Auth).
 - **Mon espace** (`/espace`) : commandes avec frise de suivi, **devis** à accepter ou refuser, **messages** avec l'équipe (pastille de non-lus), profil.
-- **Espace équipe** (`/admin`, réservé aux adresses de `KAIZEN_ADMIN_EMAILS`) : liste des commandes, détail du projet, changement de statut (avec e-mail au client), création de devis, réponses aux messages.
+- **Espace Server** (`/admin`, réservé aux adresses de `KAIZEN_ADMIN_EMAILS`) : liste des commandes, détail du projet, repère interne, changement de statut (avec e-mail au client), envoi d'offres, messages et conseils.
 - Chaque action prévient l'autre partie par e-mail (Resend).
 
 Mise en place :
@@ -45,9 +45,20 @@ Au début de chaque projet, la personne choisit :
 
 Chaque étape du parcours devient un **niveau** de l'univers (par exemple « Le village » puis « La croisée des chemins »). Un narrateur, l'avatar, raconte chaque niveau. Chaque choix fait gagner des points (pièces d'or, étoiles, indices ou perles). La personne monte de niveau et débloque **10 badges** : de Visionnaire jusqu'à Légende (application en ligne) et Maître Kaizen (évolution). Une récompense n'est gagnée qu'une fois. On peut changer d'univers ou d'avatar à tout moment sans perdre ses points, ou choisir le **mode classique** sans jeu. Le tout est défini dans `lib/jeu.js`.
 
+## Le rôle de Server, le maître du jeu
+
+**Server** est le maître du jeu de KaizenServer : c'est le porteur du projet, une vraie personne. **C'est lui seul qui donne les tarifs, les délais et les conseils.**
+- Le site ne montre **jamais** de prix ni de délai calculés au client : pas de page Tarifs, pas d'estimation dans le récapitulatif ou la commande. L'assistant IA a aussi pour consigne de n'en donner aucun.
+- Après la commande, Server étudie le projet dans son espace (`/admin`) :
+  - il envoie son **offre** (tarif, délai, détails), que le client accepte ou refuse ;
+  - il envoie des **messages** ou des **💡 conseils du maître du jeu** ;
+  - il fait avancer le **statut** de la commande.
+- Un **repère interne** calculé par le moteur aide Server à préparer son offre. Il est visible **uniquement** dans l'espace Server.
+- Dans le jeu, Server est le personnage du maître du jeu : il a son avatar couronné (`public/personnages/server.svg`), apparaît dans les récits des niveaux « Commander » et « Suivi », et signe les messages et les offres.
+
 ## Principes
 
-- **Les chiffres ne sont jamais inventés par l'IA.** L'estimation est calculée par `lib/moteur.js` (450 €/jour indicatifs) et l'application propose automatiquement une première version qui tient dans le budget, en gardant toujours l'action principale.
+- **Aucun chiffre n'est montré au client.** `lib/moteur.js` calcule seulement un repère interne pour Server et propose une première version qui tient compte du budget annoncé, en gardant toujours l'action principale.
 - **Fonctionne sans IA.** Sans `OPENAI_API_KEY`, un moteur de règles produit l'analyse, le récapitulatif et une maquette à partir d'un gabarit. Avec la clé, l'IA rédige des textes et une maquette sur mesure, et Kaizen revient au moteur de règles en cas d'erreur.
 - **Maquette isolée.** Elle s'affiche dans une iframe `sandbox` sans accès aux données ni au réseau du site.
 - **V1 sans compte.** Les projets sont enregistrés dans le navigateur (`localStorage`).

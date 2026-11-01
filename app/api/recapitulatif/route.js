@@ -69,10 +69,11 @@ Rédige le récapitulatif (cahier des charges simplifié) du projet décrit en J
 Ne mentionne aucun prix ni délai.`,
         contenu: JSON.stringify(description, null, 2),
       });
-      return NextResponse.json({ recap: { ...recap, source: "ia" }, estimation });
+      return NextResponse.json({ recap: { ...recap, source: "ia" } });
     } catch (e) {
       console.error("Kaizen /recapitulatif IA :", e?.message);
     }
   }
-  return NextResponse.json({ recap: recapitulatifSecours(projet, estimation), estimation });
+  // Les tarifs et délais sont donnés par Server (maître du jeu) : aucune estimation n'est envoyée au client.
+  return NextResponse.json({ recap: recapitulatifSecours(projet, estimation) });
 }

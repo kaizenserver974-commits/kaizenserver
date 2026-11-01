@@ -26,7 +26,6 @@ const EXEMPLES = [
 const ICONES_TYPES = { reservation: "📅", accompagnement: "🤝", boutique: "🛒", communaute: "👥", gestion: "📊", education: "🎓", sante: "💗", vitrine: "🌐", autre: "➕" };
 const ICONES_PLATEFORMES = { web: "💻", mobile: "📱", les_deux: "🔁" };
 
-const euros = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 async function appeler(url, corps) {
   const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) });
@@ -122,10 +121,10 @@ function Parcours() {
   });
 
   const preparerRecap = () => lancer("Kaizen rédige le récapitulatif de votre projet…", async () => {
-    const { recap, estimation } = await appeler("/api/recapitulatif", { projet });
+    const { recap } = await appeler("/api/recapitulatif", { projet });
     const jeu = gagner(["budget", "recap", "scribe", ...(projet.precisions.trim() ? ["precisions"] : [])]);
     setProjet((p) => enregistrerProjet({
-      ...p, jeu, recap, estimation, etape: 5,
+      ...p, jeu, recap, estimation: null, etape: 5,
       statut: p.statut === "idee" ? "cadrage" : p.statut,
       journal: noter(p, "Récapitulatif du projet préparé"),
     }));
@@ -608,7 +607,7 @@ function EtapeBudget({ projet, maj, suivant, precedent }) {
   return (
     <section className="carte etape">
       <h1 className="h-page">Budget et délai</h1>
-      <p className="discret">Il n'y a pas de mauvaise réponse : Kaizen adaptera la première version à vos moyens.</p>
+      <p className="discret">Il n'y a pas de mauvaise réponse : Server, le maître du jeu, adaptera son offre à vos moyens.</p>
       <p className="petit-titre">Budget envisagé</p>
       <div className="puces">
         {BUDGETS.map((b) => <button key={b.id} className={`puce ${projet.budget === b.id ? "choisie" : ""}`} onClick={() => maj({ budget: b.id })}>{b.label}</button>)}
@@ -652,34 +651,16 @@ function Liste({ titre, items }) {
   );
 }
 
-function Estimation({ estimation }) {
-  if (!estimation) return null;
-  const { v1, complet, nocode, alertes, avertissement } = estimation;
-  const memeChose = v1.jours === complet.jours;
+// Tarifs, délais et conseils ne sont jamais calculés pour le client :
+// c'est Server, le maître du jeu, qui les donne après la commande.
+function MotDuMaitre({ children }) {
   return (
-    <div className="bloc">
-      <h3>Estimation</h3>
-      {alertes.map((a) => <p key={a} className="alerte">{a}</p>)}
-      <div className="estimations">
-        <div className="estim mise-en-avant">
-          <span>{memeChose ? "Projet sur mesure" : "Première version (conseillée)"}</span>
-          <strong>{euros(v1.coutMin)} – {euros(v1.coutMax)}</strong>
-          <small>environ {v1.semaines} semaines</small>
-        </div>
-        {!memeChose && (
-          <div className="estim">
-            <span>Projet complet</span>
-            <strong>{euros(complet.coutMin)} – {euros(complet.coutMax)}</strong>
-            <small>environ {complet.semaines} semaines</small>
-          </div>
-        )}
-        <div className="estim">
-          <span>Projet complet en no-code</span>
-          <strong>{euros(nocode.coutMin)} – {euros(nocode.coutMax)}</strong>
-          <small>environ {nocode.semaines} semaines · moins personnalisable</small>
-        </div>
+    <div className="maitre">
+      <img src="/personnages/server.svg" alt="" width="56" height="56" />
+      <div>
+        <strong>Server · Maître du jeu</strong>
+        <p>{children}</p>
       </div>
-      <p className="note">{avertissement}</p>
     </div>
   );
 }
@@ -721,7 +702,7 @@ function EtapeRecap({ projet, modifier, suivant, actualiser, commander }) {
       )}
       <Liste titre="Informations enregistrées" items={r.donnees} />
       <Liste titre="Points d'attention" items={r.risques} />
-      <Estimation estimation={projet.estimation} />
+      <MotDuMaitre>Le tarif, le délai et mes conseils pour votre projet, c'est moi qui vous les donne : commandez, j'étudie votre dossier et je vous envoie mon offre dans votre espace.</MotDuMaitre>
       <Liste titre="Prochaines étapes" items={r.prochainesEtapes} />
       {r.source === "regles" && <p className="note">Récapitulatif préparé par le moteur de règles de Kaizen (IA non configurée).</p>}
 
@@ -742,7 +723,6 @@ function EtapeRecap({ projet, modifier, suivant, actualiser, commander }) {
 // (NEXT_PUBLIC_KAIZEN_EMAIL), sinon copie ou PDF du dossier.
 function texteDossier(projet) {
   const r = projet.recap || {};
-  const e = projet.estimation;
   const lignes = [
     `Projet : ${r.titre || projet.nom || "Sans nom"}`,
     `Type : ${trouver(TYPES, projet.typeId)?.label || "—"} · ${trouver(PLATEFORMES, projet.plateforme)?.label || ""}`,
@@ -755,7 +735,6 @@ function texteDossier(projet) {
     "Première version :", ...(r.v1 || []).map((x) => `- ${x}`),
     "", "Plus tard :", ...(r.plusTard || []).map((x) => `- ${x}`),
   ];
-  if (e) lignes.push("", `Estimation indicative (première version) : ${euros(e.v1.coutMin)} – ${euros(e.v1.coutMax)}, environ ${e.v1.semaines} semaines`);
   if (projet.inspirations) lignes.push("", `Inspirations : ${projet.inspirations}`);
   if (projet.precisions) lignes.push("", `Précisions : ${projet.precisions}`);
   return lignes.join("\n");
@@ -774,7 +753,7 @@ function EnvoiDemande({ projet, commander }) {
   return (
     <div className="envoi sans-impression">
       <h3>🚀 Parfait ! Votre projet est prêt</h3>
-      <p className="discret">{projet.commande ? `Commande n° ${projet.commande.numero} envoyée le ${new Date(projet.commande.date).toLocaleDateString("fr-FR")}.` : "Commandez votre application : l'équipe KaizenServer étudie votre projet et revient vers vous avec un devis précis."}</p>
+      <p className="discret">{projet.commande ? `Commande n° ${projet.commande.numero} envoyée le ${new Date(projet.commande.date).toLocaleDateString("fr-FR")}.` : "Commandez votre application : Server, le maître du jeu, étudie votre projet et vous envoie son offre et ses conseils."}</p>
       <div className="actions">
         {!projet.commande && commander && <button className="btn grand" onClick={commander}>Commander mon application 🛒</button>}
         <button className="btn secondaire" onClick={copier}>Copier mon dossier</button>
@@ -793,14 +772,13 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
   const [erreur, setErreur] = useState("");
   const [nonConfigure, setNonConfigure] = useState(false);
   const [piege, setPiege] = useState("");
-  const e = projet.estimation;
   const setContact = (champ, valeur) => maj({ contact: { ...contact, [champ]: valeur } });
 
   const formules = [
-    { id: "v1", label: "Première version", detail: e ? `${euros(e.v1.coutMin)} – ${euros(e.v1.coutMax)} · ~${e.v1.semaines} sem.` : "", conseil: true },
-    { id: "complet", label: "Projet complet", detail: e ? `${euros(e.complet.coutMin)} – ${euros(e.complet.coutMax)} · ~${e.complet.semaines} sem.` : "" },
-    { id: "nocode", label: "Solution no-code", detail: e ? `${euros(e.nocode.coutMin)} – ${euros(e.nocode.coutMax)} · ~${e.nocode.semaines} sem.` : "" },
-    { id: "conseil", label: "J'en parle d'abord", detail: "Un échange pour choisir ensemble" },
+    { id: "v1", label: "Première version", detail: "L'essentiel d'abord, pour lancer vite", conseil: true },
+    { id: "complet", label: "Projet complet", detail: "Toutes les fonctionnalités choisies" },
+    { id: "nocode", label: "Solution no-code", detail: "Avec des outils existants" },
+    { id: "conseil", label: "Je laisse Server me conseiller", detail: "Le maître du jeu choisit avec vous" },
   ];
 
   const [pieces, setPieces] = useState([]);
@@ -841,7 +819,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
         </div>
         <p className="discret">
           {projet.commande.confirmationEnvoyee !== false ? `Un e-mail de confirmation a été envoyé à ${contact.email}. ` : ""}
-          L'équipe KaizenServer étudie votre projet et revient vers vous pour en parler et vous proposer un devis précis.
+          Server, le maître du jeu, étudie votre projet et vous enverra son offre — tarif, délai — et ses conseils.
         </p>
         {projet.commande.espaceClient && (
           <p className="succes">👤 Suivez votre commande, recevez votre devis et échangez avec l'équipe dans votre espace client : connectez-vous avec {contact.email}. <a className="lien-cyan" href="/connexion">Accéder à mon espace</a></p>
@@ -860,7 +838,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
     <section className="carte etape">
       <p className="surtitre">Dernière ligne droite</p>
       <h1 className="h-page">Commander mon application</h1>
-      <p className="discret">Choisissez une formule et laissez vos coordonnées. Ce n'est pas un paiement : l'équipe vous recontacte pour valider le projet et vous envoyer un devis précis.</p>
+      <p className="discret">Choisissez une formule et laissez vos coordonnées. Ce n'est pas un paiement : Server, le maître du jeu, étudie votre projet et vous envoie son offre (tarif, délai) et ses conseils.</p>
 
       <p className="petit-titre">1. Votre formule</p>
       <div className="choix-grille">
@@ -992,7 +970,7 @@ function EtapeSuivi({ projet, maj, noter, actualiser }) {
       <div className="deux-colonnes">
         <div className="bloc">
           <h3>Faire évoluer l'application</h3>
-          <p className="discret">Une nouvelle idée de fonctionnalité ? Ajoutez-la : le récapitulatif et l'estimation seront mis à jour.</p>
+          <p className="discret">Une nouvelle idée de fonctionnalité ? Ajoutez-la : le récapitulatif sera mis à jour, et Server vous dira ce qu'elle change.</p>
           <div className="ligne-ajout">
             <input value={evolution} maxLength={120} placeholder="Ex. : programme de fidélité" onChange={(e) => setEvolution(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ajouterEvolution()} />
             <button className="btn secondaire" onClick={ajouterEvolution}>Ajouter</button>
@@ -1021,7 +999,7 @@ function EtapeSuivi({ projet, maj, noter, actualiser }) {
 const CONSEILS = {
   idee: "Terminez le parcours guidé pour obtenir votre récapitulatif et votre maquette.",
   cadrage: "Relisez le récapitulatif. Retirez tout ce qui n'est pas indispensable pour la première version.",
-  maquette: "Si ce n'est pas encore fait, commandez votre application (étape « Commander »). Montrez aussi la maquette à 3 à 5 futurs utilisateurs. Notez leurs remarques dans le journal, puis demandez un devis en joignant le récapitulatif (bouton Imprimer / PDF).",
+  maquette: "Si ce n'est pas encore fait, commandez votre application : Server, le maître du jeu, vous enverra son offre et ses conseils dans votre espace. Montrez aussi la maquette à 3 à 5 futurs utilisateurs. Notez leurs remarques dans le journal, puis demandez un devis en joignant le récapitulatif (bouton Imprimer / PDF).",
   developpement: "Prévoyez un point chaque semaine avec la personne qui développe. Testez vous-même chaque nouvelle fonctionnalité et notez les corrections dans le journal.",
   mise_en_ligne: "Vérifiez les mentions légales, la politique de confidentialité et faites tester l'application par quelques vrais utilisateurs avant de la faire connaître.",
   evolution: "Regardez ce que vos utilisateurs utilisent vraiment. Ajoutez les évolutions une par une, en commençant par celles qu'ils demandent le plus.",

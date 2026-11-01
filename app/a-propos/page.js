@@ -2,7 +2,7 @@ export const metadata = { title: "À propos — KaizenServer" };
 
 const VALEURS = [
   { i: "🌱", t: "Kaizen, pas à pas", d: "« Kaizen » signifie amélioration continue en japonais. On commence petit, on teste, on améliore : votre application grandit avec vos utilisateurs." },
-  { i: "🔎", t: "Transparence", d: "Estimations calculées et expliquées, devis détaillé avant tout paiement, aucun engagement caché." },
+  { i: "👑", t: "Un maître du jeu, Server", d: "Une vraie personne étudie chaque projet : Server vous donne son offre (tarif, délai) et ses conseils, avant tout paiement." },
   { i: "🤝", t: "Accompagnement", d: "De l'idée à la mise en ligne, puis pendant les évolutions : vous n'êtes jamais seul face à la technique." },
   { i: "🎮", t: "Accessible à tous", d: "Un parcours guidé, comme un jeu, pour que chacun puisse donner vie à son idée sans connaître le développement." },
 ];
@@ -16,7 +16,7 @@ export default function APropos() {
           <h1 className="h-page">Rendre la création d'applications accessible à tous</h1>
           <p className="intro">
             Beaucoup de bonnes idées ne voient jamais le jour parce que la technique fait peur. KaizenServer transforme votre idée en
-            projet clair : besoin, fonctionnalités, budget, maquette. Puis nous construisons l'application avec vous.
+            projet clair : besoin, fonctionnalités, maquette. Puis Server, le maître du jeu, vous fait son offre et construit l'application avec vous.
           </p>
           <div className="actions">
             <a className="btn grand" href="/nouveau">Commander mon application →</a>

@@ -500,3 +500,19 @@ textarea { resize: vertical; margin-top: 10px; }
 .choix-statut select { width: auto; }
 .nouveau-devis { margin-top: 8px; }
 @media (max-width: 860px) { .admin-grille { grid-template-columns: 1fr; } .admin-liste { position: static; max-height: none; } .frise-statut { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---------- Server, le maître du jeu ---------- */
+.maitre { display: flex; gap: 14px; align-items: center; margin-top: 22px; padding: 16px; border-radius: 16px; background: linear-gradient(120deg, rgba(245, 197, 66, 0.12), rgba(123, 92, 255, 0.16)); box-shadow: inset 0 0 0 1px rgba(245, 197, 66, 0.4), 0 0 30px rgba(245, 197, 66, 0.08); }
+.maitre img { flex: none; filter: drop-shadow(0 0 12px rgba(245, 197, 66, 0.5)); }
+.maitre strong { color: #f5c542; font-family: var(--titre); }
+.maitre p { margin: 4px 0 0; color: #fff; }
+.maitre-titre { display: flex; gap: 14px; align-items: center; }
+.message { position: relative; }
+.message.autre { padding-left: 50px; }
+.message-avatar { position: absolute; left: 10px; top: 10px; border-radius: 50%; }
+.conseil-maitre { box-shadow: inset 0 0 0 1.5px rgba(245, 197, 66, 0.6), 0 0 18px rgba(245, 197, 66, 0.15) !important; background: rgba(245, 197, 66, 0.08) !important; }
+.etiquette-conseil { display: block; color: #f5c542; font-size: 12.5px; margin-bottom: 4px; }
+.repere { margin: 6px 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ligne); }
+.repere summary { cursor: pointer; font-weight: 600; color: var(--discret); }
+.repere p { margin: 8px 0 0; font-size: 14px; }
+.vide img { margin: 0 auto 6px; display: block; }

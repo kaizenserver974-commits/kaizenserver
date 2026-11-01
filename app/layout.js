@@ -5,7 +5,7 @@ import Compte from "./components/Compte.js";
 
 export const metadata = {
   title: "KaizenServer — créez l'application de vos rêves",
-  description: "Décrivez votre idée : KaizenServer vous guide, comme dans un jeu, jusqu'au projet d'application avec récapitulatif, estimation et maquette.",
+  description: "Décrivez votre idée : KaizenServer vous guide, comme dans un jeu, jusqu'à la commande de votre application. Server, le maître du jeu, vous donne tarif, délai et conseils.",
 };
 
 export const viewport = { width: "device-width", initialScale: 1, themeColor: "#06061a" };
@@ -29,7 +29,6 @@ export default function RootLayout({ children }) {
               <a href="/">Accueil</a>
               <a href="/nouveau">Commander</a>
               <a href="/exemples">Exemples</a>
-              <a href="/tarifs">Tarifs</a>
               <a href="/ressources">Ressources</a>
               <a href="/a-propos">À propos</a>
               <Compte />

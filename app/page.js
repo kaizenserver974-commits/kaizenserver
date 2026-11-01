@@ -5,15 +5,15 @@ import { UNIVERS } from "../lib/jeu.js";
 const ATOUTS = [
   { i: "⚡", t: "Maquette en quelques minutes" },
   { i: "🧭", t: "Guidé pas à pas, sans jargon" },
-  { i: "💶", t: "Estimation claire et honnête" },
+  { i: "👑", t: "Server, le maître du jeu, vous conseille" },
   { i: "🔒", t: "Vos idées restent sur votre appareil" },
 ];
 
 const CHEMIN = [
   { t: "Décrivez votre idée", d: "Avec vos mots, en une phrase." },
   { t: "Choisissez vos options", d: "Type, fonctionnalités, style, budget." },
-  { t: "Nous analysons votre projet", d: "Récapitulatif, estimation et maquette." },
-  { t: "Nous vous proposons un devis", d: "Après votre commande, sans engagement." },
+  { t: "Nous analysons votre projet", d: "Récapitulatif et maquette." },
+  { t: "Server vous fait son offre", d: "Tarif, délai et conseils du maître du jeu." },
   { t: "Nous créons votre application", d: "Avec un suivi à chaque étape." },
   { t: "Vous lancez votre succès", d: "Et l'application évolue avec vous." },
 ];
@@ -27,8 +27,8 @@ export default function Accueil() {
           <p className="surtitre">De l'idée à l'application</p>
           <h1>Votre idée.<br />Votre application.<br /><span className="degrade">Notre mission.</span></h1>
           <p className="intro">
-            Décrivez votre projet : KaizenServer vous pose les bonnes questions, prépare votre cahier des charges,
-            estime le budget et vous montre une première maquette. Comme dans un jeu, avec votre avatar.
+            Décrivez votre projet : KaizenServer vous pose les bonnes questions, prépare votre cahier des charges et vous
+            montre une première maquette. Comme dans un jeu, avec votre avatar — et Server, le maître du jeu, vous donne tarif, délai et conseils.
           </p>
           <div className="atouts">
             {ATOUTS.map((a) => <div key={a.t} className="atout"><span aria-hidden="true">{a.i}</span>{a.t}</div>)}
@@ -84,7 +84,7 @@ export default function Accueil() {
         <div className="bandeau-cta">
           <div>
             <h2>Prêt à commander votre application ?</h2>
-            <p className="discret">Décrivez votre idée, voyez la maquette, puis commandez en quelques clics. Ce n'est pas un paiement : on vous recontacte avec un devis.</p>
+            <p className="discret">Décrivez votre idée, voyez la maquette, puis commandez en quelques clics. Ce n'est pas un paiement : Server, le maître du jeu, vous envoie son offre.</p>
           </div>
           <a className="btn grand" href="/nouveau">Commander mon application →</a>
         </div>

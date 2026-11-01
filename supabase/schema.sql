@@ -23,6 +23,7 @@ create table if not exists public.kaizen_messages (
   id uuid primary key default gen_random_uuid(),
   commande_id uuid not null references public.kaizen_commandes(id) on delete cascade,
   auteur text not null check (auteur in ('client', 'equipe')),
+  type text not null default 'message' check (type in ('message', 'conseil')),
   contenu text not null check (char_length(contenu) between 1 and 4000),
   lu boolean not null default false,
   created_at timestamptz not null default now()
@@ -44,3 +45,6 @@ create index if not exists kaizen_devis_commande on public.kaizen_devis (command
 alter table public.kaizen_commandes enable row level security;
 alter table public.kaizen_messages enable row level security;
 alter table public.kaizen_devis enable row level security;
+
+-- Mise à jour d'une base existante (ajout des conseils du maître du jeu) :
+alter table public.kaizen_messages add column if not exists type text not null default 'message';
