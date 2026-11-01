@@ -1,0 +1,19 @@
+{
+  "name": "kaizen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kaizen : de l'idée au projet d'application, guidé pas à pas.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "next": "^15.4.0",
+    "openai": "^6.48.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}
