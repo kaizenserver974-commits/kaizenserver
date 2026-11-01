@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // Envoi par Resend (https://resend.com) via son API HTTP.
 // Variables : RESEND_API_KEY, KAIZEN_EMAIL (adresse qui reçoit les commandes),
 // KAIZEN_EMAIL_FROM (expéditeur vérifié dans Resend, facultatif).
-async function envoyer({ a, sujet, texte, html, repondreA }) {
+async function envoyer({ a, sujet, texte, html, repondreA, pieces = [] }) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
@@ -18,6 +18,7 @@ async function envoyer({ a, sujet, texte, html, repondreA }) {
       text: texte,
       html,
       ...(repondreA ? { reply_to: repondreA } : {}),
+      ...(pieces.length ? { attachments: pieces.map((p) => ({ filename: p.nom, content: p.contenu })) } : {}),
     }),
   });
   if (!r.ok) throw new Error(`Resend ${r.status} : ${(await r.text()).slice(0, 200)}`);
@@ -49,7 +50,7 @@ export async function POST(request) {
     await envoyer({
       a: process.env.KAIZEN_EMAIL,
       sujet: `🛒 Nouvelle commande ${numero} — ${commande.recap.titre || commande.projet.nom || "application"} (${commande.contact.nom})`,
-      texte, html, repondreA: commande.contact.email,
+      texte, html, repondreA: commande.contact.email, pieces: commande.pieces,
     });
   } catch (e) {
     console.error("Kaizen /commande :", e?.message);

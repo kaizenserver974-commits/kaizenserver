@@ -1,3 +1,5 @@
+import CarteExemple from "./components/CarteExemple.js";
+import { EXEMPLES_IDEES } from "../lib/exemples.js";
 import { UNIVERS } from "../lib/jeu.js";
 
 const ATOUTS = [
@@ -9,19 +11,13 @@ const ATOUTS = [
 
 const CHEMIN = [
   { t: "Décrivez votre idée", d: "Avec vos mots, en une phrase." },
-  { t: "Choisissez vos options", d: "Type, fonctionnalités, style." },
-  { t: "Kaizen analyse", d: "Il propose et vous ajustez." },
-  { t: "Récapitulatif & estimation", d: "Budget, délai, première version." },
-  { t: "Maquette cliquable", d: "Voyez votre application." },
-  { t: "Commande & suivi", d: "Commandez, on construit avec vous." },
+  { t: "Choisissez vos options", d: "Type, fonctionnalités, style, budget." },
+  { t: "Nous analysons votre projet", d: "Récapitulatif, estimation et maquette." },
+  { t: "Nous vous proposons un devis", d: "Après votre commande, sans engagement." },
+  { t: "Nous créons votre application", d: "Avec un suivi à chaque étape." },
+  { t: "Vous lancez votre succès", d: "Et l'application évolue avec vous." },
 ];
 
-const EXEMPLES = [
-  { t: "App de livraison", s: "Application mobile", c1: "#2ad4ff", c2: "#4f46e5", idee: "Je veux une application de livraison de repas : les clients commandent auprès de restaurants de ma ville et suivent leur livreur en direct." },
-  { t: "Plateforme éducative", s: "Application web", c1: "#7b5cff", c2: "#1e1b4b", idee: "Je veux une plateforme de cours en ligne où mes élèves suivent des leçons vidéo, font des quiz et voient leur progression." },
-  { t: "Communauté locale", s: "Application mobile", c1: "#d946ef", c2: "#3b0764", idee: "Je veux un réseau social pour les membres de mon association : publications, événements et messagerie entre membres." },
-  { t: "Agenda de rendez-vous", s: "Application web", c1: "#34d399", c2: "#064e3b", idee: "Je veux que mes patients réservent leurs rendez-vous en ligne et reçoivent un rappel par SMS la veille." },
-];
 
 export default function Accueil() {
   return (
@@ -64,19 +60,10 @@ export default function Accueil() {
       <section className="section" id="exemples">
         <div className="section-titre">
           <div><p className="surtitre">Inspirez-vous</p><h2>Exemples d'idées à lancer</h2></div>
+          <a className="btn contour petit" href="/exemples">Voir plus</a>
         </div>
         <div className="exemples">
-          {EXEMPLES.map((e) => (
-            <a key={e.t} className="exemple" href={`/nouveau?idee=${encodeURIComponent(e.idee)}`}>
-              <div className="mini-ecran" style={{ "--c1": e.c1, "--c2": e.c2 }} aria-hidden="true">
-                <i /><i className="l2" />
-                <div className="tuiles"><b /><b /><b /><b /></div>
-              </div>
-              <div><h3>{e.t}</h3><p>{e.s}</p></div>
-              <p>{e.idee}</p>
-              <span className="lien">Partir de cette idée →</span>
-            </a>
-          ))}
+          {EXEMPLES_IDEES.slice(0, 4).map((e) => <CarteExemple key={e.t} e={e} />)}
         </div>
       </section>
 

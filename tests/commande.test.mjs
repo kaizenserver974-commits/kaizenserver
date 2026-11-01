@@ -30,3 +30,13 @@ test("le résumé contient les infos clés et échappe le HTML", () => {
   assert.match(texte, /Élevée/);
   assert.ok(!html.includes("<script>x</script>"));
 });
+
+test("pièces jointes : format et taille contrôlés", () => {
+  const ok = validerCommande({ ...base, pieces: [{ nom: "logo.png", type: "image/png", contenu: "iVBORw0KGgo=" }] });
+  assert.deepEqual(ok.erreurs, []);
+  assert.equal(ok.pieces[0].nom, "logo.png");
+  const mauvais = validerCommande({ ...base, pieces: [{ nom: "virus.exe", type: "application/x-msdownload", contenu: "TVqQ" }] });
+  assert.equal(mauvais.erreurs.length, 1);
+  const trop = validerCommande({ ...base, pieces: [1, 2, 3, 4].map(() => ({ nom: "a.png", type: "image/png", contenu: "AAAA" })) });
+  assert.equal(trop.erreurs.length, 1);
+});

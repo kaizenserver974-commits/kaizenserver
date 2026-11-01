@@ -7,6 +7,7 @@ import {
   trouver, fonctionnalite,
 } from "../../lib/catalogue.js";
 import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
+import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { OPTIONS_AVATAR, PRESETS_AVATAR, AVATAR_DEFAUT, PERSONNAGES } from "../../lib/avatar.js";
 import {
@@ -22,7 +23,7 @@ const EXEMPLES = [
   "Je veux un outil pour gérer le stock et les tâches de mon équipe.",
 ];
 
-const ICONES_TYPES = { reservation: "📅", accompagnement: "🤝", boutique: "🛒", communaute: "👥", gestion: "📊", vitrine: "🌐", autre: "➕" };
+const ICONES_TYPES = { reservation: "📅", accompagnement: "🤝", boutique: "🛒", communaute: "👥", gestion: "📊", education: "🎓", sante: "💗", vitrine: "🌐", autre: "➕" };
 const ICONES_PLATEFORMES = { web: "💻", mobile: "📱", les_deux: "🔁" };
 
 const euros = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -154,6 +155,8 @@ function Parcours() {
             setChoixPerso(false);
           }}
           annuler={projet.jeu ? () => setChoixPerso(false) : null}
+          contact={projet.contact || {}}
+          majContact={(champ, valeur) => maj({ contact: { ...(projet.contact || {}), [champ]: valeur } })}
         />
       </main>
     );
@@ -211,7 +214,7 @@ function Parcours() {
 
 // ---------------- Jeu ----------------
 
-function ChoixPersonnage({ initial, valider, annuler }) {
+function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }) {
   const debut = initial?.actif ? initial : null;
   const [univers, setUnivers] = useState(debut?.univers || UNIVERS[0].id);
   const [avatar, setAvatar] = useState(typeof debut?.avatar === "object" ? debut.avatar : { forme: "illustre", perso: "kai" });
@@ -253,6 +256,12 @@ function ChoixPersonnage({ initial, valider, annuler }) {
             <span>Votre nom de joueur</span>
             <input value={pseudo} maxLength={30} placeholder="Ex. : Kai, Mia, Capitaine Zoé…" onChange={(e) => setPseudo(e.target.value)} />
           </label>
+
+          <div className="formulaire-deux">
+            <label className="champ"><span>Prénom / Nom <small className="discret">(facultatif)</small></span><input autoComplete="name" value={contact.nom || ""} maxLength={100} placeholder="Votre nom complet" onChange={(e) => majContact("nom", e.target.value)} /></label>
+            <label className="champ"><span>E-mail <small className="discret">(facultatif)</small></span><input type="email" autoComplete="email" value={contact.email || ""} maxLength={160} placeholder="votre@email.com" onChange={(e) => majContact("email", e.target.value)} /></label>
+          </div>
+          <p className="note">🔒 Vos coordonnées restent sur votre appareil et servent seulement si vous commandez.</p>
 
           <p className="petit-titre">Choisissez votre personnage</p>
           <div className="personnages" role="radiogroup" aria-label="Personnage">
@@ -398,15 +407,27 @@ function EtapeIdee({ projet, maj, analyser }) {
   const dejaAnalysee = projet.analyse?.ideeAnalysee === projet.idee;
   return (
     <section className="carte etape">
-      <h1 className="h-page">Décrivez votre idée</h1>
-      <p className="discret">Avec vos propres mots, comme si vous l'expliquiez à un ami. Qu'est-ce que l'application doit permettre ? Pour qui ?</p>
-      <textarea
-        rows={6}
-        value={projet.idee}
-        maxLength={2000}
-        placeholder="Exemple : je veux une application pour gérer mes réservations et rappeler les rendez-vous à mes clients."
-        onChange={(e) => maj({ idee: e.target.value })}
-      />
+      <h1 className="h-page">Parlez-nous de votre projet</h1>
+      <p className="discret">Décrivez votre idée en quelques mots, comme si vous l'expliquiez à un ami.</p>
+      <label className="champ">
+        <span>Titre de votre projet <small className="discret">(facultatif)</small></span>
+        <input value={projet.nom} maxLength={80} placeholder="Ex. : Mon super projet" onChange={(e) => maj({ nom: e.target.value })} />
+      </label>
+      <label className="champ">
+        <span>Décrivez votre idée *</span>
+        <textarea
+          rows={6}
+          value={projet.idee}
+          maxLength={2000}
+          placeholder="Vos objectifs, ce que l'application doit permettre, vos utilisateurs… Exemple : je veux que mes clients réservent en ligne et reçoivent un rappel."
+          onChange={(e) => maj({ idee: e.target.value })}
+        />
+        <small className={`compteur ${projet.idee.length > 1800 ? "presque" : ""}`}>{projet.idee.length}/2000</small>
+      </label>
+      <label className="champ">
+        <span>À qui s'adresse votre application ?</span>
+        <input value={projet.publicCible} maxLength={300} placeholder="Ex. : étudiants, professionnels, particuliers…" onChange={(e) => maj({ publicCible: e.target.value })} />
+      </label>
       <p className="petit-titre">Besoin d'inspiration ?</p>
       <div className="puces">
         {EXEMPLES.map((ex) => <button key={ex} className="puce" onClick={() => maj({ idee: ex })}>{ex}</button>)}
@@ -415,10 +436,52 @@ function EtapeIdee({ projet, maj, analyser }) {
         <span />
         <div className="actions">
           {dejaAnalysee && <button className="btn secondaire" onClick={() => maj({ etape: 1 })}>Continuer sans réanalyser</button>}
-          <button className="btn" disabled={!assez} onClick={analyser}>{dejaAnalysee ? "Réanalyser" : "Analyser mon idée"}</button>
+          <button className="btn" disabled={!assez} onClick={analyser}>{dejaAnalysee ? "Réanalyser" : "Analyser mon idée →"}</button>
         </div>
       </div>
     </section>
+  );
+}
+
+function PiecesJointes({ projetId }) {
+  const [fichiers, setFichiers] = useState([]);
+  const [refus, setRefus] = useState([]);
+  const [survol, setSurvol] = useState(false);
+  useEffect(() => { lireFichiers(projetId).then(setFichiers); }, [projetId]);
+  async function ajouter(liste) {
+    const { fichiers: suivants, refus: r } = await ajouterFichiers(fichiers, [...liste]);
+    setRefus(r);
+    setFichiers(suivants);
+    await enregistrerFichiers(projetId, suivants).catch(() => setRefus((x) => [...x, "Impossible d'enregistrer les fichiers sur cet appareil."]));
+  }
+  async function retirer(i) {
+    const suivants = fichiers.filter((_, j) => j !== i);
+    setFichiers(suivants);
+    await enregistrerFichiers(projetId, suivants).catch(() => {});
+  }
+  return (
+    <div className="champ">
+      <span>Avez-vous des références ou des inspirations ?</span>
+      <label
+        className={`depot ${survol ? "survol" : ""}`}
+        onDragOver={(e) => { e.preventDefault(); setSurvol(true); }}
+        onDragLeave={() => setSurvol(false)}
+        onDrop={(e) => { e.preventDefault(); setSurvol(false); ajouter(e.dataTransfer.files); }}
+      >
+        <input type="file" multiple accept={LIMITES.types.join(",")} onChange={(e) => { ajouter(e.target.files); e.target.value = ""; }} />
+        <span aria-hidden="true">⬆️</span>
+        <strong>Ajouter des images, documents…</strong>
+        <small className="discret">Facultatif · images ou PDF · {LIMITES.nombre} fichiers, 2,5 Mo au total · joints à votre commande</small>
+      </label>
+      {fichiers.length > 0 && (
+        <ul className="perso">
+          {fichiers.map((f, i) => (
+            <li key={`${f.nom}-${i}`}>{f.type === "application/pdf" ? "📄" : "🖼️"} {f.nom} <small className="discret">({tailleLisible(f.taille)})</small> <button aria-label={`Retirer ${f.nom}`} onClick={() => retirer(i)}>×</button></li>
+          ))}
+        </ul>
+      )}
+      {refus.map((r) => <p key={r} className="alerte">{r}</p>)}
+    </div>
   );
 }
 
@@ -504,10 +567,7 @@ function EtapeFonctionnalites({ projet, maj, suivant, precedent }) {
         </ul>
       )}
 
-      <label className="champ">
-        <span>Qui va utiliser l'application ?</span>
-        <input value={projet.publicCible} maxLength={300} placeholder="Ex. : mes clients particuliers, surtout depuis leur téléphone" onChange={(e) => maj({ publicCible: e.target.value })} />
-      </label>
+
 
       <Navigation precedent={precedent} suivant={suivant} desactive={projet.fonctionnalites.length + projet.personnalisees.length === 0} />
     </section>
@@ -566,9 +626,10 @@ function EtapeBudget({ projet, maj, suivant, precedent }) {
         ))}
       </div>
       <label className="champ">
-        <span>Références ou inspirations (facultatif)</span>
+        <span>Liens d'inspiration (facultatif)</span>
         <input value={projet.inspirations || ""} maxLength={600} placeholder="Ex. : une application que vous aimez, un site concurrent, un lien…" onChange={(e) => maj({ inspirations: e.target.value })} />
       </label>
+      <PiecesJointes projetId={projet.id} />
       <label className="champ">
         <span>Précisions (facultatif)</span>
         {questions.length > 0 && (
@@ -742,13 +803,16 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
     { id: "conseil", label: "J'en parle d'abord", detail: "Un échange pour choisir ensemble" },
   ];
 
+  const [pieces, setPieces] = useState([]);
+  useEffect(() => { lireFichiers(projet.id).then(setPieces); }, [projet.id]);
+
   async function commander() {
     setErreur(""); setNonConfigure(false); setEnvoi(true);
     try {
       const r = await fetch("/api/commande", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projet, recap: projet.recap, contact, formule, consentement, siteWeb: piege }),
+        body: JSON.stringify({ projet, recap: projet.recap, contact, formule, consentement, siteWeb: piege, pieces: pieces.map(({ nom, type, contenu }) => ({ nom, type, contenu })) }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setNonConfigure(Boolean(d.nonConfigure)); throw new Error(d.erreur || "L'envoi a échoué. Réessayez."); }
@@ -813,6 +877,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
         <label className="champ"><span>Entreprise / association</span><input autoComplete="organization" value={contact.entreprise || ""} maxLength={120} onChange={(ev) => setContact("entreprise", ev.target.value)} placeholder="Facultatif" /></label>
       </div>
       <label className="champ"><span>Un message pour l'équipe ?</span><textarea rows={3} maxLength={1500} value={contact.message || ""} onChange={(ev) => setContact("message", ev.target.value)} placeholder="Disponibilités pour un appel, questions…" /></label>
+      {pieces.length > 0 && <p className="note">📎 {pieces.length} pièce{pieces.length > 1 ? "s" : ""} jointe{pieces.length > 1 ? "s" : ""} envoyée{pieces.length > 1 ? "s" : ""} avec la commande : {pieces.map((p) => p.nom).join(", ")}</p>}
       <input className="piege" tabIndex={-1} autoComplete="off" aria-hidden="true" value={piege} onChange={(ev) => setPiege(ev.target.value)} />
 
       <label className="case consentement">
