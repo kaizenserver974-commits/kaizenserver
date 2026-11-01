@@ -1,0 +1,844 @@
+"use client";
+
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  TYPES, FONCTIONNALITES, PLATEFORMES, STYLES, BUDGETS, DELAIS, PRIORITES, ETAPES_SUIVI,
+  trouver, fonctionnalite,
+} from "../../lib/catalogue.js";
+import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
+import Avatar from "../components/Avatar.js";
+import { OPTIONS_AVATAR, PRESETS_AVATAR, AVATAR_DEFAUT, PERSONNAGES } from "../../lib/avatar.js";
+import {
+  UNIVERS, BADGES, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
+} from "../../lib/jeu.js";
+
+const ETAPES = ["Idée", "Type", "Fonctionnalités", "Style", "Budget & délai", "Récapitulatif", "Maquette", "Suivi"];
+
+const EXEMPLES = [
+  "Je veux une application pour que mes clients réservent leurs séances de coaching et paient en ligne.",
+  "Je veux accompagner les personnes que je suis dans leurs démarches, avec des étapes et des documents à déposer.",
+  "Je veux vendre mes créations artisanales en ligne et gérer mes commandes.",
+  "Je veux un outil pour gérer le stock et les tâches de mon équipe.",
+];
+
+const ICONES_TYPES = { reservation: "📅", accompagnement: "🤝", boutique: "🛒", communaute: "👥", gestion: "📊", vitrine: "🌐", autre: "➕" };
+const ICONES_PLATEFORMES = { web: "💻", mobile: "📱", les_deux: "🔁" };
+
+const euros = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+
+async function appeler(url, corps) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) });
+  const donnees = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(donnees.erreur || "Kaizen n'a pas pu répondre. Réessayez.");
+  return donnees;
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<main className="conteneur page"><p className="discret">Chargement…</p></main>}>
+      <Parcours />
+    </Suspense>
+  );
+}
+
+function Parcours() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const [projet, setProjet] = useState(null);
+  const [chargement, setChargement] = useState("");
+  const [erreur, setErreur] = useState("");
+  const [gain, setGain] = useState(null);
+  const [choixPerso, setChoixPerso] = useState(false);
+
+  useEffect(() => {
+    const id = params.get("id");
+    const existant = id ? chargerProjet(id) : null;
+    if (existant) { setProjet(existant); return; }
+    const p = nouveauProjet();
+    const ideeProposee = params.get("idee");
+    if (ideeProposee) p.idee = ideeProposee.slice(0, 2000);
+    setProjet(p);
+    router.replace(`/nouveau?id=${p.id}`);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!gain) return undefined;
+    const t = setTimeout(() => setGain(null), 3800);
+    return () => clearTimeout(t);
+  }, [gain]);
+
+  // À chaque changement d'étape (de niveau), on remonte en haut pour voir le narrateur.
+  const etapeCourante = projet?.etape;
+  useEffect(() => {
+    if (etapeCourante !== undefined) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [etapeCourante]);
+
+  if (!projet) return <main className="conteneur page"><p className="discret">Chargement…</p></main>;
+
+  // Calcule les récompenses à partir de l'état actuel du jeu et déclenche l'animation.
+  const gagner = (cles) => {
+    const { jeu, gains } = recompenser(projet.jeu, cles);
+    if (gains) setGain({ ...gains, cle: Date.now() });
+    return jeu;
+  };
+  const maj = (champs, cles = []) => {
+    const jeu = cles.length ? gagner(cles) : undefined;
+    setProjet((p) => enregistrerProjet({ ...p, ...champs, ...(jeu ? { jeu } : {}) }));
+  };
+  const noter = (p, texte) => [...(p.journal || []), { date: new Date().toISOString(), texte }];
+  const allerA = (etape, cles = []) => {
+    setErreur("");
+    maj({ etape }, cles);
+  };
+
+  async function lancer(message, action) {
+    setErreur("");
+    setChargement(message);
+    try { await action(); } catch (e) { setErreur(e.message); } finally { setChargement(""); }
+  }
+
+  const analyser = () => lancer("Kaizen étudie votre idée…", async () => {
+    const a = await appeler("/api/analyser", { idee: projet.idee });
+    const jeu = gagner(["idee"]);
+    setProjet((p) => enregistrerProjet({
+      ...p,
+      jeu,
+      analyse: { ...a, ideeAnalysee: p.idee },
+      typeId: a.typeId,
+      plateforme: a.plateforme || p.plateforme,
+      fonctionnalites: a.fonctionnalites,
+      nom: p.nom || a.nomSuggere || "",
+      publicCible: p.publicCible || a.publicCible || "",
+      etape: 1,
+      journal: noter(p, "Idée analysée par Kaizen"),
+    }));
+  });
+
+  const preparerRecap = () => lancer("Kaizen rédige le récapitulatif de votre projet…", async () => {
+    const { recap, estimation } = await appeler("/api/recapitulatif", { projet });
+    const jeu = gagner(["budget", "recap", "scribe", ...(projet.precisions.trim() ? ["precisions"] : [])]);
+    setProjet((p) => enregistrerProjet({
+      ...p, jeu, recap, estimation, etape: 5,
+      statut: p.statut === "idee" ? "cadrage" : p.statut,
+      journal: noter(p, "Récapitulatif du projet préparé"),
+    }));
+  });
+
+  const genererMaquette = () => lancer("Kaizen dessine la maquette de votre application… (jusqu'à une minute)", async () => {
+    const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap });
+    const jeu = gagner(["maquette"]);
+    setProjet((p) => enregistrerProjet({
+      ...p, jeu, maquette: { html, source, genereLe: new Date().toISOString() }, etape: 6,
+      statut: ["idee", "cadrage"].includes(p.statut) ? "maquette" : p.statut,
+      journal: noter(p, p.maquette ? "Maquette régénérée" : "Maquette générée"),
+    }));
+  });
+
+  // Écran de choix du personnage : au début d'un projet, ou sur demande.
+  if (!projet.jeu || choixPerso) {
+    return (
+      <main className="conteneur page">
+        <ChoixPersonnage
+          initial={projet.jeu}
+          valider={(choix) => {
+            const jeu = choix
+              ? { ...nouveauJeu(choix), ...(projet.jeu?.actif ? { points: projet.jeu.points, badges: projet.jeu.badges, recompenses: projet.jeu.recompenses } : {}) }
+              : { actif: false };
+            maj({ jeu, journal: noter(projet, choix ? `Aventure « ${trouverUnivers(jeu.univers).nom} » avec ${jeu.pseudo}` : "Mode classique choisi") });
+            setChoixPerso(false);
+          }}
+          annuler={projet.jeu ? () => setChoixPerso(false) : null}
+        />
+      </main>
+    );
+  }
+
+  const enJeu = projet.jeu.actif;
+  const univers = enJeu ? trouverUnivers(projet.jeu.univers) : null;
+  const etape = projet.etape || 0;
+  const accessible = (i) =>
+    i <= 1 ? Boolean(projet.analyse) || i === 0 :
+    i <= 4 ? Boolean(projet.analyse) :
+    i === 5 ? Boolean(projet.recap) :
+    Boolean(projet.maquette);
+
+  return (
+    <main
+      className={`conteneur page ${enJeu ? "en-jeu" : ""}`}
+      style={enJeu ? { "--jeu": univers.couleur, "--jeu-clair": univers.clair } : undefined}
+    >
+      {enJeu
+        ? <TableauJoueur jeu={projet.jeu} changer={() => setChoixPerso(true)} />
+        : <p className="mode-classique">Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></p>}
+
+      <ol className="progression">
+        {ETAPES.map((nom, i) => (
+          <li key={nom} className={i === etape ? "actif" : i < etape ? "fait" : ""}>
+            <button disabled={!accessible(i) || Boolean(chargement)} onClick={() => allerA(i)} title={nom}>
+              <span>{enJeu && i < etape ? "✓" : i + 1}</span>{enJeu ? univers.niveaux[i] : nom}
+            </button>
+          </li>
+        ))}
+      </ol>
+
+      {enJeu && <Narrateur jeu={projet.jeu} etape={etape} />}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+      {chargement && <div className="chargement"><span className="rond" /> {chargement}</div>}
+
+      <div className={chargement ? "voile" : ""}>
+        {etape === 0 && <EtapeIdee projet={projet} maj={maj} analyser={analyser} />}
+        {etape === 1 && <EtapeType projet={projet} maj={maj} suivant={() => allerA(2, ["type"])} precedent={() => allerA(0)} />}
+        {etape === 2 && <EtapeFonctionnalites projet={projet} maj={maj} suivant={() => allerA(3, ["fonctionnalites", ...(projet.personnalisees.length ? ["perso"] : [])])} precedent={() => allerA(1)} />}
+        {etape === 3 && <EtapeStyle projet={projet} maj={maj} suivant={() => allerA(4, ["style"])} precedent={() => allerA(2)} />}
+        {etape === 4 && <EtapeBudget projet={projet} maj={maj} suivant={preparerRecap} precedent={() => allerA(3)} />}
+        {etape === 5 && <EtapeRecap projet={projet} modifier={() => allerA(1)} suivant={projet.maquette ? () => allerA(6) : genererMaquette} actualiser={preparerRecap} />}
+        {etape === 6 && <EtapeMaquette projet={projet} regenerer={genererMaquette} precedent={() => allerA(5)} suivant={() => allerA(7)} />}
+        {etape === 7 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
+      </div>
+
+      {gain && enJeu && <Recompense key={gain.cle} gain={gain} univers={univers} />}
+    </main>
+  );
+}
+
+// ---------------- Jeu ----------------
+
+function ChoixPersonnage({ initial, valider, annuler }) {
+  const debut = initial?.actif ? initial : null;
+  const [univers, setUnivers] = useState(debut?.univers || UNIVERS[0].id);
+  const [avatar, setAvatar] = useState(typeof debut?.avatar === "object" ? debut.avatar : { forme: "illustre", perso: "kai" });
+  const [pseudo, setPseudo] = useState(debut?.pseudo || (debut ? "" : "Kai"));
+  const u = trouverUnivers(univers);
+  const changer = (champ, valeur) => setAvatar((a) => ({ ...a, [champ]: valeur }));
+  const humain = avatar.forme !== "robot";
+  const illustre = avatar.forme === "illustre";
+
+  const couleurs = (champ, liste, nom) => (
+    <div className="pastilles" role="radiogroup" aria-label={nom}>
+      {liste.map((c) => (
+        <button key={c} role="radio" aria-checked={avatar[champ] === c} aria-label={`${nom} ${c}`} className={`pastille-couleur ${avatar[champ] === c ? "choisie" : ""}`} style={{ background: c }} onClick={() => changer(champ, c)} />
+      ))}
+    </div>
+  );
+  const options = (champ, liste) => (
+    <div className="puces">
+      {liste.map((o) => <button key={o.id} className={`puce ${avatar[champ] === o.id ? "choisie" : ""}`} onClick={() => changer(champ, o.id)}>{o.label}</button>)}
+    </div>
+  );
+
+  return (
+    <section className="carte etape choix-perso" style={{ "--jeu": u.couleur, "--jeu-clair": u.clair }}>
+      <p className="surtitre">Étape 0 · Qui êtes-vous ?</p>
+      <h1 className="h-page">Créez votre avatar</h1>
+      <p className="discret">Chaque étape de votre projet deviendra un niveau. Gagnez des {u.monnaie} et des badges jusqu'à la mise en ligne de votre application !</p>
+
+      <div className="perso-grille">
+        <div className="perso-apercu">
+          <Avatar config={avatar} taille={200} titre="Aperçu de votre avatar" />
+          <strong>{pseudo.trim() || "Votre nom"}</strong>
+          <small>{u.icone} {u.nom} · Niveau 1</small>
+          <small>Premier lieu : {u.niveaux[0]}</small>
+        </div>
+
+        <div>
+          <label className="champ" style={{ marginTop: 0 }}>
+            <span>Votre nom de joueur</span>
+            <input value={pseudo} maxLength={30} placeholder="Ex. : Kai, Mia, Capitaine Zoé…" onChange={(e) => setPseudo(e.target.value)} />
+          </label>
+
+          <p className="petit-titre">Choisissez votre personnage</p>
+          <div className="personnages" role="radiogroup" aria-label="Personnage">
+            {PERSONNAGES.map((pe) => (
+              <button
+                key={pe.id}
+                role="radio"
+                aria-checked={illustre && avatar.perso === pe.id}
+                className={`carte-perso ${illustre && avatar.perso === pe.id ? "choisie" : ""}`}
+                style={{ "--p": pe.couleur }}
+                onClick={() => { setAvatar({ forme: "illustre", perso: pe.id }); if (!pseudo.trim() || PERSONNAGES.some((x) => x.nom === pseudo)) setPseudo(pe.nom); }}
+              >
+                <img src={pe.buste} alt="" loading="lazy" />
+                <span className="etiquette">{pe.genre}<small>{pe.nom}</small></span>
+              </button>
+            ))}
+            <button
+              role="radio"
+              aria-checked={!illustre}
+              className={`carte-perso creer ${!illustre ? "choisie" : ""}`}
+              style={{ "--p": "#2ad4ff" }}
+              onClick={() => { if (illustre) setAvatar({ ...AVATAR_DEFAUT }); }}
+            >
+              <span className="plus" aria-hidden="true">✏️</span>
+              <strong>Créer le mien</strong>
+              <small className="discret">Peau, coiffure, couleurs…</small>
+            </button>
+          </div>
+
+          {!illustre && (
+            <>
+              <p className="petit-titre">Modèles de départ</p>
+              <div className="presets">
+                {PRESETS_AVATAR.map((pr) => (
+                  <button key={pr.nom} className="preset" onClick={() => setAvatar({ ...pr.config })}>
+                    <Avatar config={pr.config} taille={56} titre={pr.nom} />{pr.nom}
+                  </button>
+                ))}
+              </div>
+
+              <p className="petit-titre">Personnaliser</p>
+              <div className="reglage"><span>Forme</span>{options("forme", OPTIONS_AVATAR.forme)}</div>
+              {humain && <div className="reglage"><span>Peau</span>{couleurs("peau", OPTIONS_AVATAR.peau, "Couleur de peau")}</div>}
+              {humain && <div className="reglage"><span>Coiffure</span>{options("coiffure", OPTIONS_AVATAR.coiffure)}</div>}
+              {humain && <div className="reglage"><span>Cheveux</span>{couleurs("cheveux", OPTIONS_AVATAR.cheveux, "Couleur des cheveux")}</div>}
+              <div className="reglage"><span>{humain ? "Yeux" : "Lumières"}</span>{couleurs("yeux", OPTIONS_AVATAR.yeux, "Couleur des yeux")}</div>
+              <div className="reglage"><span>Tenue</span>{couleurs("tenue", OPTIONS_AVATAR.tenue, "Couleur de la tenue")}</div>
+              {humain && <div className="reglage"><span>Accessoire</span>{options("accessoire", OPTIONS_AVATAR.accessoire)}</div>}
+            </>
+          )}
+        </div>
+      </div>
+
+      <p className="petit-titre">Votre univers de jeu</p>
+      <div className="choix-grille univers-grille">
+        {UNIVERS.map((x) => (
+          <button key={x.id} className={`choix univers ${univers === x.id ? "choisi" : ""}`} style={{ "--u": x.couleur }} onClick={() => setUnivers(x.id)}>
+            <span className="univers-icone" aria-hidden="true">{x.icone}</span>
+            <strong>{x.nom}</strong>
+            <span>{x.accroche}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="navigation">
+        <div className="actions">
+          {annuler && <button className="btn secondaire" onClick={annuler}>Annuler</button>}
+          <button className="btn secondaire" onClick={() => valider(null)}>Mode classique, sans jeu</button>
+        </div>
+        <button className="btn grand" onClick={() => valider({ univers, avatar, pseudo })}>Commencer l'aventure →</button>
+      </div>
+    </section>
+  );
+}
+
+// Affiche l'avatar du joueur : illustré (nouveau) ou emoji (anciens projets).
+function AvatarJoueur({ jeu, taille, classe }) {
+  if (jeu?.avatar && typeof jeu.avatar === "object") return <Avatar config={jeu.avatar} taille={taille} titre={jeu.pseudo} />;
+  return <span className={classe} aria-hidden="true">{trouverAvatar(jeu?.avatar).emoji}</span>;
+}
+
+function TableauJoueur({ jeu, changer }) {
+  const u = trouverUnivers(jeu.univers);
+  const n = niveau(jeu.points);
+  return (
+    <div className="joueur">
+      <AvatarJoueur jeu={jeu} taille={72} classe="avatar-grand" />
+      <div className="joueur-infos">
+        <div className="joueur-ligne">
+          <strong>{jeu.pseudo}</strong>
+          <span className="badge-niveau">Niveau {n.numero}</span>
+          <span className="discret">{u.icone} {u.nom}</span>
+        </div>
+        <div className="barre-xp" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(n.progression * 100)} aria-label="Progression vers le niveau suivant">
+          <i style={{ width: `${Math.max(4, n.progression * 100)}%` }} />
+        </div>
+        <small className="discret">{jeu.points} {u.monnaie} · encore {n.restant} pour le niveau {n.numero + 1}</small>
+      </div>
+      <div className="badges" aria-label="Badges">
+        {Object.entries(BADGES).map(([id, b]) => (
+          <span key={id} className={`badge-jeu ${jeu.badges.includes(id) ? "obtenu" : ""}`} title={`${b.nom} — ${b.detail}${jeu.badges.includes(id) ? "" : " (à débloquer)"}`}>{b.icone}</span>
+        ))}
+      </div>
+      <button className="btn petit secondaire" onClick={changer}>Changer</button>
+    </div>
+  );
+}
+
+function Narrateur({ jeu, etape }) {
+  return (
+    <div className="narrateur">
+      <AvatarJoueur jeu={jeu} taille={52} classe="avatar-moyen" />
+      <p className="bulle">{recit(jeu, etape)}</p>
+    </div>
+  );
+}
+
+function Recompense({ gain, univers }) {
+  return (
+    <div className="recompense" role="status" aria-live="polite">
+      {gain.points > 0 && <strong>+{gain.points} {univers.monnaie}</strong>}
+      {gain.badges.map((id) => (
+        <span key={id} className="recompense-badge">{BADGES[id].icone} Badge « {BADGES[id].nom} » débloqué !</span>
+      ))}
+      {gain.niveauAtteint && <span className="recompense-niveau">🎉 Niveau {gain.niveauAtteint} atteint !</span>}
+    </div>
+  );
+}
+
+// ---------------- Étapes ----------------
+
+function Navigation({ precedent, suivant, libelle = "Continuer", desactive }) {
+  return (
+    <div className="navigation">
+      {precedent ? <button className="btn secondaire" onClick={precedent}>Retour</button> : <span />}
+      {suivant && <button className="btn" disabled={desactive} onClick={suivant}>{libelle}</button>}
+    </div>
+  );
+}
+
+function EtapeIdee({ projet, maj, analyser }) {
+  const assez = projet.idee.trim().length >= 10;
+  const dejaAnalysee = projet.analyse?.ideeAnalysee === projet.idee;
+  return (
+    <section className="carte etape">
+      <h1 className="h-page">Décrivez votre idée</h1>
+      <p className="discret">Avec vos propres mots, comme si vous l'expliquiez à un ami. Qu'est-ce que l'application doit permettre ? Pour qui ?</p>
+      <textarea
+        rows={6}
+        value={projet.idee}
+        maxLength={2000}
+        placeholder="Exemple : je veux une application pour gérer mes réservations et rappeler les rendez-vous à mes clients."
+        onChange={(e) => maj({ idee: e.target.value })}
+      />
+      <p className="petit-titre">Besoin d'inspiration ?</p>
+      <div className="puces">
+        {EXEMPLES.map((ex) => <button key={ex} className="puce" onClick={() => maj({ idee: ex })}>{ex}</button>)}
+      </div>
+      <div className="navigation">
+        <span />
+        <div className="actions">
+          {dejaAnalysee && <button className="btn secondaire" onClick={() => maj({ etape: 1 })}>Continuer sans réanalyser</button>}
+          <button className="btn" disabled={!assez} onClick={analyser}>{dejaAnalysee ? "Réanalyser" : "Analyser mon idée"}</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EtapeType({ projet, maj, suivant, precedent }) {
+  const a = projet.analyse || {};
+  return (
+    <section className="carte etape">
+      <h1 className="h-page">Quel type d'application ?</h1>
+      {a.reformulation && <p className="reformulation">{a.reformulation}</p>}
+      <p className="discret">Kaizen a présélectionné le type le plus proche de votre idée. Vous pouvez le changer.</p>
+      <div className="choix-grille">
+        {TYPES.map((t) => (
+          <button key={t.id} className={`choix ${projet.typeId === t.id ? "choisi" : ""}`} onClick={() => maj({ typeId: t.id })}>
+            <span className="icone-choix" aria-hidden="true">{ICONES_TYPES[t.id]}</span>
+            <strong>{t.label}</strong><span>{t.description}</span>
+          </button>
+        ))}
+      </div>
+      <p className="petit-titre">Sur quel support ?</p>
+      <div className="choix-grille trois">
+        {PLATEFORMES.map((p) => (
+          <button key={p.id} className={`choix ${projet.plateforme === p.id ? "choisi" : ""}`} onClick={() => maj({ plateforme: p.id })}>
+            <span className="icone-choix" aria-hidden="true">{ICONES_PLATEFORMES[p.id]}</span>
+            <strong>{p.label}</strong><span>{p.detail}</span>
+          </button>
+        ))}
+      </div>
+      {projet.plateforme !== "web" && (
+        <p className="astuce">Astuce : une application web fonctionne aussi sur téléphone et coûte moins cher. On peut commencer par le web et passer au mobile ensuite.</p>
+      )}
+      <Navigation precedent={precedent} suivant={suivant} desactive={!projet.typeId} />
+    </section>
+  );
+}
+
+function EtapeFonctionnalites({ projet, maj, suivant, precedent }) {
+  const [ajout, setAjout] = useState("");
+  const suggerees = new Set(projet.analyse?.fonctionnalites || []);
+  const basculer = (id) => maj({
+    fonctionnalites: projet.fonctionnalites.includes(id)
+      ? projet.fonctionnalites.filter((f) => f !== id)
+      : [...projet.fonctionnalites, id],
+  });
+  const ajouterPerso = (texte) => {
+    const t = texte.trim();
+    if (!t || projet.personnalisees.includes(t)) return;
+    maj({ personnalisees: [...projet.personnalisees, t].slice(0, 10) });
+    setAjout("");
+  };
+  const ordonnees = [...FONCTIONNALITES].sort((x, y) => Number(suggerees.has(y.id)) - Number(suggerees.has(x.id)));
+  const autresSuggestions = (projet.analyse?.suggestionsPersonnalisees || []).filter((s) => !projet.personnalisees.includes(s));
+
+  return (
+    <section className="carte etape">
+      <h1 className="h-page">Que doit faire votre application ?</h1>
+      <p className="discret">Les fonctionnalités marquées « Conseillé » correspondent à votre idée. Moins il y en a au départ, plus vite vous serez en ligne.</p>
+      <div className="cases">
+        {ordonnees.map((f) => (
+          <label key={f.id} className={`case ${projet.fonctionnalites.includes(f.id) ? "cochee" : ""}`}>
+            <input type="checkbox" checked={projet.fonctionnalites.includes(f.id)} onChange={() => basculer(f.id)} />
+            <span>{f.label}</span>
+            {suggerees.has(f.id) && <em className="badge">Conseillé</em>}
+            <small className="niveau">{["", "Simple", "Moyen", "Avancé"][f.complexite]}</small>
+          </label>
+        ))}
+      </div>
+
+      <p className="petit-titre">Une fonctionnalité propre à votre projet ?</p>
+      {autresSuggestions.length > 0 && (
+        <div className="puces">
+          {autresSuggestions.map((sug) => <button key={sug} className="puce" onClick={() => ajouterPerso(sug)}>+ {sug}</button>)}
+        </div>
+      )}
+      <div className="ligne-ajout">
+        <input value={ajout} maxLength={120} placeholder="Ex. : envoyer un bilan PDF à la fin de l'accompagnement" onChange={(e) => setAjout(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ajouterPerso(ajout)} />
+        <button className="btn secondaire" onClick={() => ajouterPerso(ajout)}>Ajouter</button>
+      </div>
+      {projet.personnalisees.length > 0 && (
+        <ul className="perso">
+          {projet.personnalisees.map((t) => (
+            <li key={t}>{t} <button aria-label={`Retirer ${t}`} onClick={() => maj({ personnalisees: projet.personnalisees.filter((x) => x !== t) })}>×</button></li>
+          ))}
+        </ul>
+      )}
+
+      <label className="champ">
+        <span>Qui va utiliser l'application ?</span>
+        <input value={projet.publicCible} maxLength={300} placeholder="Ex. : mes clients particuliers, surtout depuis leur téléphone" onChange={(e) => maj({ publicCible: e.target.value })} />
+      </label>
+
+      <Navigation precedent={precedent} suivant={suivant} desactive={projet.fonctionnalites.length + projet.personnalisees.length === 0} />
+    </section>
+  );
+}
+
+function EtapeStyle({ projet, maj, suivant, precedent }) {
+  const style = trouver(STYLES, projet.style) || STYLES[0];
+  return (
+    <section className="carte etape">
+      <h1 className="h-page">Le style de votre application</h1>
+      <label className="champ">
+        <span>Nom de l'application</span>
+        <input value={projet.nom} maxLength={80} placeholder="Ex. : RésaFacile" onChange={(e) => maj({ nom: e.target.value })} />
+      </label>
+      <p className="petit-titre">Ambiance</p>
+      <div className="choix-grille">
+        {STYLES.map((s) => (
+          <button key={s.id} className={`choix ${projet.style === s.id ? "choisi" : ""}`} onClick={() => maj({ style: s.id, couleur: "" })}>
+            <span className="echantillon" style={{ background: s.fond, borderColor: s.couleur }}>
+              <i style={{ background: s.couleur }} /><b style={{ fontFamily: s.police, color: s.couleur }}>Aa</b>
+            </span>
+            <strong>{s.label}</strong>
+          </button>
+        ))}
+      </div>
+      <label className="champ couleur">
+        <span>Couleur principale (facultatif)</span>
+        <input type="color" value={projet.couleur || style.couleur} onChange={(e) => maj({ couleur: e.target.value })} />
+      </label>
+      <Navigation precedent={precedent} suivant={suivant} />
+    </section>
+  );
+}
+
+function EtapeBudget({ projet, maj, suivant, precedent }) {
+  const questions = projet.analyse?.questions || [];
+  return (
+    <section className="carte etape">
+      <h1 className="h-page">Budget et délai</h1>
+      <p className="discret">Il n'y a pas de mauvaise réponse : Kaizen adaptera la première version à vos moyens.</p>
+      <p className="petit-titre">Budget envisagé</p>
+      <div className="puces">
+        {BUDGETS.map((b) => <button key={b.id} className={`puce ${projet.budget === b.id ? "choisie" : ""}`} onClick={() => maj({ budget: b.id })}>{b.label}</button>)}
+      </div>
+      <p className="petit-titre">Mise en ligne souhaitée</p>
+      <div className="puces">
+        {DELAIS.map((d) => <button key={d.id} className={`puce ${projet.delai === d.id ? "choisie" : ""}`} onClick={() => maj({ delai: d.id })}>{d.label}</button>)}
+      </div>
+      <p className="petit-titre">Priorité du projet</p>
+      <div className="choix-grille">
+        {PRIORITES.map((pr) => (
+          <button key={pr.id} className={`choix ${projet.priorite === pr.id ? "choisi" : ""}`} onClick={() => maj({ priorite: pr.id })}>
+            <strong>{pr.icone} {pr.label}</strong><span>{pr.detail}</span>
+          </button>
+        ))}
+      </div>
+      <label className="champ">
+        <span>Références ou inspirations (facultatif)</span>
+        <input value={projet.inspirations || ""} maxLength={600} placeholder="Ex. : une application que vous aimez, un site concurrent, un lien…" onChange={(e) => maj({ inspirations: e.target.value })} />
+      </label>
+      <label className="champ">
+        <span>Précisions (facultatif)</span>
+        {questions.length > 0 && (
+          <ul className="questions">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
+        )}
+        <textarea rows={4} maxLength={1500} value={projet.precisions} placeholder="Répondez librement aux questions ci-dessus, ou ajoutez ce qui vous semble important." onChange={(e) => maj({ precisions: e.target.value })} />
+      </label>
+      <Navigation precedent={precedent} suivant={suivant} libelle="Préparer le récapitulatif" desactive={!projet.budget || !projet.delai} />
+    </section>
+  );
+}
+
+function Liste({ titre, items }) {
+  if (!items?.length) return null;
+  return (
+    <div className="bloc">
+      <h3>{titre}</h3>
+      <ul>{items.map((t, i) => <li key={i}>{t}</li>)}</ul>
+    </div>
+  );
+}
+
+function Estimation({ estimation }) {
+  if (!estimation) return null;
+  const { v1, complet, nocode, alertes, avertissement } = estimation;
+  const memeChose = v1.jours === complet.jours;
+  return (
+    <div className="bloc">
+      <h3>Estimation</h3>
+      {alertes.map((a) => <p key={a} className="alerte">{a}</p>)}
+      <div className="estimations">
+        <div className="estim mise-en-avant">
+          <span>{memeChose ? "Projet sur mesure" : "Première version (conseillée)"}</span>
+          <strong>{euros(v1.coutMin)} – {euros(v1.coutMax)}</strong>
+          <small>environ {v1.semaines} semaines</small>
+        </div>
+        {!memeChose && (
+          <div className="estim">
+            <span>Projet complet</span>
+            <strong>{euros(complet.coutMin)} – {euros(complet.coutMax)}</strong>
+            <small>environ {complet.semaines} semaines</small>
+          </div>
+        )}
+        <div className="estim">
+          <span>Projet complet en no-code</span>
+          <strong>{euros(nocode.coutMin)} – {euros(nocode.coutMax)}</strong>
+          <small>environ {nocode.semaines} semaines · moins personnalisable</small>
+        </div>
+      </div>
+      <p className="note">{avertissement}</p>
+    </div>
+  );
+}
+
+function EtapeRecap({ projet, modifier, suivant, actualiser }) {
+  const r = projet.recap;
+  if (!r) return null;
+  return (
+    <section className="carte etape recap">
+      <div className="titre-ligne">
+        <h1 className="h-page">{r.titre || projet.nom || "Votre projet"}</h1>
+        <button className="btn petit secondaire" onClick={() => window.print()}>Imprimer / PDF</button>
+      </div>
+      <div className="recap-resume">
+        <div><span aria-hidden="true">{ICONES_TYPES[projet.typeId] || "📱"}</span><p><small>Type</small><b>{trouver(TYPES, projet.typeId)?.label || "À définir"}</b></p></div>
+        <div><span aria-hidden="true">🧩</span><p><small>Fonctionnalités</small><b>{projet.fonctionnalites.length + projet.personnalisees.length} sélectionnée{projet.fonctionnalites.length + projet.personnalisees.length > 1 ? "s" : ""}</b></p></div>
+        <div><span aria-hidden="true">💶</span><p><small>Budget</small><b>{trouver(BUDGETS, projet.budget)?.label || "—"}</b></p></div>
+        <div><span aria-hidden="true">⏱️</span><p><small>Délai</small><b>{trouver(DELAIS, projet.delai)?.label || "—"}</b></p></div>
+        <div><span aria-hidden="true">{trouver(PRIORITES, projet.priorite)?.icone || "🔵"}</span><p><small>Priorité</small><b>{trouver(PRIORITES, projet.priorite)?.label || "Moyenne"}</b></p></div>
+      </div>
+      <p className="resume">{r.resume}</p>
+      {r.probleme && <div className="bloc"><h3>Le problème résolu</h3><p>{r.probleme}</p></div>}
+      {r.utilisateurs?.length > 0 && (
+        <div className="bloc">
+          <h3>Utilisateurs</h3>
+          <ul>{r.utilisateurs.map((u, i) => <li key={i}><strong>{u.role}</strong> : {u.besoin}</li>)}</ul>
+        </div>
+      )}
+      <Liste titre="Parcours de l'utilisateur" items={r.parcours} />
+      <div className="deux-colonnes">
+        <Liste titre="Première version" items={r.v1} />
+        <Liste titre="Plus tard" items={r.plusTard} />
+      </div>
+      {r.ecrans?.length > 0 && (
+        <div className="bloc">
+          <h3>Écrans</h3>
+          <div className="ecrans">{r.ecrans.map((e, i) => <div key={i} className="ecran"><strong>{e.nom}</strong><span>{e.contenu}</span></div>)}</div>
+        </div>
+      )}
+      <Liste titre="Informations enregistrées" items={r.donnees} />
+      <Liste titre="Points d'attention" items={r.risques} />
+      <Estimation estimation={projet.estimation} />
+      <Liste titre="Prochaines étapes" items={r.prochainesEtapes} />
+      {r.source === "regles" && <p className="note">Récapitulatif préparé par le moteur de règles de Kaizen (IA non configurée).</p>}
+
+      <EnvoiDemande projet={projet} />
+
+      <div className="navigation sans-impression">
+        <div className="actions">
+          <button className="btn secondaire" onClick={modifier}>Modifier mes réponses</button>
+          <button className="btn secondaire" onClick={actualiser}>Régénérer</button>
+        </div>
+        <button className="btn" onClick={suivant}>{projet.maquette ? "Voir la maquette" : "Valider et créer la maquette"}</button>
+      </div>
+    </section>
+  );
+}
+
+// Envoi de la demande : par e-mail si une adresse est configurée
+// (NEXT_PUBLIC_KAIZEN_EMAIL), sinon copie ou PDF du dossier.
+function texteDossier(projet) {
+  const r = projet.recap || {};
+  const e = projet.estimation;
+  const lignes = [
+    `Projet : ${r.titre || projet.nom || "Sans nom"}`,
+    `Type : ${trouver(TYPES, projet.typeId)?.label || "—"} · ${trouver(PLATEFORMES, projet.plateforme)?.label || ""}`,
+    `Budget : ${trouver(BUDGETS, projet.budget)?.label || "—"} · Délai : ${trouver(DELAIS, projet.delai)?.label || "—"} · Priorité : ${trouver(PRIORITES, projet.priorite)?.label || "—"}`,
+    "",
+    `Idée : ${projet.idee}`,
+    "",
+    `Résumé : ${r.resume || ""}`,
+    "",
+    "Première version :", ...(r.v1 || []).map((x) => `- ${x}`),
+    "", "Plus tard :", ...(r.plusTard || []).map((x) => `- ${x}`),
+  ];
+  if (e) lignes.push("", `Estimation indicative (première version) : ${euros(e.v1.coutMin)} – ${euros(e.v1.coutMax)}, environ ${e.v1.semaines} semaines`);
+  if (projet.inspirations) lignes.push("", `Inspirations : ${projet.inspirations}`);
+  if (projet.precisions) lignes.push("", `Précisions : ${projet.precisions}`);
+  return lignes.join("\n");
+}
+
+function EnvoiDemande({ projet }) {
+  const [message, setMessage] = useState("");
+  const email = process.env.NEXT_PUBLIC_KAIZEN_EMAIL;
+  const sujet = `Nouveau projet KaizenServer : ${projet.recap?.titre || projet.nom || "mon application"}`;
+  async function copier() {
+    try {
+      await navigator.clipboard.writeText(texteDossier(projet));
+      setMessage("Dossier copié : vous pouvez le coller dans un e-mail ou un message.");
+    } catch {
+      setMessage("La copie n'est pas disponible sur cet appareil : utilisez « Télécharger en PDF ».");
+    }
+  }
+  return (
+    <div className="envoi sans-impression">
+      <h3>🚀 Parfait ! Votre projet est prêt</h3>
+      <p className="discret">Transmettez ce dossier à la personne ou à l'équipe qui réalisera votre application pour obtenir un devis précis.</p>
+      <div className="actions">
+        {email && (
+          <a className="btn" href={`mailto:${email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(texteDossier(projet).slice(0, 1800))}`}>Envoyer ma demande ✈</a>
+        )}
+        <button className={`btn ${email ? "secondaire" : ""}`} onClick={copier}>Copier mon dossier</button>
+        <button className="btn secondaire" onClick={() => window.print()}>Télécharger en PDF</button>
+      </div>
+      {message && <p className="succes" role="status">{message}</p>}
+    </div>
+  );
+}
+
+function EtapeMaquette({ projet, regenerer, precedent, suivant }) {
+  const [format, setFormat] = useState("bureau");
+  const m = projet.maquette;
+  if (!m) return null;
+  function telecharger() {
+    const url = URL.createObjectURL(new Blob([m.html], { type: "text/html" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `maquette-${(projet.nom || "kaizen").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.html`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return (
+    <section className="carte etape">
+      <div className="titre-ligne">
+        <h1 className="h-page">La maquette de {projet.nom || "votre application"}</h1>
+        <div className="actions">
+          <button className={`btn petit ${format === "bureau" ? "" : "secondaire"}`} onClick={() => setFormat("bureau")}>Ordinateur</button>
+          <button className={`btn petit ${format === "mobile" ? "" : "secondaire"}`} onClick={() => setFormat("mobile")}>Téléphone</button>
+        </div>
+      </div>
+      <p className="discret">Cliquez dans la maquette pour naviguer entre les écrans. C'est un aperçu : les boutons ne font rien de réel.</p>
+      <div className={`cadre-maquette ${format}`}>
+        {/* sandbox sans allow-same-origin : la maquette ne peut accéder ni aux données de Kaizen ni au réseau du site */}
+        <iframe title="Maquette" sandbox="allow-scripts allow-modals" srcDoc={m.html} />
+      </div>
+      <p className="note">
+        {m.source === "ia" ? "Maquette dessinée par l'IA de Kaizen" : "Maquette générée à partir du gabarit Kaizen"} le {new Date(m.genereLe).toLocaleString("fr-FR")}.
+      </p>
+      <div className="navigation">
+        <div className="actions">
+          <button className="btn secondaire" onClick={precedent}>Récapitulatif</button>
+          <button className="btn secondaire" onClick={regenerer}>Nouvelle proposition</button>
+          <button className="btn secondaire" onClick={telecharger}>Télécharger</button>
+        </div>
+        <button className="btn" onClick={suivant}>Suivre mon projet</button>
+      </div>
+    </section>
+  );
+}
+
+function EtapeSuivi({ projet, maj, noter, actualiser }) {
+  const [note, setNote] = useState("");
+  const [evolution, setEvolution] = useState("");
+  const indexStatut = Math.max(0, ETAPES_SUIVI.findIndex((e) => e.id === projet.statut));
+
+  const changerStatut = (id) => {
+    if (id === projet.statut) return;
+    maj({ statut: id, journal: noter(projet, `Étape : ${trouver(ETAPES_SUIVI, id).label}`) }, [id]);
+  };
+  const ajouterNote = () => {
+    if (!note.trim()) return;
+    maj({ journal: noter(projet, note.trim().slice(0, 500)) }, ["journal"]);
+    setNote("");
+  };
+  const ajouterEvolution = () => {
+    const t = evolution.trim().slice(0, 120);
+    if (!t) return;
+    maj({
+      personnalisees: [...projet.personnalisees, t].slice(0, 10),
+      journal: noter(projet, `Évolution souhaitée : ${t}`),
+      evolutionsEnAttente: true,
+    }, ["evolution_ajoutee"]);
+    setEvolution("");
+  };
+
+  return (
+    <section className="carte etape">
+      <h1 className="h-page">Suivi de {projet.nom || "votre projet"}</h1>
+      <p className="discret">Kaizen vous accompagne à chaque étape. Indiquez où en est votre projet.</p>
+
+      <ol className="frise">
+        {ETAPES_SUIVI.map((e, i) => (
+          <li key={e.id} className={i < indexStatut ? "fait" : i === indexStatut ? "actif" : ""}>
+            <button onClick={() => changerStatut(e.id)}><span>{i + 1}</span>{e.label}</button>
+          </li>
+        ))}
+      </ol>
+
+      <div className="bloc conseil">
+        <h3>Ce que Kaizen vous conseille maintenant</h3>
+        <p>{CONSEILS[ETAPES_SUIVI[indexStatut].id]}</p>
+      </div>
+
+      <div className="deux-colonnes">
+        <div className="bloc">
+          <h3>Faire évoluer l'application</h3>
+          <p className="discret">Une nouvelle idée de fonctionnalité ? Ajoutez-la : le récapitulatif et l'estimation seront mis à jour.</p>
+          <div className="ligne-ajout">
+            <input value={evolution} maxLength={120} placeholder="Ex. : programme de fidélité" onChange={(e) => setEvolution(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ajouterEvolution()} />
+            <button className="btn secondaire" onClick={ajouterEvolution}>Ajouter</button>
+          </div>
+          {projet.evolutionsEnAttente && (
+            <button className="btn petit" onClick={() => { maj({ evolutionsEnAttente: false }); actualiser(); }}>Mettre à jour le récapitulatif</button>
+          )}
+        </div>
+        <div className="bloc">
+          <h3>Journal du projet</h3>
+          <div className="ligne-ajout">
+            <input value={note} maxLength={500} placeholder="Ajouter une note (devis reçu, retour d'un client…)" onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ajouterNote()} />
+            <button className="btn secondaire" onClick={ajouterNote}>Noter</button>
+          </div>
+          <ul className="journal">
+            {[...(projet.journal || [])].reverse().slice(0, 30).map((j, i) => (
+              <li key={i}><time>{new Date(j.date).toLocaleDateString("fr-FR")}</time> {j.texte}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const CONSEILS = {
+  idee: "Terminez le parcours guidé pour obtenir votre récapitulatif et votre maquette.",
+  cadrage: "Relisez le récapitulatif. Retirez tout ce qui n'est pas indispensable pour la première version.",
+  maquette: "Montrez la maquette à 3 à 5 futurs utilisateurs. Notez leurs remarques dans le journal, puis demandez un devis en joignant le récapitulatif (bouton Imprimer / PDF).",
+  developpement: "Prévoyez un point chaque semaine avec la personne qui développe. Testez vous-même chaque nouvelle fonctionnalité et notez les corrections dans le journal.",
+  mise_en_ligne: "Vérifiez les mentions légales, la politique de confidentialité et faites tester l'application par quelques vrais utilisateurs avant de la faire connaître.",
+  evolution: "Regardez ce que vos utilisateurs utilisent vraiment. Ajoutez les évolutions une par une, en commençant par celles qu'ils demandent le plus.",
+};
