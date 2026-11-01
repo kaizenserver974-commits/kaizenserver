@@ -99,7 +99,7 @@ h1, h2, h3 { font-family: var(--titre); color: var(--encre); letter-spacing: 0.0
 .btn.petit { padding: 8px 14px; font-size: 13px; }
 .btn.grand { padding: 15px 26px; font-size: 15px; text-transform: uppercase; }
 .lien-danger { background: transparent !important; color: var(--erreur-texte) !important; box-shadow: none !important; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 
 /* ---------- Accueil ---------- */
 .hero { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 32px; align-items: center; padding: 56px 0 36px; }
@@ -455,3 +455,48 @@ textarea { resize: vertical; margin-top: 10px; }
 .aide-saisie input { flex: 1; padding: 9px 12px !important; }
 @media (max-width: 1080px) { .aide { bottom: 92px; right: 12px; } .aide-texte { display: none; } .aide-bouton { padding: 5px; } }
 @media print { .aide { display: none !important; } }
+
+/* ---------- Espace client / équipe ---------- */
+.lien-cyan { color: var(--cyan); text-decoration: underline; }
+.connexion-carte { max-width: 520px; margin: 30px auto; display: grid; gap: 6px; justify-items: start; }
+.onglets { display: flex; gap: 6px; overflow-x: auto; margin: 18px 0; padding-bottom: 4px; }
+.onglet { display: flex; align-items: center; gap: 6px; white-space: nowrap; border: 1px solid var(--ligne); background: var(--surface-2); color: var(--texte); border-radius: 999px; padding: 9px 16px; font-weight: 600; }
+.onglet.actif { background: var(--accent-clair); border-color: var(--violet); color: #fff; box-shadow: 0 0 18px rgba(123, 92, 255, 0.3); }
+.pastille-compte { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 12px; display: inline-grid; place-items: center; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+.commande-carte, .carte + .carte { margin-top: 14px; }
+.commande-carte h2, .admin-detail h2, .profil h2 { margin: 0 0 4px; font-size: 20px; }
+.frise-statut { list-style: none; padding: 0; margin: 16px 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.frise-statut li { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 10px 4px; border-radius: 12px; background: var(--surface-2); opacity: 0.5; }
+.frise-statut li span { font-size: 20px; }
+.frise-statut li small { font-size: 11.5px; color: var(--texte); }
+.frise-statut li.fait { opacity: 1; box-shadow: inset 0 0 0 1px rgba(42, 212, 255, 0.4); }
+.frise-statut li.actif { opacity: 1; background: var(--accent-clair); box-shadow: inset 0 0 0 1.5px var(--violet), 0 0 18px rgba(123, 92, 255, 0.3); }
+.fil { display: grid; gap: 10px; }
+.fil-messages { display: grid; gap: 8px; max-height: 420px; overflow-y: auto; padding: 4px; }
+.message { max-width: 80%; padding: 10px 14px; border-radius: 16px; }
+.message p { margin: 0; white-space: pre-wrap; color: #fff; }
+.message small { display: block; margin-top: 4px; font-size: 11.5px; color: var(--discret); }
+.message.moi { justify-self: end; background: linear-gradient(120deg, rgba(79, 124, 255, 0.35), rgba(217, 70, 239, 0.3)); border-bottom-right-radius: 4px; }
+.message.autre { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ligne); border-bottom-left-radius: 4px; }
+.fil-saisie { display: flex; gap: 8px; align-items: flex-end; }
+.fil-saisie textarea { margin: 0; flex: 1; }
+.devis { padding: 14px; border-radius: 14px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ligne); margin-bottom: 12px; display: grid; gap: 8px; }
+.devis-envoye { box-shadow: inset 0 0 0 1.5px var(--violet), 0 0 20px rgba(123, 92, 255, 0.2); }
+.devis-accepte { box-shadow: inset 0 0 0 1.5px #34d399; }
+.devis-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.devis .prix { margin: 2px 0 0; }
+.devis-details { margin: 0; white-space: pre-wrap; }
+.profil p { margin: 6px 0; }
+.admin-grille { display: grid; grid-template-columns: 320px 1fr; gap: 16px; margin-top: 16px; align-items: start; }
+.admin-liste { display: grid; gap: 8px; position: sticky; top: 90px; max-height: calc(100vh - 120px); overflow-y: auto; }
+.admin-ligne { display: grid; gap: 2px; text-align: left; padding: 12px; border-radius: 14px; border: 1px solid var(--ligne); background: var(--surface); color: var(--texte); }
+.admin-ligne strong { color: #fff; }
+.admin-ligne span { font-size: 13px; }
+.admin-ligne small { font-size: 12px; color: var(--discret); }
+.admin-ligne.actif { border-color: var(--violet); box-shadow: 0 0 18px rgba(123, 92, 255, 0.3); }
+.admin-detail .carte:first-child { margin-top: 0; }
+.infos p { margin: 6px 0; font-size: 14px; }
+.choix-statut { display: grid; gap: 4px; justify-items: end; }
+.choix-statut select { width: auto; }
+.nouveau-devis { margin-top: 8px; }
+@media (max-width: 860px) { .admin-grille { grid-template-columns: 1fr; } .admin-liste { position: static; max-height: none; } .frise-statut { grid-template-columns: repeat(3, 1fr); } }

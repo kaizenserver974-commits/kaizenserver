@@ -9,6 +9,24 @@ Kaizen guide une personne qui ne connaît rien au développement, de son idée j
 5. **Commande** : la personne choisit une formule (première version, projet complet, no-code, ou « j'en parle d'abord »), laisse ses coordonnées et envoie sa commande. Vous la recevez par e-mail avec un numéro (`KZ-AAAAMMJJ-XXXX`), et le client reçoit une confirmation. Ce n'est pas un paiement : vous le recontactez avec un devis.
 6. **Suivi** : frise Idée → Cadrage → Maquette → Développement → Mise en ligne → Évolution, conseils à chaque étape, journal et ajout d'évolutions.
 
+## Espace client et espace équipe
+
+- **Se connecter** (`/connexion`) : lien de connexion par e-mail, sans mot de passe (Supabase Auth).
+- **Mon espace** (`/espace`) : commandes avec frise de suivi, **devis** à accepter ou refuser, **messages** avec l'équipe (pastille de non-lus), profil.
+- **Espace équipe** (`/admin`, réservé aux adresses de `KAIZEN_ADMIN_EMAILS`) : liste des commandes, détail du projet, changement de statut (avec e-mail au client), création de devis, réponses aux messages.
+- Chaque action prévient l'autre partie par e-mail (Resend).
+
+Mise en place :
+1. Créez un projet Supabase, puis exécutez `supabase/schema.sql` dans SQL Editor.
+2. Dans Supabase > Authentication > URL Configuration, ajoutez l'adresse du site (par exemple `https://votre-site.fr/espace`) aux URL de redirection.
+3. Renseignez les variables Supabase et `KAIZEN_ADMIN_EMAILS` dans Vercel.
+
+Les tables sont protégées par RLS sans politique : le navigateur ne lit jamais la base, tout passe par les routes serveur, qui vérifient l'identité de la personne.
+
+## Aide
+
+La bulle **« Besoin d'aide ? »** (Bip) répond aux questions fréquentes. Avec `OPENAI_API_KEY`, elle répond librement, en restant sur les informations du site.
+
 ## Design
 
 Thème néon sombre (violet, cyan, magenta), logo hexagonal « K », navigation basse sur mobile. Les avatars sont des illustrations SVG générées dans le code (`app/components/Avatar.js`) : forme (personnage ou robot), peau, coiffure, couleurs des cheveux, des yeux et de la tenue, accessoires, et 5 personnages prêts à jouer.
@@ -67,6 +85,10 @@ npm test                     # tests du moteur
 
 ## Captures
 
+![Espace client](docs/captures/espace-commandes.png)
+![Messages](docs/captures/espace-messages.png)
+![Espace équipe](docs/captures/espace-equipe.png)
+![Aide](docs/captures/aide-bip.png)
 ![Commande](docs/captures/commande-formulaire.png)
 ![Confirmation](docs/captures/commande-confirmation.png)
 ![Accueil](docs/captures/personnages-accueil.png)

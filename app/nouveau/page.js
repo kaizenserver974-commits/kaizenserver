@@ -817,7 +817,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setNonConfigure(Boolean(d.nonConfigure)); throw new Error(d.erreur || "L'envoi a échoué. Réessayez."); }
       maj({
-        commande: { numero: d.numero, date: d.date || new Date().toISOString(), formule, confirmationEnvoyee: d.confirmationEnvoyee },
+        commande: { numero: d.numero, date: d.date || new Date().toISOString(), formule, confirmationEnvoyee: d.confirmationEnvoyee, espaceClient: Boolean(d.espaceClient) },
         statut: ["idee", "cadrage", "maquette"].includes(projet.statut) ? "maquette" : projet.statut,
         journal: noter(projet, `Commande envoyée (n° ${d.numero})`),
       }, ["commande"]);
@@ -843,6 +843,9 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
           {projet.commande.confirmationEnvoyee !== false ? `Un e-mail de confirmation a été envoyé à ${contact.email}. ` : ""}
           L'équipe KaizenServer étudie votre projet et revient vers vous pour en parler et vous proposer un devis précis.
         </p>
+        {projet.commande.espaceClient && (
+          <p className="succes">👤 Suivez votre commande, recevez votre devis et échangez avec l'équipe dans votre espace client : connectez-vous avec {contact.email}. <a className="lien-cyan" href="/connexion">Accéder à mon espace</a></p>
+        )}
         <div className="navigation">
           <button className="btn secondaire" onClick={() => window.print()}>Télécharger mon dossier</button>
           <button className="btn" onClick={suivant}>Suivre mon projet →</button>

@@ -1,6 +1,7 @@
 import "./globals.css";
 import Logo from "./components/Logo.js";
 import Aide from "./components/Aide.js";
+import Compte from "./components/Compte.js";
 
 export const metadata = {
   title: "KaizenServer — créez l'application de vos rêves",
@@ -31,7 +32,7 @@ export default function RootLayout({ children }) {
               <a href="/tarifs">Tarifs</a>
               <a href="/ressources">Ressources</a>
               <a href="/a-propos">À propos</a>
-              <a href="/connexion" className="btn petit contour masque-mobile">Se connecter</a>
+              <Compte />
               <a href="/nouveau" className="btn petit btn-entete">Créer <span className="masque-mobile">mon projet</span></a>
             </nav>
           </div>

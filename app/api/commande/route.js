@@ -1,29 +1,13 @@
 import { NextResponse } from "next/server";
 import { validerCommande, numeroCommande, resumeCommande, confirmationClient } from "../../../lib/commande.js";
+import { supabaseAdmin } from "../../../lib/serveur/supabase.js";
+import { emailConfigure, envoyerEmail, notifier, urlSite } from "../../../lib/serveur/email.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Envoi par Resend (https://resend.com) via son API HTTP.
-// Variables : RESEND_API_KEY, KAIZEN_EMAIL (adresse qui reçoit les commandes),
-// KAIZEN_EMAIL_FROM (expéditeur vérifié dans Resend, facultatif).
-async function envoyer({ a, sujet, texte, html, repondreA, pieces = [] }) {
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: process.env.KAIZEN_EMAIL_FROM || "KaizenServer <onboarding@resend.dev>",
-      to: [a],
-      subject: sujet,
-      text: texte,
-      html,
-      ...(repondreA ? { reply_to: repondreA } : {}),
-      ...(pieces.length ? { attachments: pieces.map((p) => ({ filename: p.nom, content: p.contenu })) } : {}),
-    }),
-  });
-  if (!r.ok) throw new Error(`Resend ${r.status} : ${(await r.text()).slice(0, 200)}`);
-}
-
+// Une commande est acceptée si elle est enregistrée (Supabase) et/ou envoyée
+// par e-mail à l'équipe (Resend + KAIZEN_EMAIL). Sinon : 503 honnête.
 export async function POST(request) {
   let corps;
   try {
@@ -37,7 +21,9 @@ export async function POST(request) {
   const commande = validerCommande(corps);
   if (commande.erreurs.length) return NextResponse.json({ erreur: commande.erreurs.join(" ") }, { status: 400 });
 
-  if (!process.env.RESEND_API_KEY || !process.env.KAIZEN_EMAIL) {
+  const sb = supabaseAdmin();
+  const emailEquipe = emailConfigure() && process.env.KAIZEN_EMAIL;
+  if (!sb && !emailEquipe) {
     return NextResponse.json(
       { erreur: "La commande en ligne n'est pas encore activée sur ce site. Copiez votre dossier ou téléchargez-le en PDF pour l'envoyer.", nonConfigure: true },
       { status: 503 },
@@ -45,27 +31,45 @@ export async function POST(request) {
   }
 
   const numero = numeroCommande();
-  const { texte, html } = resumeCommande(commande, numero);
-  try {
-    await envoyer({
-      a: process.env.KAIZEN_EMAIL,
-      sujet: `🛒 Nouvelle commande ${numero} — ${commande.recap.titre || commande.projet.nom || "application"} (${commande.contact.nom})`,
-      texte, html, repondreA: commande.contact.email, pieces: commande.pieces,
+  let enregistree = false;
+  if (sb) {
+    const { error } = await sb.from("kaizen_commandes").insert({
+      numero,
+      email: commande.contact.email,
+      nom: commande.contact.nom,
+      telephone: commande.contact.telephone || null,
+      entreprise: commande.contact.entreprise || null,
+      formule: commande.formule,
+      projet: { ...commande.projet, message: commande.contact.message, pieces: commande.pieces.map((p) => p.nom) },
+      recap: commande.recap,
     });
-  } catch (e) {
-    console.error("Kaizen /commande :", e?.message);
+    if (error) console.error("Kaizen /commande Supabase :", error.message);
+    else enregistree = true;
+  }
+
+  let envoyee = false;
+  if (emailEquipe) {
+    const { texte, html } = resumeCommande(commande, numero);
+    try {
+      await envoyerEmail({
+        a: process.env.KAIZEN_EMAIL,
+        sujet: `🛒 Nouvelle commande ${numero} — ${commande.recap.titre || commande.projet.nom || "application"} (${commande.contact.nom})`,
+        texte: `${texte}\n\nEspace équipe : ${urlSite(request)}/admin`,
+        html, repondreA: commande.contact.email, pieces: commande.pieces,
+      });
+      envoyee = true;
+    } catch (e) {
+      console.error("Kaizen /commande e-mail :", e?.message);
+    }
+  }
+
+  if (!enregistree && !envoyee) {
     return NextResponse.json({ erreur: "L'envoi de la commande a échoué. Réessayez dans un instant." }, { status: 502 });
   }
 
-  // La confirmation au client est un plus : son échec ne bloque pas la commande.
-  let confirmationEnvoyee = true;
-  try {
-    const c = confirmationClient(commande, numero);
-    await envoyer({ a: commande.contact.email, sujet: `Votre commande KaizenServer ${numero}`, ...c, repondreA: process.env.KAIZEN_EMAIL });
-  } catch (e) {
-    confirmationEnvoyee = false;
-    console.error("Kaizen /commande confirmation :", e?.message);
-  }
+  const c = confirmationClient(commande, numero);
+  const espace = sb ? `\n\nSuivez votre commande, vos devis et vos messages : ${urlSite(request)}/connexion (connectez-vous avec ${commande.contact.email}).` : "";
+  const confirmationEnvoyee = await notifier({ a: commande.contact.email, sujet: `Votre commande KaizenServer ${numero}`, texte: c.texte + espace, html: c.html, repondreA: process.env.KAIZEN_EMAIL });
 
-  return NextResponse.json({ ok: true, numero, confirmationEnvoyee, date: new Date().toISOString() });
+  return NextResponse.json({ ok: true, numero, confirmationEnvoyee, espaceClient: enregistree, date: new Date().toISOString() });
 }
