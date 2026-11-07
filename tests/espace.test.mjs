@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validerLien, liensPourClient, validerNouveauProjet, validerMessage, validerDevis, estAdmin, nonLus, statut, montantEnLigne, valeurMollie, paiementReutilisable } from "../lib/espace.js";
+import { validerInfos, offreModifiable, validerLien, liensPourClient, validerNouveauProjet, validerMessage, validerDevis, estAdmin, nonLus, statut, montantEnLigne, valeurMollie, paiementReutilisable } from "../lib/espace.js";
 
 test("messages : vides et trop longs refusés", () => {
   assert.ok(validerMessage("  ").erreur);
@@ -57,4 +57,12 @@ test("liens : adresse contrôlée, accès privés jamais envoyés au client", ()
 test("nouveau projet créé par Server : champs obligatoires", () => {
   assert.ok(validerNouveauProjet({ titre: "RésaYoga", nom: "Lina", email: "pas-un-email" }).erreur);
   assert.equal(validerNouveauProjet({ titre: "RésaYoga", nom: "Lina", email: "Lina@Exemple.fr" }).projet.email, "lina@exemple.fr");
+});
+
+test("modification par Server : coordonnées et offres", () => {
+  assert.ok(validerInfos({ nom: "Lina", email: "faux" }).erreur);
+  assert.equal(validerInfos({ nom: "Lina", email: "LINA@x.fr" }).infos.email, "lina@x.fr");
+  assert.equal(offreModifiable({ id: "d", statut: "envoye" }, []), true);
+  assert.equal(offreModifiable({ id: "d", statut: "accepte" }, []), false);
+  assert.equal(offreModifiable({ id: "d", statut: "envoye" }, [{ devis_id: "d", statut: "paid" }]), false);
 });

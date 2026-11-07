@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
-import { STATUTS, ACOMPTES, MODELES_LIENS, statut, montantEnLigne } from "../../lib/espace.js";
+import { STATUTS, ACOMPTES, MODELES_LIENS, statut, montantEnLigne, offreModifiable } from "../../lib/espace.js";
 import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date, euros } from "../components/Espace.js";
 import { TYPES, BUDGETS, DELAIS, PRIORITES, trouver, fonctionnalite } from "../../lib/catalogue.js";
 import { FORMULES } from "../../lib/commande.js";
@@ -96,15 +96,7 @@ export default function Admin() {
                 <ChoixStatut c={c} action={action} />
               </div>
               <FriseStatut valeur={c.statut} />
-              <div className="infos">
-                <p><b>Client :</b> {c.nom} · <a className="lien-cyan" href={`mailto:${c.email}`}>{c.email}</a>{c.telephone ? ` · ${c.telephone}` : ""}{c.entreprise ? ` · ${c.entreprise}` : ""}</p>
-                <p><b>Formule :</b> {FORMULES.find((f) => f.id === c.formule)?.label || c.formule} · <b>Budget :</b> {trouver(BUDGETS, c.projet?.budget)?.label || "—"} · <b>Délai :</b> {trouver(DELAIS, c.projet?.delai)?.label || "—"} · <b>Priorité :</b> {trouver(PRIORITES, c.projet?.priorite)?.label || "—"}</p>
-                <p><b>Type :</b> {trouver(TYPES, c.projet?.typeId)?.label || "—"}</p>
-                <p><b>Idée :</b> {c.projet?.idee}</p>
-                <p><b>Fonctionnalités :</b> {[...(c.projet?.fonctionnalites || []).map((id) => fonctionnalite(id)?.label || id), ...(c.projet?.personnalisees || [])].join(", ") || "—"}</p>
-                {c.projet?.message && <p><b>Message :</b> {c.projet.message}</p>}
-                {c.projet?.pieces?.length > 0 && <p><b>Pièces jointes (reçues par e-mail) :</b> {c.projet.pieces.join(", ")}</p>}
-              </div>
+              <InfosProjet c={c} action={action} />
             </div>
 
             <div className="carte">
@@ -123,7 +115,7 @@ export default function Admin() {
             <div className="carte">
               <h2>Votre offre au client</h2>
               <ReperePrive projet={c.projet} />
-              {c.devis.map((d) => <CarteDevis key={d.id} d={d} paiements={c.paiements || []} />)}
+              {c.devis.map((d) => <OffreServer key={d.id} d={d} c={c} action={action} paiementEnLigne={donnees.paiementEnLigne} />)}
               <NouveauDevis paiementEnLigne={donnees.paiementEnLigne} envoyer={(d) => action({ action: "devis", commandeId: c.id, ...d })} />
             </div>
 
@@ -152,13 +144,17 @@ function ChoixStatut({ c, action }) {
 
 function NouveauDevis({ envoyer, paiementEnLigne }) {
   const [ouvert, setOuvert] = useState(false);
-  const [f, setF] = useState({ montant: "", delaiSemaines: "", details: "", acomptePct: paiementEnLigne ? 30 : 0 });
+  if (!ouvert) return <button className="btn" onClick={() => setOuvert(true)}>+ Envoyer une offre (tarif, délai)</button>;
+  return <FormulaireOffre paiementEnLigne={paiementEnLigne} envoyer={async (f) => { await envoyer(f); setOuvert(false); }} annuler={() => setOuvert(false)} libelle="Envoyer l'offre au client" />;
+}
+
+function FormulaireOffre({ envoyer, annuler, paiementEnLigne, initial, libelle, avecPrevenir = false }) {
+  const [f, setF] = useState(initial || { montant: "", delaiSemaines: "", details: "", acomptePct: paiementEnLigne ? 30 : 0, prevenir: true });
   const [erreur, setErreur] = useState("");
   const [envoi, setEnvoi] = useState(false);
-  if (!ouvert) return <button className="btn" onClick={() => setOuvert(true)}>+ Envoyer une offre (tarif, délai)</button>;
   async function soumettre(e) {
     e.preventDefault(); setErreur(""); setEnvoi(true);
-    try { await envoyer(f); setF({ montant: "", delaiSemaines: "", details: "", acomptePct: paiementEnLigne ? 30 : 0 }); setOuvert(false); } catch (err) { setErreur(err.message); } finally { setEnvoi(false); }
+    try { await envoyer(f); } catch (err) { setErreur(err.message); } finally { setEnvoi(false); }
   }
   return (
     <form onSubmit={soumettre} className="nouveau-devis">
@@ -175,10 +171,11 @@ function NouveauDevis({ envoyer, paiementEnLigne }) {
       </label>
       {f.montant && Number(f.acomptePct) > 0 && Number.isFinite(Number(f.montant.replace(",", "."))) && <p className="note">Le client paiera en ligne : {euros(montantEnLigne({ montant: Number(f.montant.replace(",", ".")), acompte_pct: Number(f.acomptePct) }))} après acceptation.</p>}
       {f.montant && <p className="note">Le client verra : {Number.isFinite(Number(f.montant.replace(",", "."))) ? euros(Number(f.montant.replace(",", "."))) : "montant invalide"}</p>}
+      {avecPrevenir && <label className="note"><input type="checkbox" checked={f.prevenir !== false} onChange={(e) => setF({ ...f, prevenir: e.target.checked })} /> prévenir le client par e-mail</label>}
       {erreur && <p className="alerte erreur">{erreur}</p>}
       <div className="actions" style={{ marginTop: 12 }}>
-        <button className="btn" disabled={envoi}>{envoi ? "Envoi…" : "Envoyer l'offre au client"}</button>
-        <button type="button" className="btn secondaire" onClick={() => setOuvert(false)}>Annuler</button>
+        <button className="btn" disabled={envoi}>{envoi ? "Enregistrement…" : libelle}</button>
+        <button type="button" className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
     </form>
   );
@@ -274,5 +271,95 @@ function Liens({ c, action }) {
         <p className="note">⚠️ N'enregistrez jamais de mot de passe ici : seulement des adresses.</p>
       </form>
     </div>
+  );
+}
+
+// Une offre côté Server : modifiable ou retirable tant que le client n'a pas répondu.
+function OffreServer({ d, c, action, paiementEnLigne }) {
+  const [edition, setEdition] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const modifiable = offreModifiable(d, c.paiements || []);
+  if (edition) {
+    return (
+      <div className="carte-edition">
+        <strong>Modifier l'offre</strong>
+        <FormulaireOffre
+          paiementEnLigne={paiementEnLigne}
+          avecPrevenir
+          libelle="Enregistrer l'offre"
+          initial={{ montant: String(d.montant).replace(".", ","), delaiSemaines: d.delai_semaines ? String(d.delai_semaines) : "", details: d.details || "", acomptePct: d.acompte_pct || 0, prevenir: true }}
+          envoyer={async (f) => { await action({ action: "devis_modifier", commandeId: c.id, devisId: d.id, ...f }); setEdition(false); }}
+          annuler={() => setEdition(false)}
+        />
+      </div>
+    );
+  }
+  async function retirer() {
+    if (!window.confirm("Retirer cette offre ? Le client ne la verra plus.")) return;
+    setErreur("");
+    try { await action({ action: "devis_retirer", commandeId: c.id, devisId: d.id }); } catch (e) { setErreur(e.message); }
+  }
+  return (
+    <div>
+      <CarteDevis d={d} paiements={c.paiements || []} />
+      {modifiable ? (
+        <div className="actions" style={{ marginTop: -4, marginBottom: 12 }}>
+          <button className="btn petit secondaire" onClick={() => setEdition(true)}>✏️ Modifier l'offre</button>
+          <button className="btn petit lien-danger" onClick={retirer}>Retirer</button>
+        </div>
+      ) : (
+        <p className="note" style={{ marginTop: -4 }}>Offre {d.statut === "accepte" ? "acceptée" : d.statut === "refuse" ? "refusée" : "payée"} : pour changer le tarif, envoyez une nouvelle offre.</p>
+      )}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+    </div>
+  );
+}
+
+// Coordonnées du client et infos du projet, modifiables par Server.
+function InfosProjet({ c, action }) {
+  const [edition, setEdition] = useState(false);
+  const depart = { nom: c.nom || "", email: c.email || "", telephone: c.telephone || "", entreprise: c.entreprise || "", titre: c.recap?.titre || c.projet?.nom || "", idee: c.projet?.idee || "" };
+  const [f, setF] = useState(depart);
+  const [erreur, setErreur] = useState("");
+  const [envoi, setEnvoi] = useState(false);
+  useEffect(() => { setF(depart); setEdition(false); }, [c.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!edition) {
+    return (
+      <div className="infos">
+        <p><b>Client :</b> {c.nom} · <a className="lien-cyan" href={`mailto:${c.email}`}>{c.email}</a>{c.telephone ? ` · ${c.telephone}` : ""}{c.entreprise ? ` · ${c.entreprise}` : ""}</p>
+        <p><b>Formule :</b> {FORMULES.find((x) => x.id === c.formule)?.label || c.formule} · <b>Budget :</b> {trouver(BUDGETS, c.projet?.budget)?.label || "—"} · <b>Délai :</b> {trouver(DELAIS, c.projet?.delai)?.label || "—"} · <b>Priorité :</b> {trouver(PRIORITES, c.projet?.priorite)?.label || "—"}</p>
+        <p><b>Type :</b> {trouver(TYPES, c.projet?.typeId)?.label || "—"}</p>
+        <p><b>Idée :</b> {c.projet?.idee || "—"}</p>
+        <p><b>Fonctionnalités :</b> {[...(c.projet?.fonctionnalites || []).map((id) => fonctionnalite(id)?.label || id), ...(c.projet?.personnalisees || [])].join(", ") || "—"}</p>
+        {c.projet?.message && <p><b>Message :</b> {c.projet.message}</p>}
+        {c.projet?.pieces?.length > 0 && <p><b>Pièces jointes (reçues par e-mail) :</b> {c.projet.pieces.join(", ")}</p>}
+        <button className="btn petit secondaire" onClick={() => setEdition(true)}>✏️ Modifier les coordonnées et le projet</button>
+      </div>
+    );
+  }
+  async function enregistrer(e) {
+    e.preventDefault(); setErreur(""); setEnvoi(true);
+    try { await action({ action: "infos_modifier", commandeId: c.id, ...f }); setEdition(false); } catch (err) { setErreur(err.message); } finally { setEnvoi(false); }
+  }
+  const champ = (cle, label, props = {}) => <label className="champ"><span>{label}</span><input value={f[cle]} onChange={(e) => setF({ ...f, [cle]: e.target.value })} {...props} /></label>;
+  return (
+    <form className="carte-edition" onSubmit={enregistrer}>
+      <strong>Modifier les coordonnées et le projet</strong>
+      <div className="formulaire-deux">
+        {champ("nom", "Client *", { maxLength: 100, required: true })}
+        {champ("email", "E-mail du client *", { type: "email", maxLength: 160, required: true })}
+        {champ("telephone", "Téléphone", { type: "tel", maxLength: 30 })}
+        {champ("entreprise", "Entreprise / association", { maxLength: 120 })}
+      </div>
+      {champ("titre", "Nom de l'application", { maxLength: 120 })}
+      <label className="champ"><span>Description du projet</span><textarea rows={4} maxLength={2000} value={f.idee} onChange={(e) => setF({ ...f, idee: e.target.value })} /></label>
+      {f.email.trim().toLowerCase() !== (c.email || "").toLowerCase() && <p className="alerte">⚠️ Le client devra désormais se connecter avec la nouvelle adresse pour voir ce projet.</p>}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+      <div className="actions" style={{ marginTop: 12 }}>
+        <button className="btn" disabled={envoi}>{envoi ? "Enregistrement…" : "Enregistrer"}</button>
+        <button type="button" className="btn secondaire" onClick={() => { setF(depart); setEdition(false); }}>Annuler</button>
+      </div>
+    </form>
   );
 }

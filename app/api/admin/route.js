@@ -6,7 +6,7 @@ import { STATUTS, validerMessage, validerDevis, statut, nonLus } from "../../../
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
 import { rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
-import { montantEnLigne, validerLien, validerNouveauProjet } from "../../../lib/espace.js";
+import { montantEnLigne, validerLien, validerNouveauProjet, validerInfos, offreModifiable } from "../../../lib/espace.js";
 import { numeroCommande } from "../../../lib/commande.js";
 
 export const runtime = "nodejs";
@@ -62,6 +62,45 @@ export async function POST(request) {
 
   const [commande] = await chargerCommandes(sb, { id: String(corps.commandeId || "") }).catch(() => []);
   if (!commande) return refus("Commande introuvable.", 404);
+
+  if (corps.action === "infos_modifier") {
+    const { infos, erreur } = validerInfos(corps);
+    if (erreur) return refus(erreur, 400);
+    const { error } = await sb.from("kaizen_commandes").update({
+      nom: infos.nom, email: infos.email, telephone: infos.telephone || null, entreprise: infos.entreprise || null,
+      projet: { ...(commande.projet || {}), nom: infos.titre || commande.projet?.nom, idee: infos.idee },
+      recap: { ...(commande.recap || {}), titre: infos.titre || commande.recap?.titre },
+      updated_at: new Date().toISOString(),
+    }).eq("id", commande.id);
+    if (error) return refus("Les modifications n'ont pas pu être enregistrées.", 500);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (corps.action === "devis_modifier" || corps.action === "devis_retirer") {
+    const ancien = commande.devis.find((d) => d.id === corps.devisId);
+    if (!ancien) return refus("Offre introuvable.", 404);
+    if (!offreModifiable(ancien, commande.paiements)) return refus("Cette offre a déjà reçu une réponse du client : envoyez plutôt une nouvelle offre.", 409);
+    if (corps.action === "devis_retirer") {
+      const { error } = await sb.from("kaizen_devis").delete().eq("id", ancien.id).eq("statut", "envoye");
+      if (error) return refus("L'offre n'a pas pu être retirée.", 500);
+      if (!commande.devis.some((d) => d.id !== ancien.id)) await sb.from("kaizen_commandes").update({ statut: "en_etude", updated_at: new Date().toISOString() }).eq("id", commande.id);
+      return NextResponse.json({ ok: true });
+    }
+    const { devis, erreur } = validerDevis(corps);
+    if (erreur) return refus(erreur, 400);
+    const { error } = await sb.from("kaizen_devis").update(devis).eq("id", ancien.id).eq("statut", "envoye");
+    if (error) return refus("L'offre n'a pas pu être modifiée.", 500);
+    if (corps.prevenir) {
+      const montant = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(devis.montant);
+      await notifier({
+        a: commande.email,
+        sujet: `🧾 Offre mise à jour par Server — commande ${commande.numero}`,
+        texte: `Bonjour ${commande.nom || ""},\n\nServer, votre maître du jeu, a mis à jour son offre : ${montant}${devis.delai_semaines ? `, environ ${devis.delai_semaines} semaines` : ""}.\n${devis.details ? `\n${devis.details}\n` : ""}\nConsultez-la depuis votre espace : ${lienClient}`,
+        repondreA: process.env.KAIZEN_EMAIL,
+      });
+    }
+    return NextResponse.json({ ok: true });
+  }
 
   if (corps.action === "maquette_lire") {
     const m = await lireMaquette(sb, commande.id);
