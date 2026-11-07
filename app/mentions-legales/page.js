@@ -8,7 +8,7 @@ export default function MentionsLegales() {
     <PageLegale surtitre="Informations" titre="Mentions légales" majLe={LEGAL.majLe}>
       <h2>Éditeur du site</h2>
       <p>
-        {LEGAL.nomCommercial} est un service de <b>{v(LEGAL.structure)}</b>, {v(LEGAL.formeJuridique)} au capital de {v(LEGAL.capital)}.<br />
+        {LEGAL.nomCommercial} est un service de <b>{v(LEGAL.structure)}</b>{LEGAL.nomUsage ? ` (${LEGAL.nomUsage})` : ""}, {v(LEGAL.formeJuridique)} au capital de {v(LEGAL.capital)}.<br />
         SIREN : {LEGAL.siren} · {v(LEGAL.rcs)}{LEGAL.siret ? ` · SIRET : ${LEGAL.siret}` : ""}<br />
         Siège social : {v(LEGAL.adresse)}<br />
         TVA : {v(LEGAL.tva)}<br />
