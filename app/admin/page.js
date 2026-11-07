@@ -45,7 +45,7 @@ export default function Admin() {
       chargement: "Chargement…",
       inactif: "L'espace Server n'est pas encore activé (configuration Supabase manquante).",
       deconnecte: "Connectez-vous avec l'adresse de Server.",
-      interdit: "Accès réservé à Server, le maître du jeu.",
+      interdit: erreur || "Accès réservé à Server, le maître du jeu.",
       erreur,
     };
     return (

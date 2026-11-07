@@ -16,7 +16,10 @@ async function autoriser(request) {
   if (!supabaseConfigure()) return { reponse: refus("L'espace équipe n'est pas encore activé.", 503) };
   const u = await utilisateur(request);
   if (!u) return { reponse: refus("Connectez-vous.", 401) };
-  if (!u.admin) return { reponse: refus("Accès réservé à Server, le maître du jeu.", 403) };
+  if (!u.admin) {
+    const configure = Boolean(String(process.env.KAIZEN_ADMIN_EMAILS || "").trim());
+    return { reponse: refus(`Accès réservé à Server, le maître du jeu. Vous êtes connecté avec ${u.email}. ${configure ? "Cette adresse n'est pas dans KAIZEN_ADMIN_EMAILS." : "La variable KAIZEN_ADMIN_EMAILS est vide ou absente."} Ajoutez-la dans Vercel (Settings → Environment Variables), puis faites un Redeploy.`, 403) };
+  }
   return { u };
 }
 
