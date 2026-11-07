@@ -7,7 +7,7 @@ export default function Confidentialite() {
   return (
     <PageLegale surtitre="Informations" titre="Politique de confidentialité" majLe={LEGAL.majLe}>
       <h2>Responsable du traitement</h2>
-      <p>{v(LEGAL.structure)} — {LEGAL.email}</p>
+      <p>{v(LEGAL.structure)} ({v(LEGAL.formeJuridique)}), {v(LEGAL.adresse)} — {LEGAL.email}</p>
       <h2>Données collectées et finalités</h2>
       <ul>
         <li><b>Projets en cours de création</b> : enregistrés uniquement dans votre navigateur, rien n'est envoyé tant que vous ne commandez pas.</li>

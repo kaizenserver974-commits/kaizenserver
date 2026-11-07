@@ -8,12 +8,12 @@ export default function MentionsLegales() {
     <PageLegale surtitre="Informations" titre="Mentions légales" majLe={LEGAL.majLe}>
       <h2>Éditeur du site</h2>
       <p>
-        {LEGAL.nomCommercial} est édité par <b>{v(LEGAL.structure)}</b> ({v(LEGAL.formeJuridique)}).<br />
-        SIRET / RNA : {v(LEGAL.siret)}<br />
-        Adresse : {v(LEGAL.adresse)}<br />
+        {LEGAL.nomCommercial} est un service de <b>{v(LEGAL.structure)}</b>, {v(LEGAL.formeJuridique)} au capital de {v(LEGAL.capital)}.<br />
+        SIRET : {v(LEGAL.siret)} · {v(LEGAL.rcs)}<br />
+        Siège social : {v(LEGAL.adresse)}<br />
+        TVA : {v(LEGAL.tva)}<br />
         E-mail : {LEGAL.email} · Téléphone : {v(LEGAL.telephone)}<br />
         Responsable de la publication : {v(LEGAL.responsablePublication)}<br />
-        {LEGAL.tva && <>{LEGAL.tva}<br /></>}
       </p>
       <h2>Hébergement</h2>
       <p>{LEGAL.hebergeur}</p>
