@@ -62,6 +62,7 @@ export async function POST(request) {
 
   const [commande] = await chargerCommandes(sb, { id: String(corps.commandeId || "") }).catch(() => []);
   if (!commande) return refus("Commande introuvable.", 404);
+  const lienClient = `${urlSite(request)}/connexion`;
 
   if (corps.action === "infos_modifier") {
     const { infos, erreur } = validerInfos(corps);
@@ -144,7 +145,6 @@ export async function POST(request) {
     if (error) return refus("Le lien n'a pas pu être supprimé.", 500);
     return NextResponse.json({ ok: true });
   }
-  const lienClient = `${urlSite(request)}/connexion`;
 
   if (corps.action === "message") {
     const { contenu, erreur } = validerMessage(corps.contenu);
