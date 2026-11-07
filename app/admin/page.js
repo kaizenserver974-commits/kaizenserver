@@ -25,6 +25,7 @@ export default function Admin() {
       setEtat("pret");
     } catch (e) {
       setErreur(e.message);
+      if (e.status === 401) await sb?.auth.signOut({ scope: "local" }).catch(() => {});
       setEtat(e.status === 401 ? "deconnecte" : e.status === 403 ? "interdit" : e.status === 503 ? "inactif" : "erreur");
     }
   }, []);

@@ -40,7 +40,7 @@ function Espace() {
       setChoisie((c) => c || d.commandes[0]?.id || null);
       setEtat("pret");
     } catch (e) {
-      if (e.status === 401) setEtat("deconnecte");
+      if (e.status === 401) { await sb?.auth.signOut({ scope: "local" }).catch(() => {}); setEtat("deconnecte"); }
       else if (e.status === 503) setEtat("inactif");
       else { setErreur(e.message); setEtat("erreur"); }
     }

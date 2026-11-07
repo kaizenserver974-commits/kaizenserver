@@ -28,7 +28,13 @@ export default function Connexion() {
     if (!sb) return undefined;
     const recuperation = /type=recovery/.test(window.location.hash) || new URLSearchParams(window.location.search).has("reinit");
     if (recuperation) setMode("nouveau");
-    sb.auth.getSession().then(({ data }) => { if (data?.session && !recuperation) window.location.replace("/espace"); });
+    // getUser() vérifie la session auprès de Supabase : une session périmée (compte
+    // supprimé, jeton expiré) est effacée au lieu de provoquer une boucle.
+    sb.auth.getUser().then(({ data, error }) => {
+      if (recuperation) return;
+      if (data?.user && !error) window.location.replace("/espace");
+      else sb.auth.signOut({ scope: "local" }).catch(() => {});
+    });
     const { data } = sb.auth.onAuthStateChange((evt, session) => {
       if (evt === "PASSWORD_RECOVERY") { setMode("nouveau"); return; }
       if (session && evt === "SIGNED_IN" && !recuperation) window.location.replace("/espace");

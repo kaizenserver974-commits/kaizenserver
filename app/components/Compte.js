@@ -9,7 +9,7 @@ export default function Compte() {
   useEffect(() => {
     const sb = supabaseNavigateur();
     if (!sb) return undefined;
-    sb.auth.getSession().then(({ data }) => setConnecte(Boolean(data?.session)));
+    sb.auth.getUser().then(({ data, error }) => setConnecte(Boolean(data?.user) && !error));
     // Arrivée depuis le lien e-mail (jetons dans l'adresse) : direction l'espace client.
     const adresse = window.location.hash + window.location.search;
     // Lien « mot de passe oublié » : la page de connexion gère la saisie du nouveau mot de passe.
