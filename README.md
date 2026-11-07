@@ -23,6 +23,14 @@ Mise en place :
 
 Les tables sont protégées par RLS sans politique : le navigateur ne lit jamais la base, tout passe par les routes serveur, qui vérifient l'identité de la personne.
 
+## Paiement en ligne (Mollie)
+
+Quand Server envoie son offre, il choisit la part à payer en ligne : rien, acompte de 30 % ou 50 %, ou la totalité. Une fois l'offre acceptée, le client voit le bouton **« Payer l'acompte… »** et il est redirigé vers la page de paiement sécurisée de Mollie.
+- Mollie prévient le site (`/api/paiement/webhook`). Le statut est toujours **relu chez Mollie**, jamais pris tel quel. Les paiements en attente sont aussi revérifiés à l'ouverture des espaces, au cas où le webhook n'est pas passé.
+- Paiement reçu : e-mail à Server et au client, et la mention « ✅ Paiement reçu » apparaît dans les deux espaces.
+- Activation : ajoutez `MOLLIE_API_KEY` dans Vercel (clé `test_…` pour essayer, puis `live_…`), puis exécutez à nouveau `supabase/schema.sql`, qui ajoute la table `kaizen_paiements`.
+- Si le compte Mollie appartient à une autre structure (La Yonne Finance), créez-y un **profil de site web dédié à KaizenServer** et utilisez la clé de ce profil.
+
 ## Aide
 
 La bulle **« Besoin d'aide ? »** (Bip) répond aux questions fréquentes. Avec `OPENAI_API_KEY`, elle répond librement, en restant sur les informations du site.

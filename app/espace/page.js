@@ -84,6 +84,10 @@ function Espace() {
         ))}
       </div>
 
+      {params.get("paiement") === "retour" && (
+        <p className="succes">💳 Retour de Mollie : si votre paiement est validé, il apparaît ci-dessous sous quelques instants (rechargez la page au besoin). Vous recevrez aussi un e-mail.</p>
+      )}
+
       {onglet !== "profil" && commandes.length === 0 && (
         <div className="carte vide"><p>Aucune commande associée à {donnees.email} pour l'instant.</p><a className="btn" href="/nouveau">Commander mon application</a></div>
       )}
@@ -107,7 +111,13 @@ function Espace() {
         : tousDevis.map((d) => (
           <div key={d.id} className="carte">
             <p className="discret">{d.commande.recap?.titre || "Mon application"} · N° {d.commande.numero}</p>
-            <CarteDevis d={d} repondre={(decision) => action({ action: "devis", commandeId: d.commande.id, devisId: d.id, decision })} />
+            <CarteDevis
+              d={d}
+              paiements={d.commande.paiements || []}
+              paiementEnLigne={donnees.paiementEnLigne}
+              repondre={(decision) => action({ action: "devis", commandeId: d.commande.id, devisId: d.id, decision })}
+              payer={async () => (await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "payer", commandeId: d.commande.id, devisId: d.id }) })).url}
+            />
           </div>
         )))}
 

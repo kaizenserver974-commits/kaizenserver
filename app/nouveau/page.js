@@ -999,7 +999,7 @@ function EtapeSuivi({ projet, maj, noter, actualiser }) {
 const CONSEILS = {
   idee: "Terminez le parcours guidé pour obtenir votre récapitulatif et votre maquette.",
   cadrage: "Relisez le récapitulatif. Retirez tout ce qui n'est pas indispensable pour la première version.",
-  maquette: "Si ce n'est pas encore fait, commandez votre application : Server, le maître du jeu, vous enverra son offre et ses conseils dans votre espace. Montrez aussi la maquette à 3 à 5 futurs utilisateurs. Notez leurs remarques dans le journal, puis demandez un devis en joignant le récapitulatif (bouton Imprimer / PDF).",
+  maquette: "Si ce n'est pas encore fait, commandez votre application : Server, le maître du jeu, vous enverra son offre et ses conseils dans votre espace. Montrez aussi la maquette à 3 à 5 futurs utilisateurs et notez leurs remarques dans le journal.",
   developpement: "Prévoyez un point chaque semaine avec la personne qui développe. Testez vous-même chaque nouvelle fonctionnalité et notez les corrections dans le journal.",
   mise_en_ligne: "Vérifiez les mentions légales, la politique de confidentialité et faites tester l'application par quelques vrais utilisateurs avant de la faire connaître.",
   evolution: "Regardez ce que vos utilisateurs utilisent vraiment. Ajoutez les évolutions une par une, en commençant par celles qu'ils demandent le plus.",

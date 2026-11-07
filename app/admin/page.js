@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
-import { STATUTS, statut } from "../../lib/espace.js";
+import { STATUTS, ACOMPTES, statut, montantEnLigne } from "../../lib/espace.js";
 import { FriseStatut, FilMessages, CarteDevis, date, euros } from "../components/Espace.js";
 import { TYPES, BUDGETS, DELAIS, PRIORITES, trouver, fonctionnalite } from "../../lib/catalogue.js";
 import { FORMULES } from "../../lib/commande.js";
@@ -109,8 +109,8 @@ export default function Admin() {
             <div className="carte">
               <h2>Votre offre au client</h2>
               <ReperePrive projet={c.projet} />
-              {c.devis.map((d) => <CarteDevis key={d.id} d={d} />)}
-              <NouveauDevis envoyer={(d) => action({ action: "devis", commandeId: c.id, ...d })} />
+              {c.devis.map((d) => <CarteDevis key={d.id} d={d} paiements={c.paiements || []} />)}
+              <NouveauDevis paiementEnLigne={donnees.paiementEnLigne} envoyer={(d) => action({ action: "devis", commandeId: c.id, ...d })} />
             </div>
 
             <div className="carte">
@@ -136,15 +136,15 @@ function ChoixStatut({ c, action }) {
   );
 }
 
-function NouveauDevis({ envoyer }) {
+function NouveauDevis({ envoyer, paiementEnLigne }) {
   const [ouvert, setOuvert] = useState(false);
-  const [f, setF] = useState({ montant: "", delaiSemaines: "", details: "" });
+  const [f, setF] = useState({ montant: "", delaiSemaines: "", details: "", acomptePct: paiementEnLigne ? 30 : 0 });
   const [erreur, setErreur] = useState("");
   const [envoi, setEnvoi] = useState(false);
   if (!ouvert) return <button className="btn" onClick={() => setOuvert(true)}>+ Envoyer une offre (tarif, délai)</button>;
   async function soumettre(e) {
     e.preventDefault(); setErreur(""); setEnvoi(true);
-    try { await envoyer(f); setF({ montant: "", delaiSemaines: "", details: "" }); setOuvert(false); } catch (err) { setErreur(err.message); } finally { setEnvoi(false); }
+    try { await envoyer(f); setF({ montant: "", delaiSemaines: "", details: "", acomptePct: paiementEnLigne ? 30 : 0 }); setOuvert(false); } catch (err) { setErreur(err.message); } finally { setEnvoi(false); }
   }
   return (
     <form onSubmit={soumettre} className="nouveau-devis">
@@ -153,6 +153,13 @@ function NouveauDevis({ envoyer }) {
         <label className="champ"><span>Délai (semaines)</span><input inputMode="numeric" value={f.delaiSemaines} onChange={(e) => setF({ ...f, delaiSemaines: e.target.value })} placeholder="8" /></label>
       </div>
       <label className="champ"><span>Détails</span><textarea rows={4} maxLength={4000} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} placeholder="Contenu, étapes, conseils, conditions de paiement…" /></label>
+      <label className="champ"><span>Paiement en ligne (Mollie)</span>
+        <select value={f.acomptePct} onChange={(e) => setF({ ...f, acomptePct: Number(e.target.value) })} disabled={!paiementEnLigne}>
+          {ACOMPTES.map((a) => <option key={a.pct} value={a.pct}>{a.label}</option>)}
+        </select>
+        {!paiementEnLigne && <small className="discret">Ajoutez MOLLIE_API_KEY dans Vercel pour activer le paiement en ligne.</small>}
+      </label>
+      {f.montant && Number(f.acomptePct) > 0 && Number.isFinite(Number(f.montant.replace(",", "."))) && <p className="note">Le client paiera en ligne : {euros(montantEnLigne({ montant: Number(f.montant.replace(",", ".")), acompte_pct: Number(f.acomptePct) }))} après acceptation.</p>}
       {f.montant && <p className="note">Le client verra : {Number.isFinite(Number(f.montant.replace(",", "."))) ? euros(Number(f.montant.replace(",", "."))) : "montant invalide"}</p>}
       {erreur && <p className="alerte erreur">{erreur}</p>}
       <div className="actions" style={{ marginTop: 12 }}>

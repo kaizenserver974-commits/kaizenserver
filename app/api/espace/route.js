@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes } from "../../../lib/serveur/supabase.js";
 import { validerMessage, nonLus, statut } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
+import { mollieConfigure } from "../../../lib/serveur/mollie.js";
+import { demarrerPaiement, rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +16,10 @@ export async function GET(request) {
   const u = await utilisateur(request);
   if (!u) return refus("Connectez-vous pour accéder à votre espace.", 401);
   try {
-    const commandes = await chargerCommandes(supabaseAdmin(), { email: u.email });
-    return NextResponse.json({ email: u.email, admin: u.admin, commandes, nonLus: nonLus(commandes, "client") });
+    const sb = supabaseAdmin();
+    let commandes = await chargerCommandes(sb, { email: u.email });
+    if (await rafraichirPaiementsEnAttente(sb, request, commandes)) commandes = await chargerCommandes(sb, { email: u.email });
+    return NextResponse.json({ email: u.email, admin: u.admin, commandes, nonLus: nonLus(commandes, "client"), paiementEnLigne: mollieConfigure() });
   } catch (e) {
     console.error("Kaizen /espace :", e?.message);
     return refus("Impossible de charger votre espace pour le moment.", 500);
@@ -69,6 +73,19 @@ export async function POST(request) {
       repondreA: commande.email,
     });
     return NextResponse.json({ ok: true });
+  }
+
+  if (corps.action === "payer") {
+    const devis = commande.devis.find((d) => d.id === corps.devisId);
+    if (!devis) return refus("Offre introuvable.", 404);
+    try {
+      const r = await demarrerPaiement(sb, request, commande, devis);
+      if (r.erreur) return refus(r.erreur, r.status);
+      return NextResponse.json({ ok: true, url: r.url });
+    } catch (e) {
+      console.error("Kaizen paiement :", e?.message);
+      return refus("Le paiement n'a pas pu démarrer. Réessayez dans un instant.", 502);
+    }
   }
 
   return refus("Action inconnue.", 400);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PARCOURS_STATUTS, statut } from "../../lib/espace.js";
+import { PARCOURS_STATUTS, statut, montantEnLigne } from "../../lib/espace.js";
 
 export const euros = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(n);
 export const date = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
@@ -58,7 +58,7 @@ export function FilMessages({ messages, moi, envoyer, placeholder, conseil = fal
   );
 }
 
-export function CarteDevis({ d, repondre }) {
+export function CarteDevis({ d, repondre, paiements = [], payer, paiementEnLigne = false }) {
   const [attente, setAttente] = useState(false);
   const [erreur, setErreur] = useState("");
   async function choisir(decision) {
@@ -66,7 +66,7 @@ export function CarteDevis({ d, repondre }) {
     setAttente(true); setErreur("");
     try { await repondre(decision); } catch (e) { setErreur(e.message); } finally { setAttente(false); }
   }
-  const etiquette = { envoye: "En attente de votre réponse", accepte: "Accepté", refuse: "Refusé" }[d.statut];
+  const etiquette = { envoye: "En attente de réponse", accepte: "Acceptée", refuse: "Refusée" }[d.statut];
   return (
     <article className={`devis devis-${d.statut}`}>
       <div className="devis-tete">
@@ -81,7 +81,37 @@ export function CarteDevis({ d, repondre }) {
           <button className="btn secondaire" disabled={attente} onClick={() => choisir("refuse")}>Refuser</button>
         </div>
       )}
+      <BlocPaiement d={d} paiements={paiements.filter((p) => p.devis_id === d.id)} payer={payer} actif={paiementEnLigne} />
       {erreur && <p className="alerte erreur">{erreur}</p>}
     </article>
+  );
+}
+
+// Paiement en ligne (Mollie) d'une offre acceptée : bouton côté client,
+// simple état côté Server (payer absent).
+function BlocPaiement({ d, paiements, payer, actif }) {
+  const [attente, setAttente] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const montant = montantEnLigne(d);
+  if (!montant) return null;
+  const paye = paiements.find((p) => p.statut === "paid");
+  const enCours = paiements.find((p) => ["open", "pending", "authorized"].includes(p.statut));
+  const libelle = d.acompte_pct < 100 ? `l'acompte de ${d.acompte_pct} % (${euros(montant)})` : euros(montant);
+  async function lancer() {
+    setAttente(true); setErreur("");
+    try { const url = await payer(); window.location.href = url; } catch (e) { setErreur(e.message); setAttente(false); }
+  }
+  if (paye) return <p className="succes">✅ Paiement reçu : {euros(paye.montant)} le {date(paye.paid_at || paye.created_at)}. Merci !</p>;
+  if (!payer) {
+    return <p className="note">💳 Paiement en ligne prévu : {libelle}{enCours ? " · en cours chez Mollie" : d.statut === "accepte" ? " · en attente du client" : " · après acceptation"}</p>;
+  }
+  if (d.statut !== "accepte") return d.statut === "envoye" ? <p className="note">💳 Après acceptation, vous pourrez régler {libelle} en ligne.</p> : null;
+  if (!actif) return <p className="note">💳 Server vous indiquera comment régler {libelle}.</p>;
+  return (
+    <div className="paiement">
+      <button className="btn grand" disabled={attente} onClick={lancer}>{attente ? "Redirection vers Mollie…" : `Payer ${libelle}`}</button>
+      <small className="discret">🔒 Paiement sécurisé par Mollie (carte bancaire, Apple Pay, virement…). {enCours ? "Un paiement est déjà en cours : vous pouvez le reprendre." : ""}</small>
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+    </div>
   );
 }

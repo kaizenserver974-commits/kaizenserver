@@ -48,3 +48,20 @@ alter table public.kaizen_devis enable row level security;
 
 -- Mise à jour d'une base existante (ajout des conseils du maître du jeu) :
 alter table public.kaizen_messages add column if not exists type text not null default 'message';
+
+-- Paiement en ligne (Mollie) : part de l'offre à régler en ligne, et suivi des paiements.
+alter table public.kaizen_devis add column if not exists acompte_pct integer not null default 0 check (acompte_pct between 0 and 100);
+
+create table if not exists public.kaizen_paiements (
+  id uuid primary key default gen_random_uuid(),
+  commande_id uuid not null references public.kaizen_commandes(id) on delete cascade,
+  devis_id uuid not null references public.kaizen_devis(id) on delete cascade,
+  mollie_id text unique not null,
+  montant numeric(12, 2) not null check (montant > 0),
+  statut text not null default 'open',
+  checkout_url text,
+  created_at timestamptz not null default now(),
+  paid_at timestamptz
+);
+create index if not exists kaizen_paiements_devis on public.kaizen_paiements (devis_id);
+alter table public.kaizen_paiements enable row level security;

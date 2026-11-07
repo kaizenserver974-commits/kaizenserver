@@ -516,3 +516,5 @@ textarea { resize: vertical; margin-top: 10px; }
 .repere summary { cursor: pointer; font-weight: 600; color: var(--discret); }
 .repere p { margin: 8px 0 0; font-size: 14px; }
 .vide img { margin: 0 auto 6px; display: block; }
+
+.paiement { display: grid; gap: 6px; justify-items: start; margin-top: 4px; }

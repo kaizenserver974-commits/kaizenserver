@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes } from "../../../lib/serveur/supabase.js";
 import { STATUTS, validerMessage, validerDevis, statut, nonLus } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
+import { mollieConfigure } from "../../../lib/serveur/mollie.js";
+import { rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
+import { montantEnLigne } from "../../../lib/espace.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +23,10 @@ export async function GET(request) {
   const { reponse } = await autoriser(request);
   if (reponse) return reponse;
   try {
-    const commandes = await chargerCommandes(supabaseAdmin());
-    return NextResponse.json({ commandes, nonLus: nonLus(commandes, "equipe") });
+    const sb = supabaseAdmin();
+    let commandes = await chargerCommandes(sb);
+    if (await rafraichirPaiementsEnAttente(sb, request, commandes)) commandes = await chargerCommandes(sb);
+    return NextResponse.json({ commandes, nonLus: nonLus(commandes, "equipe"), paiementEnLigne: mollieConfigure() });
   } catch (e) {
     console.error("Kaizen /admin :", e?.message);
     return refus("Impossible de charger les commandes.", 500);
@@ -83,7 +88,7 @@ export async function POST(request) {
     await notifier({
       a: commande.email,
       sujet: `🧾 L'offre de Server, votre maître du jeu — commande ${commande.numero}`,
-      texte: `Bonjour ${commande.nom || ""},\n\nServer, votre maître du jeu, vous envoie son offre : ${montant}${devis.delai_semaines ? `, environ ${devis.delai_semaines} semaines` : ""}.\n${devis.details ? `\n${devis.details}\n` : ""}\nConsultez-le et répondez depuis votre espace : ${lienClient}`,
+      texte: `Bonjour ${commande.nom || ""},\n\nServer, votre maître du jeu, vous envoie son offre : ${montant}${devis.delai_semaines ? `, environ ${devis.delai_semaines} semaines` : ""}.\n${devis.details ? `\n${devis.details}\n` : ""}${montantEnLigne(devis) ? `\nAprès acceptation, vous pourrez régler ${devis.acompte_pct < 100 ? `l'acompte de ${devis.acompte_pct} %` : "le montant"} en ligne, en toute sécurité (Mollie).\n` : ""}\nConsultez-la et répondez depuis votre espace : ${lienClient}`,
       repondreA: process.env.KAIZEN_EMAIL,
     });
     return NextResponse.json({ ok: true });
