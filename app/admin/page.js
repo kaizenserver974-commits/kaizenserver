@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
 import { STATUTS, ACOMPTES, MODELES_LIENS, statut, montantEnLigne, offreModifiable } from "../../lib/espace.js";
+import MotDePasse from "../components/MotDePasse.js";
 import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date, euros } from "../components/Espace.js";
 import { TYPES, BUDGETS, DELAIS, PRIORITES, trouver, fonctionnalite } from "../../lib/catalogue.js";
 import { FORMULES } from "../../lib/commande.js";
@@ -62,7 +63,7 @@ export default function Admin() {
   return (
     <main className="conteneur page">
       <div className="titre-ligne">
-        <div className="maitre-titre"><img src="/personnages/server.svg" alt="" width="60" height="60" /><div><p className="surtitre">Espace Server · Maître du jeu</p><h1 className="h-page">Projets clients</h1><a className="note lien-cyan" href="/espace?client=1">Voir le site comme un client</a></div></div>
+        <div className="maitre-titre"><img src="/personnages/server.svg" alt="" width="60" height="60" /><div><p className="surtitre">Espace Server · Maître du jeu</p><h1 className="h-page">Projets clients</h1><a className="note lien-cyan" href="/espace?client=1">Voir le site comme un client</a><div style={{ marginTop: 8 }}><MotDePasse /></div></div></div>
         <div className="actions">
           {donnees.nonLus > 0 && <span className="badge">✉️ {donnees.nonLus} message{donnees.nonLus > 1 ? "s" : ""} non lu{donnees.nonLus > 1 ? "s" : ""}</span>}
           <select value={filtre} onChange={(e) => setFiltre(e.target.value)} aria-label="Filtre" style={{ width: "auto" }}>

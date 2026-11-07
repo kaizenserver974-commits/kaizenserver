@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
 import { statut } from "../../lib/espace.js";
+import MotDePasse from "../components/MotDePasse.js";
 import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date } from "../components/Espace.js";
 
 const ONGLETS = [
@@ -164,7 +165,8 @@ function Espace() {
           {commandes[0]?.nom && <p><span className="discret">Nom :</span> {commandes[0].nom}</p>}
           {commandes[0]?.telephone && <p><span className="discret">Téléphone :</span> {commandes[0].telephone}</p>}
           <p><span className="discret">Commandes :</span> {commandes.length}</p>
-          <div className="actions">
+          <MotDePasse />
+          <div className="actions" style={{ marginTop: 12 }}>
             <a className="btn secondaire" href="/projets">Mes projets (brouillons)</a>
             <button className="btn secondaire lien-danger" onClick={async () => { await sb.auth.signOut(); window.location.href = "/"; }}>Se déconnecter</button>
           </div>
