@@ -24,8 +24,10 @@ export async function POST(request) {
   const sb = supabaseAdmin();
   const emailEquipe = emailConfigure() && process.env.KAIZEN_EMAIL;
   if (!sb && !emailEquipe) {
+    // Noms (jamais les valeurs) des réglages manquants, pour aider Server à activer la commande.
+    const manquants = ["RESEND_API_KEY", "KAIZEN_EMAIL"].filter((n) => !String(process.env[n] || "").trim());
     return NextResponse.json(
-      { erreur: "La commande en ligne n'est pas encore activée sur ce site. Copiez votre dossier ou téléchargez-le en PDF pour l'envoyer.", nonConfigure: true },
+      { erreur: `La commande en ligne n'est pas encore activée sur ce site (réglage manquant : ${manquants.join(", ") || "configuration e-mail"}). Copiez votre dossier ou téléchargez-le en PDF pour l'envoyer.`, nonConfigure: true },
       { status: 503 },
     );
   }
