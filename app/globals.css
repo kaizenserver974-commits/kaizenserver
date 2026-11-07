@@ -532,3 +532,5 @@ textarea { resize: vertical; margin-top: 10px; }
 .pied-liens a { color: var(--discret); text-decoration: underline; }
 .legal h2 { font-size: 19px; margin: 24px 0 8px; }
 .legal p, .legal li { line-height: 1.7; }
+
+.bloc-maquette { display: grid; gap: 10px; margin: 8px 0 12px; }

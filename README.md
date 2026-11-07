@@ -32,6 +32,13 @@ Les tables sont protégées par RLS sans politique : le navigateur ne lit jamais
   - Seules les adresses sont enregistrées, jamais de mot de passe.
 - **Publication sur les stores** : non incluse. Le client publie avec son propre compte développeur, et Server lui fournit l'application et les liens.
 
+## Maquettes dans l'Espace Server
+
+- La maquette créée par le client dans le parcours est **envoyée avec sa commande** et enregistrée (table `kaizen_maquettes`).
+- Dans `/admin`, chaque projet a un bloc **🖼️ Maquette** : voir, régénérer, télécharger. Pour un projet créé à la main, **« Générer la maquette avec l'IA »** crée d'abord le récapitulatif, puis la maquette.
+- Le client voit aussi la maquette dans son espace.
+- Avec `OPENAI_API_KEY`, l'IA dessine une maquette sur mesure. Sans clé, la maquette est construite à partir d'un modèle.
+
 ## Paiement en ligne (Mollie)
 
 Quand Server envoie son offre, il choisit la part à payer en ligne : rien, acompte de 30 % ou 50 %, ou la totalité. Une fois l'offre acceptée, le client voit le bouton **« Payer l'acompte… »** et il est redirigé vers la page de paiement sécurisée de Mollie.

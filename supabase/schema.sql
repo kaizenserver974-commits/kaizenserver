@@ -79,3 +79,12 @@ create table if not exists public.kaizen_liens (
 );
 create index if not exists kaizen_liens_commande on public.kaizen_liens (commande_id);
 alter table public.kaizen_liens enable row level security;
+
+-- Maquette de chaque projet (générée par le parcours client ou par Server avec l'IA).
+create table if not exists public.kaizen_maquettes (
+  commande_id uuid primary key references public.kaizen_commandes(id) on delete cascade,
+  html text not null check (char_length(html) between 100 and 120000),
+  source text not null default 'gabarit',
+  updated_at timestamptz not null default now()
+);
+alter table public.kaizen_maquettes enable row level security;

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
 import { STATUTS, ACOMPTES, MODELES_LIENS, statut, montantEnLigne } from "../../lib/espace.js";
-import { FriseStatut, FilMessages, CarteDevis, date, euros } from "../components/Espace.js";
+import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date, euros } from "../components/Espace.js";
 import { TYPES, BUDGETS, DELAIS, PRIORITES, trouver, fonctionnalite } from "../../lib/catalogue.js";
 import { FORMULES } from "../../lib/commande.js";
 import { estimer, euros as eurosRond } from "../../lib/moteur.js";
@@ -105,6 +105,17 @@ export default function Admin() {
                 {c.projet?.message && <p><b>Message :</b> {c.projet.message}</p>}
                 {c.projet?.pieces?.length > 0 && <p><b>Pièces jointes (reçues par e-mail) :</b> {c.projet.pieces.join(", ")}</p>}
               </div>
+            </div>
+
+            <div className="carte">
+              <h2>🖼️ Maquette</h2>
+              <BlocMaquette
+                key={c.id}
+                disponible={Boolean(c.maquette)}
+                infos={c.maquette ? `Maquette ${c.maquette.source === "ia" ? "créée par l'IA" : "créée à partir du modèle"} le ${date(c.maquette.updated_at)}. Visible aussi par le client dans son espace.` : "Pas encore de maquette pour ce projet."}
+                lire={async () => (await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
+                generer={async () => { await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_generer", commandeId: c.id }) }); await charger(); }}
+              />
             </div>
 
             <Liens c={c} action={action} />

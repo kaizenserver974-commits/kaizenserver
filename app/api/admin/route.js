@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes } from "../../../lib/serveur/supabase.js";
+import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette, enregistrerMaquette } from "../../../lib/serveur/supabase.js";
+import { genererRecap, genererMaquette } from "../../../lib/serveur/generation.js";
+import { nettoyerProjet } from "../../../lib/moteur.js";
 import { STATUTS, validerMessage, validerDevis, statut, nonLus } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
@@ -9,6 +11,7 @@ import { numeroCommande } from "../../../lib/commande.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const refus = (message, status) => NextResponse.json({ erreur: message }, { status });
 
@@ -59,6 +62,27 @@ export async function POST(request) {
 
   const [commande] = await chargerCommandes(sb, { id: String(corps.commandeId || "") }).catch(() => []);
   if (!commande) return refus("Commande introuvable.", 404);
+
+  if (corps.action === "maquette_lire") {
+    const m = await lireMaquette(sb, commande.id);
+    return m ? NextResponse.json({ ok: true, ...m }) : refus("Pas encore de maquette pour ce projet.", 404);
+  }
+
+  // Server demande à l'IA de (re)créer la maquette à partir de la description du projet.
+  if (corps.action === "maquette_generer") {
+    try {
+      const projet = nettoyerProjet({ ...(commande.projet || {}), nom: commande.recap?.titre || commande.projet?.nom });
+      if (projet.idee.trim().length < 10) return refus("Ajoutez une description du projet (au moins une phrase) pour générer la maquette.", 400);
+      const recap = commande.recap?.ecrans?.length ? commande.recap : await genererRecap(projet);
+      const { html, source } = await genererMaquette(projet, recap);
+      await enregistrerMaquette(sb, commande.id, html, source);
+      if (!commande.recap?.ecrans?.length) await sb.from("kaizen_commandes").update({ recap: { ...recap, titre: recap.titre || projet.nom } }).eq("id", commande.id);
+      return NextResponse.json({ ok: true, source });
+    } catch (e) {
+      console.error("Kaizen maquette Server :", e?.message);
+      return refus("La maquette n'a pas pu être générée. Réessayez.", 502);
+    }
+  }
 
   if (corps.action === "lien_ajouter") {
     const { lien, erreur } = validerLien(corps);

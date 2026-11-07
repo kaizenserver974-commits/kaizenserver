@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { validerCommande, numeroCommande, resumeCommande, confirmationClient } from "../../../lib/commande.js";
-import { supabaseAdmin } from "../../../lib/serveur/supabase.js";
+import { supabaseAdmin, enregistrerMaquette } from "../../../lib/serveur/supabase.js";
+import { assainir } from "../../../lib/serveur/generation.js";
 import { emailConfigure, envoyerEmail, notifier, urlSite } from "../../../lib/serveur/email.js";
 
 export const runtime = "nodejs";
@@ -35,7 +36,7 @@ export async function POST(request) {
   const numero = numeroCommande();
   let enregistree = false;
   if (sb) {
-    const { error } = await sb.from("kaizen_commandes").insert({
+    const { data: ligne, error } = await sb.from("kaizen_commandes").insert({
       numero,
       email: commande.contact.email,
       nom: commande.contact.nom,
@@ -44,9 +45,15 @@ export async function POST(request) {
       formule: commande.formule,
       projet: { ...commande.projet, message: commande.contact.message, pieces: commande.pieces.map((p) => p.nom) },
       recap: commande.recap,
-    });
+    }).select("id").single();
     if (error) console.error("Kaizen /commande Supabase :", error.message);
-    else enregistree = true;
+    else {
+      enregistree = true;
+      const html = assainir(String(corps?.maquette?.html || "").slice(0, 120000));
+      if (html.toLowerCase().startsWith("<!doctype html")) {
+        await enregistrerMaquette(sb, ligne.id, html, corps.maquette.source === "ia" ? "ia" : "gabarit").catch((e) => console.error("Kaizen maquette :", e?.message));
+      }
+    }
   }
 
   let envoyee = false;

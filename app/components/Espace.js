@@ -116,3 +116,47 @@ function BlocPaiement({ d, paiements, payer, actif }) {
     </div>
   );
 }
+
+// Maquette d'un projet, chargée à la demande et affichée dans une iframe isolée.
+export function BlocMaquette({ disponible, lire, generer, infos }) {
+  const [html, setHtml] = useState("");
+  const [attente, setAttente] = useState("");
+  const [erreur, setErreur] = useState("");
+  const [format, setFormat] = useState("bureau");
+  async function voir() {
+    setErreur(""); setAttente("Chargement de la maquette…");
+    try { setHtml(await lire()); } catch (e) { setErreur(e.message); } finally { setAttente(""); }
+  }
+  async function creer() {
+    setErreur(""); setAttente("L'IA dessine la maquette… (jusqu'à une minute)");
+    try { await generer(); setHtml(await lire()); } catch (e) { setErreur(e.message); } finally { setAttente(""); }
+  }
+  function telecharger() {
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    const a = document.createElement("a"); a.href = url; a.download = "maquette.html"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return (
+    <div className="bloc-maquette">
+      {infos && <p className="note">{infos}</p>}
+      <div className="actions">
+        {disponible && !html && <button className="btn petit" disabled={Boolean(attente)} onClick={voir}>🖼️ Voir la maquette</button>}
+        {generer && <button className={`btn petit ${disponible ? "secondaire" : ""}`} disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Régénérer avec l'IA" : "Générer la maquette avec l'IA"}</button>}
+        {html && (
+          <>
+            <button className={`btn petit ${format === "bureau" ? "" : "secondaire"}`} onClick={() => setFormat("bureau")}>Ordinateur</button>
+            <button className={`btn petit ${format === "mobile" ? "" : "secondaire"}`} onClick={() => setFormat("mobile")}>Téléphone</button>
+            <button className="btn petit secondaire" onClick={telecharger}>Télécharger</button>
+          </>
+        )}
+      </div>
+      {attente && <div className="chargement"><span className="rond" /> {attente}</div>}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+      {html && (
+        <div className={`cadre-maquette ${format}`}>
+          <iframe title="Maquette" sandbox="allow-scripts allow-modals" srcDoc={html} />
+        </div>
+      )}
+    </div>
+  );
+}

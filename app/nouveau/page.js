@@ -790,7 +790,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
       const r = await fetch("/api/commande", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projet, recap: projet.recap, contact, formule, consentement, siteWeb: piege, pieces: pieces.map(({ nom, type, contenu }) => ({ nom, type, contenu })) }),
+        body: JSON.stringify({ projet, recap: projet.recap, contact, formule, consentement, siteWeb: piege, pieces: pieces.map(({ nom, type, contenu }) => ({ nom, type, contenu })), maquette: projet.maquette ? { html: projet.maquette.html, source: projet.maquette.source } : null }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setNonConfigure(Boolean(d.nonConfigure)); throw new Error(d.erreur || "L'envoi a échoué. Réessayez."); }

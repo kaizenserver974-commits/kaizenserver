@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
 import { statut } from "../../lib/espace.js";
-import { FriseStatut, FilMessages, CarteDevis, date } from "../components/Espace.js";
+import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date } from "../components/Espace.js";
 
 const ONGLETS = [
   { id: "commandes", label: "Mes commandes", icone: "📦" },
@@ -30,7 +30,8 @@ function Espace() {
     try {
       const d = await appelAuthentifie("/api/espace");
       // Server (admin) arrive directement dans son espace, sauf s'il demande la vue client.
-      if (d.admin && !new URLSearchParams(window.location.search).has("client")) {
+      const q = new URLSearchParams(window.location.search);
+      if (d.admin && !q.has("client") && !q.has("paiement")) {
         window.location.replace("/admin");
         return;
       }
@@ -50,7 +51,11 @@ function Espace() {
     return () => data.subscription.unsubscribe();
   }, [sb, charger]);
 
-  const changerOnglet = (id) => { setOnglet(id); window.history.replaceState(null, "", `/espace?onglet=${id}`); };
+  const changerOnglet = (id) => {
+    setOnglet(id);
+    const vueClient = new URLSearchParams(window.location.search).has("client") ? "&client=1" : "";
+    window.history.replaceState(null, "", `/espace?onglet=${id}${vueClient}`);
+  };
   const action = async (corps) => { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify(corps) }); await charger(); };
 
   // Ouvrir les messages d'une commande les marque comme lus.
@@ -104,6 +109,12 @@ function Espace() {
             <span className="badge">{statut(c.statut).icone} {statut(c.statut).label}</span>
           </div>
           <FriseStatut valeur={c.statut} />
+          {c.maquette && (
+            <BlocMaquette
+              disponible
+              lire={async () => (await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
+            />
+          )}
           {c.liens?.length > 0 && (
             <div className="liens-client">
               <h3>🔗 Vos liens</h3>

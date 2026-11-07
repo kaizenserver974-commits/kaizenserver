@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes } from "../../../lib/serveur/supabase.js";
+import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette } from "../../../lib/serveur/supabase.js";
 import { validerMessage, nonLus, statut, liensPourClient } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
@@ -74,6 +74,11 @@ export async function POST(request) {
       repondreA: commande.email,
     });
     return NextResponse.json({ ok: true });
+  }
+
+  if (corps.action === "maquette_lire") {
+    const m = await lireMaquette(sb, commande.id);
+    return m ? NextResponse.json({ ok: true, ...m }) : refus("Pas encore de maquette.", 404);
   }
 
   if (corps.action === "payer") {
