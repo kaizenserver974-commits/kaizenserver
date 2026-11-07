@@ -7,6 +7,7 @@ import {
   trouver, fonctionnalite,
 } from "../../lib/catalogue.js";
 import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
+import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, prixTexte } from "../../lib/pieces.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { OPTIONS_AVATAR, PRESETS_AVATAR, AVATAR_DEFAUT, PERSONNAGES } from "../../lib/avatar.js";
@@ -50,6 +51,7 @@ function Parcours() {
   const [erreur, setErreur] = useState("");
   const [gain, setGain] = useState(null);
   const [choixPerso, setChoixPerso] = useState(false);
+  const [infoAchat, setInfoAchat] = useState("");
 
   useEffect(() => {
     const id = params.get("id");
@@ -78,6 +80,31 @@ function Parcours() {
   useEffect(() => {
     if (etapeCourante !== undefined) window.scrollTo({ top: 0, behavior: "smooth" });
   }, [etapeCourante]);
+
+  // Retour de Mollie après un achat de pièces : on crédite une seule fois.
+  const achatRetour = params.get("achat");
+  useEffect(() => {
+    if (!projet || !achatRetour) return;
+    (async () => {
+      try {
+        const r = await appeler("/api/pieces/verifier", { achat: achatRetour });
+        if (r.statut === "paid" && r.pieces > 0) {
+          setProjet((p) => enregistrerProjet({ ...p, pieces: crediter(p, r.pieces), etape: 6, journal: [...(p.journal || []), { date: new Date().toISOString(), texte: `Recharge de ${r.pieces} pièces` }] }));
+          setInfoAchat(`🪙 +${r.pieces} pièces ajoutées. Merci !`);
+        } else if (r.statut === "paid") {
+          setInfoAchat("Ces pièces ont déjà été ajoutées.");
+        } else if (["open", "pending", "authorized"].includes(r.statut)) {
+          setInfoAchat("Paiement en cours de validation : rechargez la page dans un instant.");
+        } else {
+          setInfoAchat("Le paiement n'a pas abouti : aucune pièce n'a été débitée.");
+        }
+      } catch (e) {
+        setErreur(e.message);
+      } finally {
+        router.replace(`/nouveau?id=${projet.id}`);
+      }
+    })();
+  }, [projet?.id, achatRetour]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!projet) return <main className="conteneur page"><p className="discret">Chargement…</p></main>;
 
@@ -130,6 +157,21 @@ function Parcours() {
     }));
   });
 
+  // Demande de modification de la maquette par le client : coûte des pièces d'or.
+  const modifierMaquette = (retour) => lancer("Kaizen redessine la maquette avec vos remarques… (jusqu'à une minute)", async () => {
+    const pieces = debiter(projet, COUT_MODIFICATION);
+    if (!pieces) throw new Error(`Il vous faut ${COUT_MODIFICATION} pièces pour demander une modification : rechargez vos pièces ci-dessous.`);
+    const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap, retour });
+    setProjet((p) => enregistrerProjet({
+      ...p, pieces, maquetteValidee: false,
+      maquette: { html, source, genereLe: new Date().toISOString() },
+      retours: [...(p.retours || []), { texte: retour, date: new Date().toISOString() }].slice(-10),
+      journal: noter(p, `Modification demandée (−${COUT_MODIFICATION} pièces) : ${retour.slice(0, 80)}`),
+    }));
+  });
+
+  const validerMaquette = () => maj({ maquetteValidee: true, journal: noter(projet, "Maquette acceptée par le client"), etape: 7 });
+
   const genererMaquette = () => lancer("Kaizen dessine la maquette de votre application… (jusqu'à une minute)", async () => {
     const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap });
     const jeu = gagner(["maquette"]);
@@ -177,7 +219,7 @@ function Parcours() {
       style={enJeu ? { "--jeu": univers.couleur, "--jeu-clair": univers.clair } : undefined}
     >
       {enJeu
-        ? <TableauJoueur jeu={projet.jeu} changer={() => setChoixPerso(true)} />
+        ? <TableauJoueur jeu={projet.jeu} pieces={solde(projet)} changer={() => setChoixPerso(true)} />
         : <p className="mode-classique">Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></p>}
 
       <ol className="progression">
@@ -201,7 +243,7 @@ function Parcours() {
         {etape === 3 && <EtapeStyle projet={projet} maj={maj} suivant={() => allerA(4, ["style"])} precedent={() => allerA(2)} />}
         {etape === 4 && <EtapeBudget projet={projet} maj={maj} suivant={preparerRecap} precedent={() => allerA(3)} />}
         {etape === 5 && <EtapeRecap projet={projet} modifier={() => allerA(1)} suivant={projet.maquette ? () => allerA(6) : genererMaquette} actualiser={preparerRecap} commander={() => allerA(7)} />}
-        {etape === 6 && <EtapeMaquette projet={projet} regenerer={genererMaquette} precedent={() => allerA(5)} suivant={() => allerA(7)} />}
+        {etape === 6 && <EtapeMaquette projet={projet} modifier={modifierMaquette} valider={validerMaquette} infoAchat={infoAchat} precedent={() => allerA(5)} suivant={() => allerA(7)} />}
         {etape === 7 && <EtapeCommande projet={projet} maj={maj} noter={noter} precedent={() => allerA(projet.maquette ? 6 : 5)} suivant={() => allerA(8)} />}
         {etape === 8 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
       </div>
@@ -342,7 +384,7 @@ function AvatarJoueur({ jeu, taille, classe }) {
   return <span className={classe} aria-hidden="true">{trouverAvatar(jeu?.avatar).emoji}</span>;
 }
 
-function TableauJoueur({ jeu, changer }) {
+function TableauJoueur({ jeu, changer, pieces }) {
   const u = trouverUnivers(jeu.univers);
   const n = niveau(jeu.points);
   return (
@@ -357,7 +399,7 @@ function TableauJoueur({ jeu, changer }) {
         <div className="barre-xp" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(n.progression * 100)} aria-label="Progression vers le niveau suivant">
           <i style={{ width: `${Math.max(4, n.progression * 100)}%` }} />
         </div>
-        <small className="discret">{jeu.points} {u.monnaie} · encore {n.restant} pour le niveau {n.numero + 1}</small>
+        <small className="discret">🪙 {pieces} {u.monnaie} disponibles · encore {n.restant} points pour le niveau {n.numero + 1}</small>
       </div>
       <div className="badges" aria-label="Badges">
         {Object.entries(BADGES).map(([id, b]) => (
@@ -790,7 +832,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
       const r = await fetch("/api/commande", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projet, recap: projet.recap, contact, formule, consentement, siteWeb: piege, pieces: pieces.map(({ nom, type, contenu }) => ({ nom, type, contenu })), maquette: projet.maquette ? { html: projet.maquette.html, source: projet.maquette.source } : null }),
+        body: JSON.stringify({ projet: { ...projet, retours: (projet.retours || []).map((r) => r.texte) }, recap: projet.recap, contact, formule, consentement, siteWeb: piege, pieces: pieces.map(({ nom, type, contenu }) => ({ nom, type, contenu })), maquette: projet.maquette ? { html: projet.maquette.html, source: projet.maquette.source } : null }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setNonConfigure(Boolean(d.nonConfigure)); throw new Error(d.erreur || "L'envoi a échoué. Réessayez."); }
@@ -884,7 +926,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
   );
 }
 
-function EtapeMaquette({ projet, regenerer, precedent, suivant }) {
+function EtapeMaquette({ projet, modifier, valider, infoAchat, precedent, suivant }) {
   const [format, setFormat] = useState("bureau");
   const m = projet.maquette;
   if (!m) return null;
@@ -913,15 +955,78 @@ function EtapeMaquette({ projet, regenerer, precedent, suivant }) {
       <p className="note">
         {m.source === "ia" ? "Maquette dessinée par l'IA de Kaizen" : "Maquette générée à partir du gabarit Kaizen"} le {new Date(m.genereLe).toLocaleString("fr-FR")}.
       </p>
+      <AvisMaquette projet={projet} modifier={modifier} valider={valider} infoAchat={infoAchat} />
       <div className="navigation">
         <div className="actions">
           <button className="btn secondaire" onClick={precedent}>Récapitulatif</button>
-          <button className="btn secondaire" onClick={regenerer}>Nouvelle proposition</button>
           <button className="btn secondaire" onClick={telecharger}>Télécharger</button>
         </div>
         <button className="btn grand" onClick={suivant}>{projet.commande ? "Voir ma commande" : "Commander cette application 🛒"}</button>
       </div>
     </section>
+  );
+}
+
+// Avis du client sur la maquette : accepter, ou demander une modification (payante en pièces).
+function AvisMaquette({ projet, modifier, valider, infoAchat }) {
+  const [retour, setRetour] = useState("");
+  const [achat, setAchat] = useState("");
+  const [erreur, setErreur] = useState("");
+  const dispo = solde(projet);
+  const monnaie = projet.jeu?.actif ? trouverUnivers(projet.jeu.univers).monnaie : "pièces d'or";
+  const assez = dispo >= COUT_MODIFICATION;
+  async function acheter(pack) {
+    setErreur(""); setAchat(pack);
+    try {
+      const r = await fetch("/api/pieces/acheter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pack, projetLocal: projet.id }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erreur || "Le paiement n'a pas pu démarrer.");
+      window.location.href = d.url;
+    } catch (e) { setErreur(e.message); setAchat(""); }
+  }
+  return (
+    <div className="avis-maquette">
+      <div className="titre-ligne">
+        <h3>💬 Votre avis sur la maquette</h3>
+        <span className="solde">🪙 {dispo} {monnaie}</span>
+      </div>
+      {infoAchat && <p className="succes">{infoAchat}</p>}
+      {projet.maquetteValidee ? (
+        <p className="succes">✅ Vous avez accepté cette maquette. Vous pouvez commander votre application.</p>
+      ) : (
+        <button className="btn" onClick={valider}>✅ J'accepte la maquette</button>
+      )}
+      <label className="champ">
+        <span>Il manque quelque chose ? Une couleur, un écran, un texte à changer ?</span>
+        <textarea rows={3} maxLength={1000} value={retour} onChange={(e) => setRetour(e.target.value)} placeholder="Ex. : je voudrais du vert plutôt que du violet, ajouter un écran « Mes réservations », et mettre mon logo en haut." />
+      </label>
+      <div className="actions">
+        <button className="btn secondaire" disabled={retour.trim().length < 5 || !assez} onClick={() => { modifier(retour.trim()); setRetour(""); }}>
+          ✏️ Demander la modification (−{COUT_MODIFICATION} {monnaie})
+        </button>
+      </div>
+      {!assez && (
+        <div className="recharge">
+          <p><b>Plus assez de {monnaie} :</b> une modification coûte {COUT_MODIFICATION}. Rechargez pour continuer.</p>
+          <div className="packs">
+            {PACKS.map((pk) => (
+              <button key={pk.id} className="pack" disabled={Boolean(achat)} onClick={() => acheter(pk.id)}>
+                <strong>🪙 {pk.pieces}</strong><span>{prixTexte(pk.prix)}</span>
+                {achat === pk.id && <small>Redirection…</small>}
+              </button>
+            ))}
+          </div>
+          <p className="note">🔒 Paiement sécurisé par Mollie. Les pièces sont ajoutées dès votre retour sur cette page.</p>
+        </div>
+      )}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+      {projet.retours?.length > 0 && (
+        <div className="historique-retours">
+          <p className="petit-titre">Vos demandes de modification</p>
+          <ul>{[...projet.retours].reverse().map((r, i) => <li key={i}><time>{new Date(r.date).toLocaleDateString("fr-FR")}</time> {r.texte}</li>)}</ul>
+        </div>
+      )}
+    </div>
   );
 }
 

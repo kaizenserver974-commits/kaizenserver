@@ -40,3 +40,14 @@ test("pièces jointes : format et taille contrôlés", () => {
   const trop = validerCommande({ ...base, pieces: [1, 2, 3, 4].map(() => ({ nom: "a.png", type: "image/png", contenu: "AAAA" })) });
   assert.equal(trop.erreurs.length, 1);
 });
+
+import { solde, debiter, crediter, BONUS_CLASSIQUE } from "../lib/pieces.js";
+test("pièces : solde, débit, crédit", () => {
+  const p = { jeu: { actif: true, points: 70 } };
+  assert.equal(solde(p), 70);
+  const apres = { ...p, pieces: debiter(p, 30) };
+  assert.equal(solde(apres), 40);
+  assert.equal(debiter({ ...apres, pieces: debiter(apres, 30) }, 30), null);
+  assert.equal(solde({ ...apres, pieces: crediter(apres, 60) }), 100);
+  assert.equal(solde({ jeu: { actif: false } }), BONUS_CLASSIQUE);
+});

@@ -92,3 +92,18 @@ alter table public.kaizen_maquettes enable row level security;
 -- Lien partageable de chaque maquette (adresse difficile à deviner).
 alter table public.kaizen_maquettes add column if not exists jeton uuid not null default gen_random_uuid();
 create unique index if not exists kaizen_maquettes_jeton on public.kaizen_maquettes (jeton);
+
+-- Achats de pièces d'or (recharge pour demander des modifications de maquette).
+create table if not exists public.kaizen_achats_pieces (
+  id uuid primary key,
+  mollie_id text unique not null,
+  pack text not null,
+  pieces integer not null check (pieces > 0),
+  montant numeric(10, 2) not null check (montant > 0),
+  statut text not null default 'open',
+  reclame boolean not null default false,
+  projet_local text,
+  created_at timestamptz not null default now(),
+  paid_at timestamptz
+);
+alter table public.kaizen_achats_pieces enable row level security;

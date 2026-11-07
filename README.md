@@ -39,6 +39,13 @@ Les tables sont protégées par RLS sans politique : le navigateur ne lit jamais
 - Le client voit aussi la maquette dans son espace.
 - Avec `OPENAI_API_KEY`, l'IA dessine une maquette sur mesure. Sans clé, la maquette est construite à partir d'un modèle.
 
+## Avis sur la maquette et pièces d'or
+
+- À l'étape Maquette, le client peut **accepter la maquette** ou **demander une modification** (couleurs, écrans, textes…) : l'IA redessine la maquette selon son avis.
+- **Chaque modification coûte 30 pièces.** Les pièces sont gagnées dans le jeu ; en mode classique, le client démarre avec 60 pièces.
+- **Recharge** par Mollie : 30 pièces = 2,99 €, 60 = 3,99 €, 80 = 4,99 €. Les packs se modifient dans `lib/pieces.js`. Chaque achat n'est crédité qu'une fois, et toujours après vérification du paiement chez Mollie (table `kaizen_achats_pieces`).
+- Les avis et l'acceptation sont envoyés avec la commande, et visibles dans l'Espace Server et dans l'e-mail.
+
 ## Paiement en ligne (Mollie)
 
 Quand Server envoie son offre, il choisit la part à payer en ligne : rien, acompte de 30 % ou 50 %, ou la totalité. Une fois l'offre acceptée, le client voit le bouton **« Payer l'acompte… »** et il est redirigé vers la page de paiement sécurisée de Mollie.

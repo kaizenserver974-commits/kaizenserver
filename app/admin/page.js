@@ -344,6 +344,8 @@ function InfosProjet({ c, action }) {
         <p><b>Idée :</b> {c.projet?.idee || "—"}</p>
         <p><b>Fonctionnalités :</b> {[...(c.projet?.fonctionnalites || []).map((id) => fonctionnalite(id)?.label || id), ...(c.projet?.personnalisees || [])].join(", ") || "—"}</p>
         {c.projet?.message && <p><b>Message :</b> {c.projet.message}</p>}
+        <p><b>Maquette :</b> {c.projet?.maquetteValidee ? "✅ acceptée par le client" : "pas encore acceptée"}{c.projet?.retours?.length ? ` · ${c.projet.retours.length} demande(s) de modification` : ""}</p>
+        {c.projet?.retours?.length > 0 && <ul className="retours-admin">{c.projet.retours.map((r, i) => <li key={i}>💬 {r}</li>)}</ul>}
         {c.projet?.pieces?.length > 0 && <p><b>Pièces jointes (reçues par e-mail) :</b> {c.projet.pieces.join(", ")}</p>}
         <button className="btn petit secondaire" onClick={() => setEdition(true)}>✏️ Modifier les coordonnées et le projet</button>
       </div>
