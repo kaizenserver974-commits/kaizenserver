@@ -29,6 +29,11 @@ function Espace() {
   const charger = useCallback(async () => {
     try {
       const d = await appelAuthentifie("/api/espace");
+      // Server (admin) arrive directement dans son espace, sauf s'il demande la vue client.
+      if (d.admin && !new URLSearchParams(window.location.search).has("client")) {
+        window.location.replace("/admin");
+        return;
+      }
       setDonnees(d);
       setChoisie((c) => c || d.commandes[0]?.id || null);
       setEtat("pret");
@@ -69,7 +74,7 @@ function Espace() {
       <div className="titre-ligne">
         <div><p className="surtitre">Mon espace</p><h1 className="h-page">Bonjour {commandes[0]?.nom?.split(" ")[0] || ""} 👋</h1></div>
         <div className="actions">
-          {donnees.admin && <a className="btn contour petit" href="/admin">Espace Server</a>}
+          {donnees.admin && <a className="btn contour petit" href="/admin">👑 Retour à l'Espace Server</a>}
           <a className="btn petit" href="/nouveau">Nouveau projet</a>
         </div>
       </div>
