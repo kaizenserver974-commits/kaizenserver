@@ -62,7 +62,7 @@ export function CarteDevis({ d, repondre, paiements = [], payer, paiementEnLigne
   const [attente, setAttente] = useState(false);
   const [erreur, setErreur] = useState("");
   async function choisir(decision) {
-    if (decision === "accepte" && !window.confirm(`Accepter l'offre de ${euros(d.montant)} ?`)) return;
+    if (decision === "accepte" && !window.confirm(`Accepter l'offre de ${euros(d.montant)} ?\n\nEn acceptant, vous acceptez les conditions générales de vente (kaizenserver : page « Conditions de vente »).`)) return;
     setAttente(true); setErreur("");
     try { await repondre(decision); } catch (e) { setErreur(e.message); } finally { setAttente(false); }
   }
@@ -78,6 +78,7 @@ export function CarteDevis({ d, repondre, paiements = [], payer, paiementEnLigne
       {repondre && d.statut === "envoye" && (
         <div className="actions">
           <button className="btn" disabled={attente} onClick={() => choisir("accepte")}>Accepter l'offre</button>
+          <small className="discret">En acceptant, vous acceptez nos <a className="lien-cyan" href="/cgv" target="_blank" rel="noopener">conditions de vente</a>.</small>
           <button className="btn secondaire" disabled={attente} onClick={() => choisir("refuse")}>Refuser</button>
         </div>
       )}

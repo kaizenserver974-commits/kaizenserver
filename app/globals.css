@@ -526,3 +526,9 @@ textarea { resize: vertical; margin-top: 10px; }
 .liens-client { margin: 6px 0 12px; }
 .liens-client ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .ajout-lien .puce { font-size: 12.5px; padding: 6px 10px; }
+
+.pied p { margin: 0 0 8px; }
+.pied-liens { display: flex; flex-wrap: wrap; gap: 16px; }
+.pied-liens a { color: var(--discret); text-decoration: underline; }
+.legal h2 { font-size: 19px; margin: 24px 0 8px; }
+.legal p, .legal li { line-height: 1.7; }

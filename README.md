@@ -40,6 +40,10 @@ Quand Server envoie son offre, il choisit la part à payer en ligne : rien, acom
 - Activation : ajoutez `MOLLIE_API_KEY` dans Vercel (clé `test_…` pour essayer, puis `live_…`), puis exécutez à nouveau `supabase/schema.sql`, qui ajoute la table `kaizen_paiements`.
 - Si le compte Mollie appartient à une autre structure (La Yonne Finance), créez-y un **profil de site web dédié à KaizenServer** et utilisez la clé de ce profil.
 
+## Pages légales
+
+`/mentions-legales`, `/cgv` et `/confidentialite`, avec des liens en bas de chaque page. **À compléter** dans `lib/legal.js` : structure, SIRET, adresse, régime de TVA, médiateur de la consommation… Tant qu'une valeur manque, elle s'affiche « [à compléter] ». Mollie contrôle ces pages avant d'activer les paiements réels. Faites-les relire par un professionnel si besoin.
+
 ## Aide
 
 La bulle **« Besoin d'aide ? »** (Bip) répond aux questions fréquentes. Avec `OPENAI_API_KEY`, elle répond librement, en restant sur les informations du site.

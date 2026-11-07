@@ -1,0 +1,26 @@
+import PageLegale from "../components/PageLegale.js";
+import { LEGAL, v } from "../../lib/legal.js";
+
+export const metadata = { title: "Mentions légales — KaizenServer" };
+
+export default function MentionsLegales() {
+  return (
+    <PageLegale surtitre="Informations" titre="Mentions légales" majLe={LEGAL.majLe}>
+      <h2>Éditeur du site</h2>
+      <p>
+        {LEGAL.nomCommercial} est édité par <b>{v(LEGAL.structure)}</b> ({v(LEGAL.formeJuridique)}).<br />
+        SIRET / RNA : {v(LEGAL.siret)}<br />
+        Adresse : {v(LEGAL.adresse)}<br />
+        E-mail : {LEGAL.email} · Téléphone : {v(LEGAL.telephone)}<br />
+        Responsable de la publication : {v(LEGAL.responsablePublication)}<br />
+        {LEGAL.tva && <>{LEGAL.tva}<br /></>}
+      </p>
+      <h2>Hébergement</h2>
+      <p>{LEGAL.hebergeur}</p>
+      <h2>Propriété intellectuelle</h2>
+      <p>Les textes, illustrations (dont les personnages Kai, Mia, Bip et Server), logos et éléments du site sont la propriété de {LEGAL.nomCommercial}. Toute reproduction sans autorisation est interdite.</p>
+      <h2>Données personnelles</h2>
+      <p>Voir notre <a className="lien-cyan" href="/confidentialite">politique de confidentialité</a>.</p>
+    </PageLegale>
+  );
+}

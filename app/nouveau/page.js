@@ -863,7 +863,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
 
       <label className="case consentement">
         <input type="checkbox" checked={consentement} onChange={(ev) => setConsentement(ev.target.checked)} />
-        <span>J'accepte que KaizenServer utilise ces informations pour me recontacter au sujet de mon projet. *</span>
+        <span>J'accepte que KaizenServer utilise ces informations pour me recontacter au sujet de mon projet (<a className="lien-cyan" href="/confidentialite" target="_blank">confidentialité</a>, <a className="lien-cyan" href="/cgv" target="_blank">conditions de vente</a>). *</span>
       </label>
 
       {erreur && <p className="alerte erreur" style={{ marginTop: 14 }}>{erreur}</p>}

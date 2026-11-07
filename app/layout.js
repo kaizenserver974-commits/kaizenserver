@@ -38,7 +38,14 @@ export default function RootLayout({ children }) {
           </div>
         </header>
         {children}
-        <footer className="pied conteneur">KaizenServer — chaque idée mérite d'avancer, un pas après l'autre.</footer>
+        <footer className="pied conteneur">
+          <p>KaizenServer — chaque idée mérite d'avancer, un pas après l'autre.</p>
+          <nav className="pied-liens" aria-label="Informations légales">
+            <a href="/mentions-legales">Mentions légales</a>
+            <a href="/cgv">Conditions de vente</a>
+            <a href="/confidentialite">Confidentialité</a>
+          </nav>
+        </footer>
         <Aide />
         <nav className="nav-basse" aria-label="Navigation mobile">
           <a href="/"><span>🏠</span>Accueil</a>
