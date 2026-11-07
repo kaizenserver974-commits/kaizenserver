@@ -23,7 +23,7 @@ export async function GET(request) {
     return NextResponse.json({ email: u.email, admin: u.admin, commandes, nonLus: nonLus(commandes, "client"), paiementEnLigne: mollieConfigure() });
   } catch (e) {
     console.error("Kaizen /espace :", e?.message);
-    return refus("Impossible de charger votre espace pour le moment.", 500);
+    return refus(`Impossible de charger votre espace pour le moment. (Détail : ${e?.message || "inconnu"} — si une table manque, relancez supabase/schema.sql dans Supabase.)`, 500);
   }
 }
 

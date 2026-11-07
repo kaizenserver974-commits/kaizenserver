@@ -36,7 +36,7 @@ export async function GET(request) {
     return NextResponse.json({ commandes, nonLus: nonLus(commandes, "equipe"), paiementEnLigne: mollieConfigure() });
   } catch (e) {
     console.error("Kaizen /admin :", e?.message);
-    return refus("Impossible de charger les commandes.", 500);
+    return refus(`Impossible de charger les commandes. (Détail : ${e?.message || "inconnu"} — si une table manque, relancez supabase/schema.sql dans Supabase.)`, 500);
   }
 }
 
