@@ -7,7 +7,7 @@ import {
   trouver, fonctionnalite,
 } from "../../lib/catalogue.js";
 import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
-import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, prixTexte } from "../../lib/pieces.js";
+import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, COUT_COMMANDE, prixTexte } from "../../lib/pieces.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { OPTIONS_AVATAR, PRESETS_AVATAR, AVATAR_DEFAUT, PERSONNAGES } from "../../lib/avatar.js";
@@ -89,7 +89,7 @@ function Parcours() {
       try {
         const r = await appeler("/api/pieces/verifier", { achat: achatRetour });
         if (r.statut === "paid" && r.pieces > 0) {
-          setProjet((p) => enregistrerProjet({ ...p, pieces: crediter(p, r.pieces), etape: 6, journal: [...(p.journal || []), { date: new Date().toISOString(), texte: `Recharge de ${r.pieces} pièces` }] }));
+          setProjet((p) => enregistrerProjet({ ...p, pieces: crediter(p, r.pieces), journal: [...(p.journal || []), { date: new Date().toISOString(), texte: `Recharge de ${r.pieces} pièces` }] }));
           setInfoAchat(`🪙 +${r.pieces} pièces ajoutées. Merci !`);
         } else if (r.statut === "paid") {
           setInfoAchat("Ces pièces ont déjà été ajoutées.");
@@ -244,7 +244,7 @@ function Parcours() {
         {etape === 4 && <EtapeBudget projet={projet} maj={maj} suivant={preparerRecap} precedent={() => allerA(3)} />}
         {etape === 5 && <EtapeRecap projet={projet} modifier={() => allerA(1)} suivant={projet.maquette ? () => allerA(6) : genererMaquette} actualiser={preparerRecap} commander={() => allerA(7)} />}
         {etape === 6 && <EtapeMaquette projet={projet} modifier={modifierMaquette} valider={validerMaquette} infoAchat={infoAchat} precedent={() => allerA(5)} suivant={() => allerA(7)} />}
-        {etape === 7 && <EtapeCommande projet={projet} maj={maj} noter={noter} precedent={() => allerA(projet.maquette ? 6 : 5)} suivant={() => allerA(8)} />}
+        {etape === 7 && <EtapeCommande projet={projet} infoAchat={infoAchat} maj={maj} noter={noter} precedent={() => allerA(projet.maquette ? 6 : 5)} suivant={() => allerA(8)} />}
         {etape === 8 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
       </div>
 
@@ -806,7 +806,7 @@ function EnvoiDemande({ projet, commander }) {
   );
 }
 
-function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
+function EtapeCommande({ projet, maj, noter, precedent, suivant, infoAchat }) {
   const contact = projet.contact || {};
   const [formule, setFormule] = useState(projet.commande?.formule || "v1");
   const [consentement, setConsentement] = useState(false);
@@ -826,7 +826,12 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
   const [pieces, setPieces] = useState([]);
   useEffect(() => { lireFichiers(projet.id).then(setPieces); }, [projet.id]);
 
+  const dispo = solde(projet);
+  const monnaie = projet.jeu?.actif ? trouverUnivers(projet.jeu.univers).monnaie : "pièces d'or";
+  const assezPieces = dispo >= COUT_COMMANDE;
+
   async function commander() {
+    if (!assezPieces) { setErreur(`Il vous faut ${COUT_COMMANDE} ${monnaie} pour envoyer la commande.`); return; }
     setErreur(""); setNonConfigure(false); setEnvoi(true);
     try {
       const r = await fetch("/api/commande", {
@@ -837,9 +842,10 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setNonConfigure(Boolean(d.nonConfigure)); throw new Error(d.erreur || "L'envoi a échoué. Réessayez."); }
       maj({
+        pieces: debiter(projet, COUT_COMMANDE) || projet.pieces,
         commande: { numero: d.numero, date: d.date || new Date().toISOString(), formule, confirmationEnvoyee: d.confirmationEnvoyee, espaceClient: Boolean(d.espaceClient) },
         statut: ["idee", "cadrage", "maquette"].includes(projet.statut) ? "maquette" : projet.statut,
-        journal: noter(projet, `Commande envoyée (n° ${d.numero})`),
+        journal: noter(projet, `Commande envoyée (n° ${d.numero}, −${COUT_COMMANDE} pièces)`),
       }, ["commande"]);
     } catch (err) {
       setErreur(err.message);
@@ -916,9 +922,16 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
         </div>
       )}
 
+      {infoAchat && <p className="succes" style={{ marginTop: 18 }}>{infoAchat}</p>}
+      <div className="cout-commande">
+        <span>Envoyer la commande : <b>🪙 {COUT_COMMANDE} {monnaie}</b></span>
+        <span className="solde">🪙 {dispo} disponibles</span>
+      </div>
+      {!assezPieces && <Recharge projet={projet} cout={COUT_COMMANDE} motif="l'envoi de la commande" monnaie={monnaie} />}
+
       <div className="navigation">
         <button className="btn secondaire" onClick={precedent}>Retour</button>
-        <button className="btn grand" disabled={!valide || envoi} onClick={commander}>{envoi ? "Envoi en cours…" : "Envoyer ma commande ✈"}</button>
+        <button className="btn grand" disabled={!valide || envoi || !assezPieces} onClick={commander}>{envoi ? "Envoi en cours…" : `Envoyer ma commande (−${COUT_COMMANDE}) ✈`}</button>
       </div>
       <p className="note"><span aria-hidden="true">🔒</span> Vos coordonnées servent uniquement à vous recontacter au sujet de ce projet.</p>
       <p className="note"><span aria-hidden="true">📱</span> La publication sur Google Play / App Store n'est pas incluse : elle se fait avec votre propre compte développeur. Server vous fournit l'application et les liens utiles.</p>
@@ -967,14 +980,10 @@ function EtapeMaquette({ projet, modifier, valider, infoAchat, precedent, suivan
   );
 }
 
-// Avis du client sur la maquette : accepter, ou demander une modification (payante en pièces).
-function AvisMaquette({ projet, modifier, valider, infoAchat }) {
-  const [retour, setRetour] = useState("");
+// Recharge de pièces d'or par Mollie (packs).
+function Recharge({ projet, cout, motif, monnaie }) {
   const [achat, setAchat] = useState("");
   const [erreur, setErreur] = useState("");
-  const dispo = solde(projet);
-  const monnaie = projet.jeu?.actif ? trouverUnivers(projet.jeu.univers).monnaie : "pièces d'or";
-  const assez = dispo >= COUT_MODIFICATION;
   async function acheter(pack) {
     setErreur(""); setAchat(pack);
     try {
@@ -984,6 +993,30 @@ function AvisMaquette({ projet, modifier, valider, infoAchat }) {
       window.location.href = d.url;
     } catch (e) { setErreur(e.message); setAchat(""); }
   }
+  const manque = Math.max(0, cout - solde(projet));
+  return (
+    <div className="recharge">
+      <p><b>Plus assez de {monnaie} :</b> {motif} coûte {cout}. Il vous en manque {manque}. Rechargez pour continuer.</p>
+      <div className="packs">
+        {PACKS.map((pk) => (
+          <button key={pk.id} className="pack" disabled={Boolean(achat)} onClick={() => acheter(pk.id)}>
+            <strong>🪙 {pk.pieces}</strong><span>{prixTexte(pk.prix)}</span>
+            {achat === pk.id && <small>Redirection…</small>}
+          </button>
+        ))}
+      </div>
+      <p className="note">🔒 Paiement sécurisé par Mollie. Les pièces sont ajoutées dès votre retour sur cette page.</p>
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+    </div>
+  );
+}
+
+// Avis du client sur la maquette : accepter, ou demander une modification (payante en pièces).
+function AvisMaquette({ projet, modifier, valider, infoAchat }) {
+  const [retour, setRetour] = useState("");
+  const dispo = solde(projet);
+  const monnaie = projet.jeu?.actif ? trouverUnivers(projet.jeu.univers).monnaie : "pièces d'or";
+  const assez = dispo >= COUT_MODIFICATION;
   return (
     <div className="avis-maquette">
       <div className="titre-ligne">
@@ -1005,21 +1038,7 @@ function AvisMaquette({ projet, modifier, valider, infoAchat }) {
           ✏️ Demander la modification (−{COUT_MODIFICATION} {monnaie})
         </button>
       </div>
-      {!assez && (
-        <div className="recharge">
-          <p><b>Plus assez de {monnaie} :</b> une modification coûte {COUT_MODIFICATION}. Rechargez pour continuer.</p>
-          <div className="packs">
-            {PACKS.map((pk) => (
-              <button key={pk.id} className="pack" disabled={Boolean(achat)} onClick={() => acheter(pk.id)}>
-                <strong>🪙 {pk.pieces}</strong><span>{prixTexte(pk.prix)}</span>
-                {achat === pk.id && <small>Redirection…</small>}
-              </button>
-            ))}
-          </div>
-          <p className="note">🔒 Paiement sécurisé par Mollie. Les pièces sont ajoutées dès votre retour sur cette page.</p>
-        </div>
-      )}
-      {erreur && <p className="alerte erreur">{erreur}</p>}
+      {!assez && <Recharge projet={projet} cout={COUT_MODIFICATION} motif="une modification" monnaie={monnaie} />}
       {projet.retours?.length > 0 && (
         <div className="historique-retours">
           <p className="petit-titre">Vos demandes de modification</p>
