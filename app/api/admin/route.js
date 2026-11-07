@@ -4,7 +4,8 @@ import { STATUTS, validerMessage, validerDevis, statut, nonLus } from "../../../
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
 import { rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
-import { montantEnLigne } from "../../../lib/espace.js";
+import { montantEnLigne, validerLien, validerNouveauProjet } from "../../../lib/espace.js";
+import { numeroCommande } from "../../../lib/commande.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,8 +40,44 @@ export async function POST(request) {
   let corps;
   try { corps = await request.json(); } catch { return refus("Requête invalide.", 400); }
   const sb = supabaseAdmin();
+
+  // Nouveau projet créé à la main par Server (client venu hors du site).
+  if (corps.action === "creer") {
+    const { projet, erreur } = validerNouveauProjet(corps);
+    if (erreur) return refus(erreur, 400);
+    const numero = numeroCommande();
+    const { data, error } = await sb.from("kaizen_commandes").insert({
+      numero, source: "manuel", email: projet.email, nom: projet.nom, telephone: projet.telephone || null, formule: "conseil", statut: "en_etude",
+      projet: { nom: projet.titre, idee: projet.idee, fonctionnalites: [], personnalisees: [] }, recap: { titre: projet.titre },
+    }).select("id").single();
+    if (error) return refus("Le projet n'a pas pu être créé.", 500);
+    return NextResponse.json({ ok: true, id: data.id, numero });
+  }
+
   const [commande] = await chargerCommandes(sb, { id: String(corps.commandeId || "") }).catch(() => []);
   if (!commande) return refus("Commande introuvable.", 404);
+
+  if (corps.action === "lien_ajouter") {
+    const { lien, erreur } = validerLien(corps);
+    if (erreur) return refus(erreur, 400);
+    const { error } = await sb.from("kaizen_liens").insert({ commande_id: commande.id, ...lien });
+    if (error) return refus("Le lien n'a pas pu être ajouté.", 500);
+    if (lien.visible_client && corps.prevenir) {
+      await notifier({
+        a: commande.email,
+        sujet: `🔗 Nouveau lien pour votre application — commande ${commande.numero}`,
+        texte: `Bonjour ${commande.nom || ""},\n\nServer, votre maître du jeu, a ajouté un lien : ${lien.titre}\n${lien.url}\n\nRetrouvez tous vos liens dans votre espace : ${lienClient}`,
+        repondreA: process.env.KAIZEN_EMAIL,
+      });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (corps.action === "lien_supprimer") {
+    const { error } = await sb.from("kaizen_liens").delete().eq("id", String(corps.lienId || "")).eq("commande_id", commande.id);
+    if (error) return refus("Le lien n'a pas pu être supprimé.", 500);
+    return NextResponse.json({ ok: true });
+  }
   const lienClient = `${urlSite(request)}/connexion`;
 
   if (corps.action === "message") {

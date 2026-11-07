@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes } from "../../../lib/serveur/supabase.js";
-import { validerMessage, nonLus, statut } from "../../../lib/espace.js";
+import { validerMessage, nonLus, statut, liensPourClient } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
 import { demarrerPaiement, rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
@@ -19,6 +19,7 @@ export async function GET(request) {
     const sb = supabaseAdmin();
     let commandes = await chargerCommandes(sb, { email: u.email });
     if (await rafraichirPaiementsEnAttente(sb, request, commandes)) commandes = await chargerCommandes(sb, { email: u.email });
+    commandes = commandes.map((c) => ({ ...c, liens: liensPourClient(c.liens) }));
     return NextResponse.json({ email: u.email, admin: u.admin, commandes, nonLus: nonLus(commandes, "client"), paiementEnLigne: mollieConfigure() });
   } catch (e) {
     console.error("Kaizen /espace :", e?.message);

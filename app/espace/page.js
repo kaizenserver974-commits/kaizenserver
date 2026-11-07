@@ -99,6 +99,12 @@ function Espace() {
             <span className="badge">{statut(c.statut).icone} {statut(c.statut).label}</span>
           </div>
           <FriseStatut valeur={c.statut} />
+          {c.liens?.length > 0 && (
+            <div className="liens-client">
+              <h3>🔗 Vos liens</h3>
+              <ul>{c.liens.map((l) => <li key={l.id}><a className="lien-cyan" href={l.url} target="_blank" rel="noopener noreferrer">{l.titre}</a></li>)}</ul>
+            </div>
+          )}
           <div className="actions">
             <button className="btn secondaire petit" onClick={() => { setChoisie(c.id); changerOnglet("messages"); }}>👑 Maître du jeu ({c.messages.length})</button>
             {c.devis.length > 0 && <button className="btn secondaire petit" onClick={() => changerOnglet("devis")}>🧾 Offres ({c.devis.length})</button>}

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validerMessage, validerDevis, estAdmin, nonLus, statut, montantEnLigne, valeurMollie, paiementReutilisable } from "../lib/espace.js";
+import { validerLien, liensPourClient, validerNouveauProjet, validerMessage, validerDevis, estAdmin, nonLus, statut, montantEnLigne, valeurMollie, paiementReutilisable } from "../lib/espace.js";
 
 test("messages : vides et trop longs refusés", () => {
   assert.ok(validerMessage("  ").erreur);
@@ -43,4 +43,18 @@ test("paiement en ligne : reprise d'un paiement récent seulement", () => {
   assert.equal(paiementReutilisable({ statut: "open", checkout_url: "x", created_at: "2026-11-07T11:30:00Z" }, maintenant), true);
   assert.equal(paiementReutilisable({ statut: "open", checkout_url: "x", created_at: "2026-11-07T10:00:00Z" }, maintenant), false);
   assert.equal(paiementReutilisable({ statut: "paid", checkout_url: "x", created_at: "2026-11-07T11:59:00Z" }, maintenant), false);
+});
+
+test("liens : adresse contrôlée, accès privés jamais envoyés au client", () => {
+  assert.equal(validerLien({ titre: "App", url: "https://monapp.vercel.app" }).lien.visible_client, true);
+  assert.ok(validerLien({ titre: "App", url: "javascript:alert(1)" }).erreur);
+  assert.ok(validerLien({ titre: "", url: "https://x.fr" }).erreur);
+  assert.equal(validerLien({ titre: "Supabase", url: "https://supabase.com/x", visibleClient: false }).lien.visible_client, false);
+  const liens = [{ titre: "App", visible_client: true }, { titre: "Supabase", visible_client: false }];
+  assert.deepEqual(liensPourClient(liens).map((l) => l.titre), ["App"]);
+});
+
+test("nouveau projet créé par Server : champs obligatoires", () => {
+  assert.ok(validerNouveauProjet({ titre: "RésaYoga", nom: "Lina", email: "pas-un-email" }).erreur);
+  assert.equal(validerNouveauProjet({ titre: "RésaYoga", nom: "Lina", email: "Lina@Exemple.fr" }).projet.email, "lina@exemple.fr");
 });

@@ -13,6 +13,7 @@ const FAQ = [
   ["Est-ce que c'est payant d'utiliser KaizenServer ?", "Non : décrire votre idée, obtenir le récapitulatif et la maquette est gratuit. Vous ne payez que si vous acceptez l'offre de Server."],
   ["La commande m'engage-t-elle ?", "Non. Commander, c'est demander à Server, le maître du jeu, d'étudier votre projet. Il vous envoie son offre (tarif, délai), que vous êtes libre d'accepter ou non."],
   ["Je ne connais rien au développement, est-ce un problème ?", "Pas du tout : KaizenServer est fait pour ça. Vous répondez avec vos mots, sans jargon."],
+  ["La publication sur Google Play / App Store est-elle incluse ?", "Non : la publication se fait avec votre propre compte développeur (Google Play, Apple). Server vous livre l'application et les liens utiles dans votre espace, et vous conseille pour la publication."],
   ["Où sont enregistrés mes projets ?", "Dans votre navigateur, sur votre appareil. Rien n'est envoyé tant que vous ne commandez pas."],
   ["Combien de temps faut-il pour créer une application ?", "Cela dépend de votre projet : Server, le maître du jeu, vous donne un délai précis dans son offre."],
 ];

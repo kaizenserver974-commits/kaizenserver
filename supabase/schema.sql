@@ -65,3 +65,17 @@ create table if not exists public.kaizen_paiements (
 );
 create index if not exists kaizen_paiements_devis on public.kaizen_paiements (devis_id);
 alter table public.kaizen_paiements enable row level security;
+
+-- Projets créés à la main par Server (hors site) et liens de chaque projet.
+alter table public.kaizen_commandes add column if not exists source text not null default 'site';
+
+create table if not exists public.kaizen_liens (
+  id uuid primary key default gen_random_uuid(),
+  commande_id uuid not null references public.kaizen_commandes(id) on delete cascade,
+  titre text not null check (char_length(titre) between 1 and 80),
+  url text not null check (url ~ '^https?://'),
+  visible_client boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists kaizen_liens_commande on public.kaizen_liens (commande_id);
+alter table public.kaizen_liens enable row level security;

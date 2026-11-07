@@ -879,6 +879,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant }) {
         <button className="btn grand" disabled={!valide || envoi} onClick={commander}>{envoi ? "Envoi en cours…" : "Envoyer ma commande ✈"}</button>
       </div>
       <p className="note"><span aria-hidden="true">🔒</span> Vos coordonnées servent uniquement à vous recontacter au sujet de ce projet.</p>
+      <p className="note"><span aria-hidden="true">📱</span> La publication sur Google Play / App Store n'est pas incluse : elle se fait avec votre propre compte développeur. Server vous fournit l'application et les liens utiles.</p>
     </section>
   );
 }

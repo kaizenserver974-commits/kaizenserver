@@ -23,6 +23,15 @@ Mise en place :
 
 Les tables sont protégées par RLS sans politique : le navigateur ne lit jamais la base, tout passe par les routes serveur, qui vérifient l'identité de la personne.
 
+## Plusieurs projets dans l'Espace Server
+
+- **+ Nouveau projet** : Server crée lui-même un projet pour un client venu hors du site (nom de l'application, client, e-mail, description). Le client le suit en se connectant avec cet e-mail.
+- **Liens et accès** de chaque projet :
+  - 🔗 **partagés avec le client** (application web, téléchargement Android ou iPhone, Google Play, App Store, maquette), visibles dans son espace, avec un e-mail optionnel ;
+  - 🔒 **accès privés** de Server (code source, Supabase, Vercel ou Netlify), jamais envoyés au client.
+  - Seules les adresses sont enregistrées, jamais de mot de passe.
+- **Publication sur les stores** : non incluse. Le client publie avec son propre compte développeur, et Server lui fournit l'application et les liens.
+
 ## Paiement en ligne (Mollie)
 
 Quand Server envoie son offre, il choisit la part à payer en ligne : rien, acompte de 30 % ou 50 %, ou la totalité. Une fois l'offre acceptée, le client voit le bouton **« Payer l'acompte… »** et il est redirigé vers la page de paiement sécurisée de Mollie.
