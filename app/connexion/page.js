@@ -21,7 +21,19 @@ export default function Connexion() {
     setErreur("");
     setEtat("envoi");
     const { error } = await sb.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { emailRedirectTo: `${window.location.origin}/espace` } });
-    if (error) { setErreur("L'envoi du lien a échoué. Vérifiez votre adresse et réessayez."); setEtat("saisie"); return; }
+    if (error) {
+      // On affiche la raison donnée par Supabase pour pouvoir corriger la configuration.
+      const m = String(error.message || "");
+      const raison =
+        /rate limit|security purposes|seconds/i.test(m) ? "Trop de demandes : attendez quelques minutes avant de réessayer." :
+        /signups? not allowed|signup is disabled/i.test(m) ? "Les inscriptions sont désactivées dans Supabase (Authentication → Sign In / Providers → autoriser les nouveaux utilisateurs)." :
+        /provider is not enabled|email.*disabled|otp.*disabled/i.test(m) ? "La connexion par e-mail n'est pas activée dans Supabase (Authentication → Sign In / Providers → Email)." :
+        /invalid api key|apikey|jwt|failed to fetch|network/i.test(m) ? "Le site n'arrive pas à joindre Supabase : vérifiez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY dans Vercel, puis redéployez." :
+        /invalid.*email|email.*invalid/i.test(m) ? "Adresse e-mail invalide." : "";
+      setErreur(`L'envoi du lien a échoué. ${raison} (Détail : ${m || "inconnu"})`);
+      setEtat("saisie");
+      return;
+    }
     setEtat("envoye");
   }
 
