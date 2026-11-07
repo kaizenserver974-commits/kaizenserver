@@ -117,19 +117,54 @@ function BlocPaiement({ d, paiements, payer, actif }) {
   );
 }
 
+// Réduit une image (max 1024 px, JPEG) pour l'envoyer à l'IA sans dépasser les limites.
+function reduireImage(fichier) {
+  return new Promise((resoudre, rejeter) => {
+    const lecteur = new FileReader();
+    lecteur.onerror = () => rejeter(new Error("Image illisible"));
+    lecteur.onload = () => {
+      const img = new Image();
+      img.onerror = () => rejeter(new Error("Image illisible"));
+      img.onload = () => {
+        const echelle = Math.min(1, 1024 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * echelle); c.height = Math.round(img.height * echelle);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        resoudre(c.toDataURL("image/jpeg", 0.8));
+      };
+      img.src = lecteur.result;
+    };
+    lecteur.readAsDataURL(fichier);
+  });
+}
+
 // Maquette d'un projet, chargée à la demande et affichée dans une iframe isolée.
-export function BlocMaquette({ disponible, lire, generer, infos }) {
+// Côté Server (generer fourni) : consignes et images de référence pour l'IA.
+export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "" }) {
   const [html, setHtml] = useState("");
   const [attente, setAttente] = useState("");
   const [erreur, setErreur] = useState("");
   const [format, setFormat] = useState("bureau");
+  const [consignes, setConsignes] = useState(consignesInitiales);
+  const [images, setImages] = useState([]);
+  async function ajouterImages(liste) {
+    setErreur("");
+    try {
+      const nouvelles = [];
+      for (const f of [...liste].slice(0, 3 - images.length)) {
+        if (!/^image\/(png|jpe?g|webp|heic|heif)$/i.test(f.type)) { setErreur("Images uniquement (JPG, PNG, WebP)."); continue; }
+        nouvelles.push(await reduireImage(f));
+      }
+      setImages((x) => [...x, ...nouvelles].slice(0, 3));
+    } catch (e) { setErreur(e.message); }
+  }
   async function voir() {
     setErreur(""); setAttente("Chargement de la maquette…");
     try { setHtml(await lire()); } catch (e) { setErreur(e.message); } finally { setAttente(""); }
   }
   async function creer() {
     setErreur(""); setAttente("L'IA dessine la maquette… (jusqu'à une minute)");
-    try { await generer(); setHtml(await lire()); } catch (e) { setErreur(e.message); } finally { setAttente(""); }
+    try { await generer({ consignes, images }); setHtml(await lire()); } catch (e) { setErreur(e.message); } finally { setAttente(""); }
   }
   function telecharger() {
     const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
@@ -139,9 +174,33 @@ export function BlocMaquette({ disponible, lire, generer, infos }) {
   return (
     <div className="bloc-maquette">
       {infos && <p className="note">{infos}</p>}
+      {generer && (
+        <div className="consignes-ia">
+          <label className="champ" style={{ marginTop: 0 }}>
+            <span>✍️ Consignes pour l'IA</span>
+            <textarea rows={4} maxLength={2000} value={consignes} onChange={(e) => setConsignes(e.target.value)} placeholder="Décrivez l'application et ce que vous voulez voir : écrans, couleurs, ambiance, exemple : « Application de réservation de cours de yoga, tons verts apaisants, écran d'accueil avec les prochains cours… »" />
+          </label>
+          <div className="images-ref">
+            {images.map((src, i) => (
+              <div key={i} className="vignette">
+                <img src={src} alt={`Référence ${i + 1}`} />
+                <button type="button" aria-label="Retirer l'image" onClick={() => setImages((x) => x.filter((_, j) => j !== i))}>×</button>
+              </div>
+            ))}
+            {images.length < 3 && (
+              <label className="depot depot-petit">
+                <input type="file" accept="image/*" multiple onChange={(e) => { ajouterImages(e.target.files); e.target.value = ""; }} />
+                <span aria-hidden="true">🖼️</span>
+                <small>Ajouter une image de référence (3 max)</small>
+              </label>
+            )}
+          </div>
+          <p className="note">Captures d'écran, croquis, applications que vous aimez : l'IA s'en inspire (mise en page, couleurs, ambiance). Les images servent seulement à la génération et ne sont pas enregistrées.</p>
+        </div>
+      )}
       <div className="actions">
-        {disponible && !html && <button className="btn petit" disabled={Boolean(attente)} onClick={voir}>🖼️ Voir la maquette</button>}
-        {generer && <button className={`btn petit ${disponible ? "secondaire" : ""}`} disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Régénérer avec l'IA" : "Générer la maquette avec l'IA"}</button>}
+        {disponible && !html && <button className="btn petit secondaire" disabled={Boolean(attente)} onClick={voir}>🖼️ Voir la maquette</button>}
+        {generer && <button className="btn petit" disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Régénérer avec l'IA" : "Générer la maquette avec l'IA"}</button>}
         {html && (
           <>
             <button className={`btn petit ${format === "bureau" ? "" : "secondaire"}`} onClick={() => setFormat("bureau")}>Ordinateur</button>

@@ -542,3 +542,11 @@ textarea { resize: vertical; margin-top: 10px; }
 .ligne-mdp input { flex: 1; }
 .liens-connexion { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; }
 .liens-connexion button { border: 0; background: none; padding: 0; color: var(--cyan); text-decoration: underline; font-size: 14px; }
+
+.consignes-ia { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ligne); }
+.images-ref { display: flex; flex-wrap: wrap; gap: 10px; }
+.vignette { position: relative; width: 96px; height: 96px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--ligne-forte); }
+.vignette img { width: 100%; height: 100%; object-fit: cover; }
+.vignette button { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0,0,0,.7); color: #fff; line-height: 1; }
+.depot-petit { width: 160px; min-height: 96px; padding: 10px; }
+.depot-petit small { font-size: 11.5px; color: var(--discret); }
