@@ -41,7 +41,7 @@ test("pièces jointes : format et taille contrôlés", () => {
   assert.equal(trop.erreurs.length, 1);
 });
 
-import { solde, debiter, crediter, BONUS_CLASSIQUE } from "../lib/pieces.js";
+import { solde, debiter, crediter, BONUS_CLASSIQUE, COUT_MODIFICATION, COUT_COMMANDE } from "../lib/pieces.js";
 test("pièces : solde, débit, crédit", () => {
   const p = { jeu: { actif: true, points: 70 } };
   assert.equal(solde(p), 70);
@@ -50,4 +50,6 @@ test("pièces : solde, débit, crédit", () => {
   assert.equal(debiter({ ...apres, pieces: debiter(apres, 30) }, 30), null);
   assert.equal(solde({ ...apres, pieces: crediter(apres, 60) }), 100);
   assert.equal(solde({ jeu: { actif: false } }), BONUS_CLASSIQUE);
+  assert.equal(COUT_MODIFICATION, 60);
+  assert.equal(COUT_COMMANDE, 140);
 });

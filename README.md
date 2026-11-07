@@ -42,7 +42,7 @@ Les tables sont protégées par RLS sans politique : le navigateur ne lit jamais
 ## Avis sur la maquette et pièces d'or
 
 - À l'étape Maquette, le client peut **accepter la maquette** ou **demander une modification** (couleurs, écrans, textes…) : l'IA redessine la maquette selon son avis.
-- **Envoyer la commande coûte 150 pièces.** Chaque modification de maquette en coûte 30. Les pièces sont gagnées dans le jeu ; en mode classique, le client démarre avec 60 pièces.
+- **Envoyer la commande coûte 140 pièces.** Chaque modification de maquette en coûte 60. Les pièces sont gagnées dans le jeu ; en mode classique, le client démarre avec 60 pièces.
 - **Recharge** par Mollie : 30 pièces = 2,99 €, 60 = 3,99 €, 80 = 4,99 €. Les packs se modifient dans `lib/pieces.js`. Chaque achat n'est crédité qu'une fois, et toujours après vérification du paiement chez Mollie (table `kaizen_achats_pieces`).
 - Les avis et l'acceptation sont envoyés avec la commande, et visibles dans l'Espace Server et dans l'e-mail.
 
