@@ -9,7 +9,7 @@ export default function MentionsLegales() {
       <h2>Éditeur du site</h2>
       <p>
         {LEGAL.nomCommercial} est un service de <b>{v(LEGAL.structure)}</b>, {v(LEGAL.formeJuridique)} au capital de {v(LEGAL.capital)}.<br />
-        SIRET : {v(LEGAL.siret)} · {v(LEGAL.rcs)}<br />
+        SIREN : {LEGAL.siren} · {v(LEGAL.rcs)}{LEGAL.siret ? ` · SIRET : ${LEGAL.siret}` : ""}<br />
         Siège social : {v(LEGAL.adresse)}<br />
         TVA : {v(LEGAL.tva)}<br />
         E-mail : {LEGAL.email} · Téléphone : {v(LEGAL.telephone)}<br />

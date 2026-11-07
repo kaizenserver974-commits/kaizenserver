@@ -7,7 +7,7 @@ export default function CGV() {
   return (
     <PageLegale surtitre="Informations" titre="Conditions générales de vente" majLe={LEGAL.majLe}>
       <h2>1. Objet</h2>
-      <p>Les présentes conditions encadrent les prestations de conception et de réalisation d'applications proposées par {LEGAL.nomCommercial} (service de {v(LEGAL.structure)}, {v(LEGAL.formeJuridique)}, SIRET {v(LEGAL.siret)}, siège : {v(LEGAL.adresse)}), ci-après « Server ».</p>
+      <p>Les présentes conditions encadrent les prestations de conception et de réalisation d'applications proposées par {LEGAL.nomCommercial} (service de {v(LEGAL.structure)}, {v(LEGAL.formeJuridique)}, SIREN {LEGAL.siren}, siège : {v(LEGAL.adresse)}), ci-après « Server ».</p>
       <h2>2. Parcours gratuit et commande</h2>
       <p>La description du projet, le récapitulatif et la maquette sont gratuits et sans engagement. La « commande » est une demande d'étude : elle n'engage pas le client à payer.</p>
       <h2>3. Offre et prix</h2>
