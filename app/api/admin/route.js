@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette, enregistrerMaquette } from "../../../lib/serveur/supabase.js";
-import { genererRecap, genererMaquette, validerImagesReference } from "../../../lib/serveur/generation.js";
-import { nettoyerProjet } from "../../../lib/moteur.js";
+import { genererMaquette, validerImagesReference } from "../../../lib/serveur/generation.js";
+import { nettoyerProjet, estimer, recapitulatifSecours } from "../../../lib/moteur.js";
 import { STATUTS, validerMessage, validerDevis, statut, nonLus } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
@@ -119,7 +119,9 @@ export async function POST(request) {
       const projet = nettoyerProjet({ ...(commande.projet || {}), idee, nom: commande.recap?.titre || commande.projet?.nom });
       if (projet.idee.trim().length < 10) return refus("Décrivez le projet en une phrase au moins (zone « Consignes pour l'IA ») pour générer la maquette.", 400);
       if (idee !== ideeActuelle) await sb.from("kaizen_commandes").update({ projet: { ...(commande.projet || {}), idee } }).eq("id", commande.id);
-      const recap = commande.recap?.ecrans?.length && !consignes ? commande.recap : await genererRecap(projet);
+      // Récapitulatif instantané (moteur de règles) pour rester sous la limite de temps :
+      // l'IA est réservée à la maquette, qui reçoit aussi les consignes et les images.
+      const recap = commande.recap?.ecrans?.length ? commande.recap : recapitulatifSecours(projet, estimer(projet));
       const { html, source } = await genererMaquette(projet, recap, { consignes, images });
       await enregistrerMaquette(sb, commande.id, html, source);
       if (recap !== commande.recap) await sb.from("kaizen_commandes").update({ recap: { ...recap, titre: commande.recap?.titre || recap.titre || projet.nom } }).eq("id", commande.id);
