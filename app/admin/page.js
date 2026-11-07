@@ -105,6 +105,7 @@ export default function Admin() {
               <h2>🖼️ Maquette</h2>
               <BlocMaquette
                 key={c.id}
+                jeton={c.maquette?.jeton}
                 disponible={Boolean(c.maquette)}
                 infos={c.maquette ? `Maquette ${c.maquette.source === "ia" ? "créée par l'IA" : "créée à partir du modèle"} le ${date(c.maquette.updated_at)}. Visible aussi par le client dans son espace.` : "Pas encore de maquette pour ce projet."}
                 lire={async () => (await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
@@ -261,7 +262,14 @@ function Liens({ c, action }) {
       </div>
       <form onSubmit={ajouter} className="ajout-lien">
         <div className="puces" style={{ marginTop: 12 }}>
-          {MODELES_LIENS.map((m) => <button type="button" key={m.titre} className="puce" onClick={() => setF({ ...f, titre: m.titre, visibleClient: m.client })}>{m.client ? "🔗" : "🔒"} {m.titre}</button>)}
+          {MODELES_LIENS.map((m) => (
+            <button
+              type="button"
+              key={m.titre}
+              className="puce"
+              onClick={() => setF({ ...f, titre: m.titre, visibleClient: m.client, url: m.titre === "Maquette" && c.maquette?.jeton ? `${window.location.origin}/maquette/${c.maquette.jeton}` : f.url })}
+            >{m.client ? "🔗" : "🔒"} {m.titre}</button>
+          ))}
         </div>
         <div className="formulaire-deux">
           <label className="champ"><span>Nom du lien</span><input value={f.titre} maxLength={80} onChange={(e) => setF({ ...f, titre: e.target.value })} placeholder="Application web" /></label>

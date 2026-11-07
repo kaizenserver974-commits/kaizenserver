@@ -88,3 +88,7 @@ create table if not exists public.kaizen_maquettes (
   updated_at timestamptz not null default now()
 );
 alter table public.kaizen_maquettes enable row level security;
+
+-- Lien partageable de chaque maquette (adresse difficile à deviner).
+alter table public.kaizen_maquettes add column if not exists jeton uuid not null default gen_random_uuid();
+create unique index if not exists kaizen_maquettes_jeton on public.kaizen_maquettes (jeton);

@@ -140,7 +140,9 @@ function reduireImage(fichier) {
 
 // Maquette d'un projet, chargée à la demande et affichée dans une iframe isolée.
 // Côté Server (generer fourni) : consignes et images de référence pour l'IA.
-export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "" }) {
+export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "", jeton }) {
+  const [copie, setCopie] = useState(false);
+  const lien = jeton && typeof window !== "undefined" ? `${window.location.origin}/maquette/${jeton}` : "";
   const [html, setHtml] = useState("");
   const [attente, setAttente] = useState("");
   const [erreur, setErreur] = useState("");
@@ -200,6 +202,8 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
       )}
       <div className="actions">
         {disponible && !html && <button className="btn petit secondaire" disabled={Boolean(attente)} onClick={voir}>🖼️ Voir la maquette</button>}
+        {disponible && lien && <a className="btn petit secondaire" href={lien} target="_blank" rel="noopener noreferrer">↗ Ouvrir en plein écran</a>}
+        {disponible && lien && <button className="btn petit secondaire" onClick={async () => { try { await navigator.clipboard.writeText(lien); setCopie(true); setTimeout(() => setCopie(false), 2000); } catch { window.prompt("Copiez ce lien :", lien); } }}>{copie ? "✅ Lien copié" : "🔗 Copier le lien"}</button>}
         {generer && <button className="btn petit" disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Régénérer avec l'IA" : "Générer la maquette avec l'IA"}</button>}
         {html && (
           <>
