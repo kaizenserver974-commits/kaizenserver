@@ -31,6 +31,7 @@ export default function RootLayout({ children }) {
               <a href="/exemples">Exemples</a>
               <a href="/ressources">Ressources</a>
               <a href="/a-propos">À propos</a>
+              <a href="/projets">Mes projets</a>
               <Compte />
               <a href="/nouveau" className="btn petit btn-entete">Créer <span className="masque-mobile">mon projet</span></a>
             </nav>
