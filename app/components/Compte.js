@@ -11,7 +11,9 @@ export default function Compte() {
     if (!sb) return undefined;
     sb.auth.getSession().then(({ data }) => setConnecte(Boolean(data?.session)));
     // Arrivée depuis le lien e-mail (jetons dans l'adresse) : direction l'espace client.
-    const depuisLien = /access_token=|type=magiclink|code=/.test(window.location.hash + window.location.search);
+    const adresse = window.location.hash + window.location.search;
+    // Lien « mot de passe oublié » : la page de connexion gère la saisie du nouveau mot de passe.
+    const depuisLien = /access_token=|type=magiclink|code=/.test(adresse) && !/type=recovery/.test(adresse) && !window.location.pathname.startsWith("/connexion");
     const { data } = sb.auth.onAuthStateChange((evt, s) => {
       setConnecte(Boolean(s));
       if (s && depuisLien && (evt === "SIGNED_IN" || evt === "INITIAL_SESSION") && !window.location.pathname.startsWith("/espace")) {
