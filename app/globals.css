@@ -685,7 +685,7 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 
 /* Carte du monde : un lieu par étape de création, débloqué au fur et à mesure */
 .carte-monde { margin: 0 0 18px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
-.carte-monde ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(9, minmax(118px, 1fr)); gap: 8px; }
+.carte-monde ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(9, minmax(104px, 1fr)); gap: 8px; }
 .carte-monde .lieu { position: relative; }
 .carte-monde .lieu:not(:last-child)::after { content: ""; position: absolute; top: 24px; right: -9px; width: 10px; height: 2px; background: var(--ligne-forte); }
 .carte-monde .lieu.conquis:not(:last-child)::after, .carte-monde .lieu.ici:not(:last-child)::after { background: var(--jeu, var(--cyan)); }
@@ -728,3 +728,19 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .carte-perso.nouveau::after { content: "NOUVEAU"; position: absolute; top: 8px; left: 8px; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .06em; background: var(--degrade); color: #fff; }
 .monde-gagne { pointer-events: auto; gap: 6px; }
 .monde-gagne .btn { margin-top: 6px; }
+
+/* Décor du monde du personnage pendant tout le parcours */
+.fond-monde { position: fixed; inset: -40px; z-index: -1; pointer-events: none; background-size: cover; background-position: center 30%; filter: blur(7px) saturate(1.15) brightness(0.72); transform: scale(1.04); }
+.fond-monde::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(6, 6, 26, 0.55), rgba(6, 6, 26, 0.25) 60%, rgba(6, 6, 26, 0.1)); }
+.avec-monde .carte, .avec-monde .joueur, .avec-monde .carte-monde button { background: rgba(14, 16, 50, 0.72); backdrop-filter: blur(12px); }
+.avec-monde .carte { box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 35%, transparent), 0 20px 60px rgba(0, 0, 0, 0.35); }
+.avec-monde .bulle { background: rgba(14, 16, 50, 0.8); }
+.perso-monde { display: none; }
+@media (min-width: 1180px) {
+  .page.avec-perso { width: min(1480px, calc(100% - 48px)); display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 28px; align-items: start; }
+  .page.avec-perso > * { grid-column: 1; }
+  .page.avec-perso > .fond-monde { grid-column: auto; }
+  .page.avec-perso > .perso-monde { display: block; grid-column: 2; grid-row: 1 / span 30; position: sticky; top: 92px; border-radius: 26px; overflow: hidden; box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 55%, transparent), 0 0 50px color-mix(in srgb, var(--jeu) 30%, transparent); }
+  .perso-monde img { display: block; width: 100%; height: auto; max-height: calc(100vh - 120px); object-fit: cover; object-position: top center; }
+  .perso-monde-lieu { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 8px 12px; border-radius: 999px; text-align: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(6, 6, 26, 0.72); backdrop-filter: blur(8px); box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 50%, transparent); }
+}

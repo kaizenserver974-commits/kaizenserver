@@ -239,6 +239,9 @@ function Parcours() {
 
   const enJeu = projet.jeu.actif;
   const univers = enJeu ? trouverUnivers(projet.jeu.univers) : null;
+  // Décor du monde : l'univers du personnage habille tout le parcours.
+  const persoMonde = enJeu && univers.perso ? trouverPersonnage(univers.perso) : null;
+  const persoJoueur = enJeu && projet.jeu.avatar?.forme === "illustre" && projet.jeu.avatar.perso === univers.perso ? persoMonde : null;
   const etape = projet.etape || 0;
   const accessible = (i) =>
     i === 0 ? true :
@@ -249,9 +252,18 @@ function Parcours() {
 
   return (
     <main
-      className={`conteneur page ${enJeu ? "en-jeu" : ""}`}
+      className={`conteneur page ${enJeu ? "en-jeu" : ""} ${persoMonde?.monde ? "avec-monde" : ""} ${persoJoueur?.monde ? "avec-perso" : ""}`}
       style={enJeu ? { "--jeu": univers.couleur, "--jeu-clair": univers.clair } : undefined}
     >
+      {persoMonde?.monde && (
+        <div className="fond-monde" aria-hidden="true" style={{ backgroundImage: `url(${persoMonde.monde})` }} />
+      )}
+      {persoJoueur?.monde && (
+        <aside className="perso-monde" aria-hidden="true">
+          <img src={persoJoueur.monde} alt="" />
+          <span className="perso-monde-lieu">{univers.icone} {univers.niveaux[etape]}</span>
+        </aside>
+      )}
       {enJeu
         ? <TableauJoueur jeu={projet.jeu} pieces={solde(projet)} changer={() => setChoixPerso(true)} />
         : <p className="mode-classique">Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></p>}
