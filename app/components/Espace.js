@@ -1,11 +1,40 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PARCOURS_STATUTS, statut, montantEnLigne } from "../../lib/espace.js";
+import { PARCOURS_STATUTS, SUIVI_CLIENT, statut, montantEnLigne } from "../../lib/espace.js";
 
 export const euros = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(n);
 export const date = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 export const heure = (d) => new Date(d).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+// Suivi de commande pour le client (lecture seule), façon suivi de colis.
+export function SuiviCommande({ valeur, majLe }) {
+  const sortie = !PARCOURS_STATUTS.includes(valeur);
+  const index = PARCOURS_STATUTS.indexOf(valeur);
+  const s = SUIVI_CLIENT[valeur] || SUIVI_CLIENT.nouvelle;
+  const pourcent = sortie ? 0 : Math.round(((index + 1) / PARCOURS_STATUTS.length) * 100);
+  return (
+    <div className="suivi-commande">
+      <div className="suivi-entete">
+        <span className="suivi-icone" aria-hidden="true">{statut(valeur).icone}</span>
+        <div>
+          <p className="suivi-etape">{sortie ? statut(valeur).label : `Étape ${index + 1} sur ${PARCOURS_STATUTS.length}`}{majLe ? ` · mis à jour le ${date(majLe)}` : ""}</p>
+          <h3>{s.titre}</h3>
+          <p className="discret">{s.detail}</p>
+        </div>
+      </div>
+      {!sortie && <div className="suivi-barre" role="progressbar" aria-valuenow={pourcent} aria-valuemin={0} aria-valuemax={100} aria-label="Avancement de la commande"><i style={{ width: `${pourcent}%` }} /></div>}
+      <ol className="suivi-etapes">
+        {PARCOURS_STATUTS.map((id, i) => (
+          <li key={id} className={!sortie && i < index ? "fait" : !sortie && i === index ? "actif" : ""}>
+            <span aria-hidden="true">{!sortie && i < index ? "✓" : statut(id).icone}</span><small>{statut(id).label}</small>
+          </li>
+        ))}
+      </ol>
+      <p className="suivi-suite"><b>Et ensuite ?</b> {s.suite}</p>
+    </div>
+  );
+}
 
 export function FriseStatut({ valeur }) {
   const sortie = !PARCOURS_STATUTS.includes(valeur);

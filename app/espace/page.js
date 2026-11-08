@@ -5,10 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
 import { statut } from "../../lib/espace.js";
 import MotDePasse from "../components/MotDePasse.js";
-import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date } from "../components/Espace.js";
+import { SuiviCommande, FilMessages, CarteDevis, BlocMaquette, date } from "../components/Espace.js";
 
 const ONGLETS = [
-  { id: "commandes", label: "Mes commandes", icone: "📦" },
+  { id: "commandes", label: "Suivre ma commande", icone: "🚚" },
   { id: "devis", label: "Offres de Server", icone: "🧾" },
   { id: "messages", label: "Maître du jeu", icone: "👑" },
   { id: "profil", label: "Profil", icone: "👤" },
@@ -107,9 +107,8 @@ function Espace() {
         <article key={c.id} className="carte commande-carte">
           <div className="titre-ligne">
             <div><h2>{c.recap?.titre || c.projet?.nom || "Mon application"}</h2><p className="discret">N° {c.numero} · commandée le {date(c.created_at)}</p></div>
-            <span className="badge">{statut(c.statut).icone} {statut(c.statut).label}</span>
-          </div>
-          <FriseStatut valeur={c.statut} />
+            </div>
+          <SuiviCommande valeur={c.statut} majLe={c.updated_at} />
           {c.maquette && (
             <BlocMaquette
               disponible

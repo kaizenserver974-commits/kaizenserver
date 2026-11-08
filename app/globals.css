@@ -833,3 +833,23 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .nav-server a:not(.btn) { white-space: nowrap; }
 .apercu-retour { background: linear-gradient(135deg, #f5c542, #f59e0b); color: #1a1033; white-space: nowrap; }
 .entete-nav a, .entete-nav .btn { white-space: nowrap; }
+
+/* Suivi de commande (espace client) */
+.suivi-commande { margin: 14px 0; padding: 16px; border-radius: 18px; background: rgba(12, 14, 46, 0.55); box-shadow: inset 0 0 0 1px var(--ligne-forte); }
+.suivi-entete { display: flex; gap: 14px; align-items: flex-start; }
+.suivi-icone { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; font-size: 26px; background: var(--accent-clair); box-shadow: 0 0 20px rgba(123, 92, 255, 0.35); }
+.suivi-etape { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--cyan); }
+.suivi-entete h3 { margin: 2px 0 2px; font-size: 20px; }
+.suivi-entete .discret { margin: 0; }
+.suivi-barre { height: 8px; margin: 14px 0 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.suivi-barre i { display: block; height: 100%; border-radius: 999px; background: var(--degrade); }
+.suivi-etapes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.suivi-etapes li { display: grid; justify-items: center; gap: 2px; text-align: center; opacity: .45; }
+.suivi-etapes li span { font-size: 16px; }
+.suivi-etapes li small { font-size: 11px; line-height: 1.2; }
+.suivi-etapes li.fait { opacity: .85; }
+.suivi-etapes li.fait span { color: var(--cyan); font-weight: 800; }
+.suivi-etapes li.actif { opacity: 1; }
+.suivi-etapes li.actif small { font-weight: 700; color: #fff; }
+.suivi-suite { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; }
+@media (max-width: 620px) { .suivi-etapes small { display: none; } }
