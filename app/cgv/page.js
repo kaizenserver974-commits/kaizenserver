@@ -11,7 +11,7 @@ export default function CGV() {
       <h2>2. Parcours gratuit et commande</h2>
       <p>La description du projet, le récapitulatif et la maquette sont gratuits et sans engagement. La « commande » est une demande d'étude : elle n'engage pas le client à payer.</p>
       <h2>3. Offre et prix</h2>
-      <p>Après étude, Server envoie une offre personnalisée dans l'espace client : contenu, prix en euros, délai indicatif et, le cas échéant, montant de l'acompte. Les prix sont indiqués {LEGAL.tva && /293 B/.test(LEGAL.tva) ? "nets (TVA non applicable, art. 293 B du CGI)" : "TTC"}. Le contrat est formé lorsque le client accepte l'offre depuis son espace.</p>
+      <p>Après étude, Server envoie une offre personnalisée dans l'espace client : contenu, prix en euros, délai indicatif et, le cas échéant, montant de l'acompte. Les prix sont indiqués {LEGAL.tva && /293 B/.test(LEGAL.tva) ? "nets (TVA non applicable, art. 293 B du CGI)" : "TTC, TVA de 8,5 % incluse (taux applicable à La Réunion)"}. Le contrat est formé lorsque le client accepte l'offre depuis son espace.</p>
       <h2>4. Paiement</h2>
       <p>Le paiement en ligne est sécurisé par notre prestataire Mollie (carte bancaire, Apple Pay, virement…). {LEGAL.nomCommercial} n'a jamais accès à vos données de carte. L'acompte éventuel est dû à l'acceptation de l'offre ; le solde selon les modalités indiquées dans l'offre.</p>
       <h2>5. Réalisation et livraison</h2>
