@@ -62,7 +62,7 @@ export async function POST(request) {
     try {
       await envoyerEmail({
         a: process.env.KAIZEN_EMAIL,
-        sujet: `🛒 Nouvelle commande ${numero} — ${commande.recap.titre || commande.projet.nom || "application"} (${commande.contact.nom})`,
+        sujet: `${commande.formule === "genie" ? "🧞 Demande de maquette au génie" : "🛒 Nouvelle commande"} ${numero} — ${commande.recap.titre || commande.projet.nom || "application"} (${commande.contact.nom})`,
         texte: `${texte}\n\nEspace équipe : ${urlSite(request)}/admin`,
         html, repondreA: commande.contact.email, pieces: commande.pieces,
       });
@@ -78,7 +78,7 @@ export async function POST(request) {
 
   const c = confirmationClient(commande, numero);
   const espace = sb ? `\n\nSuivez votre commande, vos devis et vos messages : ${urlSite(request)}/connexion (connectez-vous avec ${commande.contact.email}).` : "";
-  const confirmationEnvoyee = await notifier({ a: commande.contact.email, sujet: `Votre commande KaizenServer ${numero}`, texte: c.texte + espace, html: c.html, repondreA: process.env.KAIZEN_EMAIL });
+  const confirmationEnvoyee = await notifier({ a: commande.contact.email, sujet: commande.formule === "genie" ? `Votre demande de maquette au génie ${numero}` : `Votre commande KaizenServer ${numero}`, texte: c.texte + espace, html: c.html, repondreA: process.env.KAIZEN_EMAIL });
 
   return NextResponse.json({ ok: true, numero, confirmationEnvoyee, espaceClient: enregistree, date: new Date().toISOString() });
 }

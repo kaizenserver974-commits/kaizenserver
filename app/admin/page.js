@@ -6,7 +6,7 @@ import { STATUTS, ACOMPTES, MODELES_LIENS, statut, montantEnLigne, offreModifiab
 import MotDePasse from "../components/MotDePasse.js";
 import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date, euros } from "../components/Espace.js";
 import { TYPES, BUDGETS, DELAIS, PRIORITES, trouver, fonctionnalite } from "../../lib/catalogue.js";
-import { FORMULES } from "../../lib/commande.js";
+import { labelFormule } from "../../lib/commande.js";
 import { estimer, euros as eurosRond } from "../../lib/moteur.js";
 
 export default function Admin() {
@@ -339,7 +339,7 @@ function InfosProjet({ c, action }) {
     return (
       <div className="infos">
         <p><b>Client :</b> {c.nom} · <a className="lien-cyan" href={`mailto:${c.email}`}>{c.email}</a>{c.telephone ? ` · ${c.telephone}` : ""}{c.entreprise ? ` · ${c.entreprise}` : ""}</p>
-        <p><b>Formule :</b> {FORMULES.find((x) => x.id === c.formule)?.label || c.formule} · <b>Budget :</b> {trouver(BUDGETS, c.projet?.budget)?.label || "—"} · <b>Délai :</b> {trouver(DELAIS, c.projet?.delai)?.label || "—"} · <b>Priorité :</b> {trouver(PRIORITES, c.projet?.priorite)?.label || "—"}</p>
+        <p><b>Formule :</b> {labelFormule(c.formule)} · <b>Budget :</b> {trouver(BUDGETS, c.projet?.budget)?.label || "—"} · <b>Délai :</b> {trouver(DELAIS, c.projet?.delai)?.label || "—"} · <b>Priorité :</b> {trouver(PRIORITES, c.projet?.priorite)?.label || "—"}</p>
         <p><b>Type :</b> {trouver(TYPES, c.projet?.typeId)?.label || "—"}</p>
         <p><b>Idée :</b> {c.projet?.idee || "—"}</p>
         <p><b>Fonctionnalités :</b> {[...(c.projet?.fonctionnalites || []).map((id) => fonctionnalite(id)?.label || id), ...(c.projet?.personnalisees || [])].join(", ") || "—"}</p>

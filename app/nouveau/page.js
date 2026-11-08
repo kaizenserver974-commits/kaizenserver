@@ -7,7 +7,7 @@ import {
   trouver, fonctionnalite,
 } from "../../lib/catalogue.js";
 import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
-import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, COUT_COMMANDE, prixTexte } from "../../lib/pieces.js";
+import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, prixTexte } from "../../lib/pieces.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
@@ -52,6 +52,7 @@ function Parcours() {
   const [erreur, setErreur] = useState("");
   const [gain, setGain] = useState(null);
   const [lieuDebloque, setLieuDebloque] = useState(null);
+  const [rechargeOuverte, setRechargeOuverte] = useState(false);
   const [choixPerso, setChoixPerso] = useState(false);
   const [infoAchat, setInfoAchat] = useState("");
 
@@ -196,10 +197,15 @@ function Parcours() {
   const validerMaquette = () => maj({ maquetteValidee: true, journal: noter(projet, "Maquette acceptée par le client"), etape: 7 });
 
   const genererMaquette = () => lancer("Kaizen dessine la maquette de votre application… (jusqu'à une minute)", async () => {
+    // La maquette instantanée coûte des pièces d'or, débitées seulement si elle est bien créée.
+    if (solde(projet) < COUT_MAQUETTE) {
+      setRechargeOuverte(true);
+      throw new Error(`Il vous faut ${COUT_MAQUETTE} pièces d'or pour créer la maquette : rechargez vos pièces.`);
+    }
     const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap });
     const jeu = gagner(["maquette"]);
     setProjet((p) => enregistrerProjet({
-      ...p, jeu, maquette: { html, source, genereLe: new Date().toISOString() }, etape: 6,
+      ...p, jeu, pieces: debiter(p, COUT_MAQUETTE) || p.pieces, maquette: { html, source, genereLe: new Date().toISOString() }, etape: 6,
       statut: ["idee", "cadrage"].includes(p.statut) ? "maquette" : p.statut,
       journal: noter(p, p.maquette ? "Maquette régénérée" : "Maquette générée"),
     }));
@@ -255,8 +261,14 @@ function Parcours() {
         </div>
       )}
       {enJeu
-        ? <TableauJoueur jeu={projet.jeu} pieces={solde(projet)} changer={() => setChoixPerso(true)} />
-        : <p className="mode-classique">Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></p>}
+        ? <TableauJoueur jeu={projet.jeu} pieces={solde(projet)} changer={() => setChoixPerso(true)} recharger={() => setRechargeOuverte(true)} />
+        : (
+          <div className="mode-classique">
+            <span>Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></span>
+            <BourseOr pieces={solde(projet)} recharger={() => setRechargeOuverte(true)} />
+          </div>
+        )}
+      {rechargeOuverte && <FenetreRecharge projet={projet} fermer={() => setRechargeOuverte(false)} />}
 
       {enJeu ? (
         <CarteMonde univers={univers} etape={etape} debloque={(i) => i <= Math.max(etape, projet.etapeMax || 0) && accessible(i)} aller={allerA} occupe={Boolean(chargement)} />
@@ -300,7 +312,7 @@ function Parcours() {
         {etape === 2 && <EtapeFonctionnalites projet={projet} maj={maj} suivant={() => allerA(3, ["fonctionnalites", ...(projet.personnalisees.length ? ["perso"] : [])])} precedent={() => allerA(1)} />}
         {etape === 3 && <EtapeStyle projet={projet} maj={maj} suivant={() => allerA(4, ["style"])} precedent={() => allerA(2)} />}
         {etape === 4 && <EtapeBudget projet={projet} maj={maj} suivant={preparerRecap} precedent={() => allerA(3)} />}
-        {etape === 5 && <EtapeRecap projet={projet} modifier={() => allerA(1)} suivant={projet.maquette ? () => allerA(6) : genererMaquette} actualiser={preparerRecap} commander={() => allerA(7)} />}
+        {etape === 5 && <EtapeRecap projet={projet} modifier={() => allerA(1)} voirMaquette={() => allerA(6)} genererMaquette={genererMaquette} actualiser={preparerRecap} commander={() => allerA(7)} maj={maj} noter={noter} recharger={() => setRechargeOuverte(true)} />}
         {etape === 6 && <EtapeMaquette projet={projet} modifier={modifierMaquette} valider={validerMaquette} infoAchat={infoAchat} precedent={() => allerA(5)} suivant={() => allerA(7)} />}
         {etape === 7 && <EtapeCommande projet={projet} infoAchat={infoAchat} maj={maj} noter={noter} precedent={() => allerA(projet.maquette ? 6 : 5)} suivant={() => allerA(8)} />}
         {etape === 8 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
@@ -485,7 +497,44 @@ function AvatarJoueur({ jeu, taille, classe }) {
   return <span className={classe} aria-hidden="true">{trouverAvatar(jeu?.avatar).emoji}</span>;
 }
 
-function TableauJoueur({ jeu, changer, pieces }) {
+// Bourse de pièces d'or, toujours visible en haut, avec le bouton pour en acheter.
+function BourseOr({ pieces, recharger }) {
+  return (
+    <div className="bourse-or">
+      <span className="bourse-solde" title="Vos pièces d'or">🪙 <b>{pieces}</b> pièces d'or</span>
+      <button className="btn petit bourse-acheter" onClick={recharger}>＋ Acheter des pièces</button>
+    </div>
+  );
+}
+
+// Fenêtre d'achat de pièces d'or (packs payés par Mollie).
+function FenetreRecharge({ projet, fermer }) {
+  useEffect(() => {
+    const echap = (e) => { if (e.key === "Escape") fermer(); };
+    window.addEventListener("keydown", echap);
+    return () => window.removeEventListener("keydown", echap);
+  }, [fermer]);
+  return (
+    <div className="fenetre-fond" role="dialog" aria-modal="true" aria-label="Acheter des pièces d'or" onClick={(e) => { if (e.target === e.currentTarget) fermer(); }}>
+      <div className="fenetre carte">
+        <div className="titre-ligne">
+          <h2>🪙 Acheter des pièces d'or</h2>
+          <button className="btn petit secondaire" onClick={fermer} aria-label="Fermer">✕</button>
+        </div>
+        <p className="discret">Vous avez <b>{solde(projet)}</b> pièces d'or.</p>
+        <ul className="tarifs-pieces">
+          <li>✨ Maquette instantanée par Kaizen : <b>{COUT_MAQUETTE}</b></li>
+          <li>🧞 Maquette sur mesure par le génie Server : <b>{COUT_GENIE}</b></li>
+          <li>✏️ Chaque modification de maquette : <b>{COUT_MODIFICATION}</b></li>
+          <li>📨 Envoi de la commande : <b>{COUT_COMMANDE}</b></li>
+        </ul>
+        <Recharge projet={projet} cout={0} monnaie="pièces d'or" />
+      </div>
+    </div>
+  );
+}
+
+function TableauJoueur({ jeu, changer, pieces, recharger }) {
   const u = trouverUnivers(jeu.univers);
   const n = niveau(jeu.points);
   return (
@@ -500,7 +549,8 @@ function TableauJoueur({ jeu, changer, pieces }) {
         <div className="barre-xp" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(n.progression * 100)} aria-label="Progression vers le niveau suivant">
           <i style={{ width: `${Math.max(4, n.progression * 100)}%` }} />
         </div>
-        <small className="discret">🪙 {pieces} {u.monnaie} disponibles · encore {n.restant} points pour le niveau {n.numero + 1}</small>
+        <small className="discret">Encore {n.restant} points pour le niveau {n.numero + 1}</small>
+        <BourseOr pieces={pieces} recharger={recharger} />
       </div>
       <div className="badges" aria-label="Badges">
         {Object.entries(BADGES).map(([id, b]) => (
@@ -808,7 +858,7 @@ function MotDuMaitre({ children }) {
   );
 }
 
-function EtapeRecap({ projet, modifier, suivant, actualiser, commander }) {
+function EtapeRecap({ projet, modifier, voirMaquette, genererMaquette, actualiser, commander, maj, noter, recharger }) {
   const r = projet.recap;
   if (!r) return null;
   return (
@@ -851,14 +901,119 @@ function EtapeRecap({ projet, modifier, suivant, actualiser, commander }) {
 
       <EnvoiDemande projet={projet} commander={commander} />
 
+      <ChoixMaquette projet={projet} voirMaquette={voirMaquette} genererMaquette={genererMaquette} maj={maj} noter={noter} recharger={recharger} />
+
       <div className="navigation sans-impression">
         <div className="actions">
           <button className="btn secondaire" onClick={modifier}>Modifier mes réponses</button>
           <button className="btn secondaire" onClick={actualiser}>Régénérer</button>
         </div>
-        <button className="btn" onClick={suivant}>{projet.maquette ? "Voir la maquette" : "Valider et créer la maquette"}</button>
+        {projet.maquette && <button className="btn" onClick={voirMaquette}>Voir la maquette</button>}
       </div>
     </section>
+  );
+}
+
+// Deux façons d'obtenir sa maquette : instantanée par Kaizen (IA), ou sur mesure par le génie Server.
+function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, recharger }) {
+  const dispo = solde(projet);
+  const [genieOuvert, setGenieOuvert] = useState(false);
+  return (
+    <div className="choix-maquette sans-impression" id="choix-maquette">
+      <h2>Créer ma maquette</h2>
+      <p className="discret">Vous avez <b>🪙 {dispo}</b> pièces d'or. Chaque modification de maquette coûte ensuite <b>{COUT_MODIFICATION}</b> pièces d'or.</p>
+      <div className="options-maquette">
+        <div className="option-maquette">
+          <span className="option-icone" aria-hidden="true">✨</span>
+          <h3>Maquette instantanée</h3>
+          <p>Kaizen dessine tout de suite une maquette cliquable de votre application, à partir de votre récapitulatif.</p>
+          <p className="option-prix">🪙 {COUT_MAQUETTE} pièces d'or</p>
+          {projet.maquette
+            ? <button className="btn" onClick={voirMaquette}>Voir ma maquette</button>
+            : dispo >= COUT_MAQUETTE
+              ? <button className="btn" onClick={genererMaquette}>Créer ma maquette ({COUT_MAQUETTE} 🪙)</button>
+              : <button className="btn secondaire" onClick={recharger}>Il vous manque {COUT_MAQUETTE - dispo} 🪙 · Acheter des pièces</button>}
+        </div>
+
+        <div className={`option-maquette option-genie ${genieOuvert ? "ouverte" : ""}`}>
+          <button className="genie-bouton" onClick={() => !projet.demandeGenie && setGenieOuvert(true)} aria-label="Demander une maquette au génie Server" disabled={Boolean(projet.demandeGenie)}>
+            <img src="/personnages/server-complet.webp" alt="" width="120" height="120" />
+          </button>
+          <h3>Le génie Server</h3>
+          <p>Faites un vœu : Server, le maître du jeu, prépare lui-même une proposition de maquette sur mesure pour votre application.</p>
+          <p className="option-prix">🪙 {COUT_GENIE} pièces d'or</p>
+          {projet.demandeGenie
+            ? <p className="alerte succes">🧞 Vœu envoyé au génie (n° {projet.demandeGenie.numero}). Server vous enverra sa proposition dans votre espace client.</p>
+            : genieOuvert
+              ? <FormulaireGenie projet={projet} maj={maj} noter={noter} recharger={recharger} annuler={() => setGenieOuvert(false)} />
+              : dispo >= COUT_GENIE
+                ? <button className="btn" onClick={() => setGenieOuvert(true)}>Demander au génie ({COUT_GENIE} 🪙)</button>
+                : <button className="btn secondaire" onClick={recharger}>Il vous manque {COUT_GENIE - dispo} 🪙 · Acheter des pièces</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormulaireGenie({ projet, maj, noter, recharger, annuler }) {
+  const contact = projet.contact || {};
+  const [nom, setNom] = useState(contact.nom || "");
+  const [email, setEmail] = useState(contact.email || "");
+  const [voeu, setVoeu] = useState("");
+  const [consentement, setConsentement] = useState(false);
+  const [envoi, setEnvoi] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [piege, setPiege] = useState("");
+  const dispo = solde(projet);
+
+  async function envoyer() {
+    if (dispo < COUT_GENIE) { recharger(); return; }
+    setErreur(""); setEnvoi(true);
+    try {
+      const fichiers = await lireFichiers(projet.id);
+      const r = await fetch("/api/commande", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          demande: "genie",
+          projet: { ...projet, retours: (projet.retours || []).map((x) => x.texte) },
+          recap: projet.recap,
+          contact: { nom, email, message: voeu ? `Vœu pour la maquette : ${voeu}` : "" },
+          consentement, siteWeb: piege,
+          pieces: fichiers.map(({ nom: n, type, contenu }) => ({ nom: n, type, contenu })),
+        }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erreur || "La demande n'a pas pu être envoyée.");
+      maj({
+        contact: { ...contact, nom, email },
+        demandeGenie: { numero: d.numero, date: new Date().toISOString() },
+        pieces: debiter(projet, COUT_GENIE) || projet.pieces,
+        journal: noter(projet, `Maquette sur mesure demandée au génie Server (n° ${d.numero})`),
+      });
+    } catch (e) {
+      setErreur(e.message);
+    } finally {
+      setEnvoi(false);
+    }
+  }
+
+  return (
+    <div className="formulaire-genie">
+      <label className="champ"><span>Votre nom</span><input autoComplete="name" value={nom} maxLength={100} onChange={(e) => setNom(e.target.value)} /></label>
+      <label className="champ"><span>Votre e-mail <small className="discret">(pour recevoir la maquette)</small></span><input type="email" autoComplete="email" value={email} maxLength={160} onChange={(e) => setEmail(e.target.value)} /></label>
+      <label className="champ"><span>Votre vœu <small className="discret">(facultatif)</small></span><textarea rows={3} maxLength={1000} value={voeu} placeholder="Ex. : un style chaleureux, mon logo en haut, un écran de réservation très simple…" onChange={(e) => setVoeu(e.target.value)} /></label>
+      <input className="piege" tabIndex={-1} autoComplete="off" value={piege} onChange={(e) => setPiege(e.target.value)} aria-hidden="true" />
+      <label className="case consentement">
+        <input type="checkbox" checked={consentement} onChange={(e) => setConsentement(e.target.checked)} />
+        <span>J'accepte que KaizenServer utilise ces informations pour me recontacter au sujet de mon projet (<a className="lien-cyan" href="/confidentialite" target="_blank">confidentialité</a>, <a className="lien-cyan" href="/cgv" target="_blank">conditions de vente</a>). *</span>
+      </label>
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+      <div className="actions">
+        <button className="btn secondaire" onClick={annuler} disabled={envoi}>Annuler</button>
+        <button className="btn" onClick={envoyer} disabled={envoi || !consentement || nom.trim().length < 2 || !email.includes("@")}>{envoi ? "Envoi au génie…" : `Faire mon vœu (${COUT_GENIE} 🪙)`}</button>
+      </div>
+    </div>
   );
 }
 
@@ -1097,7 +1252,7 @@ function Recharge({ projet, cout, motif, monnaie }) {
   const manque = Math.max(0, cout - solde(projet));
   return (
     <div className="recharge">
-      <p><b>Plus assez de {monnaie} :</b> {motif} coûte {cout}. Il vous en manque {manque}. Rechargez pour continuer.</p>
+      {cout > 0 && <p><b>Plus assez de {monnaie} :</b> {motif} coûte {cout}. Il vous en manque {manque}. Rechargez pour continuer.</p>}
       <div className="packs">
         {PACKS.map((pk) => (
           <button key={pk.id} className="pack" disabled={Boolean(achat)} onClick={() => acheter(pk.id)}>
