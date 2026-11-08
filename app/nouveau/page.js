@@ -698,7 +698,7 @@ function Liste({ titre, items }) {
 function MotDuMaitre({ children }) {
   return (
     <div className="maitre">
-      <img src="/personnages/server.svg" alt="" width="56" height="56" />
+      <img src="/personnages/server.webp" alt="" width="56" height="56" />
       <div>
         <strong>Server · Maître du jeu</strong>
         <p>{children}</p>

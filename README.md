@@ -89,7 +89,7 @@ Chaque étape du parcours devient un **niveau** de l'univers (par exemple « Le 
   - il envoie des **messages** ou des **💡 conseils du maître du jeu** ;
   - il fait avancer le **statut** de la commande.
 - Un **repère interne** calculé par le moteur aide Server à préparer son offre. Il est visible **uniquement** dans l'espace Server.
-- Dans le jeu, Server est le personnage du maître du jeu : il a son avatar couronné (`public/personnages/server.svg`), apparaît dans les récits des niveaux « Commander » et « Suivi », et signe les messages et les offres.
+- Dans le jeu, Server est le personnage du maître du jeu : il a son portrait illustré (`public/personnages/server.webp` et `server-complet.webp`), apparaît dans les récits des niveaux « Commander » et « Suivi », et signe les messages et les offres.
 
 ## Principes
 

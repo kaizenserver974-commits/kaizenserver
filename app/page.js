@@ -57,6 +57,21 @@ export default function Accueil() {
         </ol>
       </section>
 
+      <section className="section">
+        <div className="server-accueil">
+          <img src="/personnages/server-complet.webp" alt="Server, le maître du jeu de KaizenServer" width="220" height="220" />
+          <div>
+            <p className="surtitre">Votre maître du jeu</p>
+            <h2>Server vous accompagne à chaque étape</h2>
+            <ul>
+              <li>Il étudie votre projet et vous envoie <b>son offre</b> : tarif et délai.</li>
+              <li>Il vous donne <b>ses conseils</b> pour réussir votre application.</li>
+              <li>Il suit la création jusqu'à la mise en ligne, et après.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <section className="section" id="exemples">
         <div className="section-titre">
           <div><p className="surtitre">Inspirez-vous</p><h2>Exemples d'idées à lancer</h2></div>

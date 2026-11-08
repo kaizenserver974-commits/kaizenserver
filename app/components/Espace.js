@@ -41,7 +41,7 @@ export function FilMessages({ messages, moi, envoyer, placeholder, conseil = fal
         {messages.length === 0 && <p className="discret">Aucun message pour l'instant.</p>}
         {messages.map((m) => (
           <div key={m.id} className={`message ${m.auteur === moi ? "moi" : "autre"} ${m.type === "conseil" ? "conseil-maitre" : ""}`}>
-            {m.auteur === "equipe" && m.auteur !== moi && <img className="message-avatar" src="/personnages/server.svg" alt="" width="32" height="32" />}
+            {m.auteur === "equipe" && m.auteur !== moi && <img className="message-avatar" src="/personnages/server.webp" alt="" width="32" height="32" />}
             {m.type === "conseil" && <strong className="etiquette-conseil">💡 Conseil du maître du jeu</strong>}
             <p>{m.contenu}</p>
             <small>{m.auteur === "equipe" ? "Server · Maître du jeu" : "Client"} · {heure(m.created_at)}</small>

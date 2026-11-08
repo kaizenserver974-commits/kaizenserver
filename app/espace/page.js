@@ -130,7 +130,7 @@ function Espace() {
       ))}
 
       {onglet === "devis" && commandes.length > 0 && (tousDevis.length === 0
-        ? <div className="carte vide"><img src="/personnages/server.svg" alt="" width="64" height="64" /><p>Server, le maître du jeu, étudie votre projet : son offre (tarif, délai) apparaîtra ici.</p></div>
+        ? <div className="carte vide"><img src="/personnages/server.webp" alt="" width="64" height="64" /><p>Server, le maître du jeu, étudie votre projet : son offre (tarif, délai) apparaîtra ici.</p></div>
         : tousDevis.map((d) => (
           <div key={d.id} className="carte">
             <p className="discret">{d.commande.recap?.titre || "Mon application"} · N° {d.commande.numero}</p>
@@ -153,7 +153,7 @@ function Espace() {
               </select>
             </label>
           )}
-          <div className="maitre"><img src="/personnages/server.svg" alt="" width="56" height="56" /><div><strong>Server · Maître du jeu</strong><p>Posez vos questions : je vous réponds ici, avec mes conseils pour votre projet.</p></div></div>
+          <div className="maitre"><img src="/personnages/server.webp" alt="" width="56" height="56" /><div><strong>Server · Maître du jeu</strong><p>Posez vos questions : je vous réponds ici, avec mes conseils pour votre projet.</p></div></div>
           <FilMessages messages={commande.messages} moi="client" placeholder="Écrivez à Server, le maître du jeu…" envoyer={(contenu) => action({ action: "message", commandeId: commande.id, contenu })} />
         </div>
       )}
