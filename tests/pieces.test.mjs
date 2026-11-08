@@ -21,3 +21,16 @@ test("payer la maquette puis la commande fait bien baisser les pièces", () => {
   assert.equal(solde(projet), depart - COUT_MAQUETTE - COUT_COMMANDE);
   assert.ok(projet.jeu.points > jeu.points, "le niveau progresse quand même");
 });
+
+test("revenir en arrière puis repasser une étape ne redonne pas de pièces", () => {
+  let jeu = nouveauJeu({ univers: "monde-kai", avatar: { forme: "illustre", perso: "kai" }, pseudo: "Kai" });
+  jeu = recompenser(jeu, ["idee", "type", "fonctionnalites"]).jeu;
+  const avant = solde({ jeu });
+  // Le client revient à l'étape 1 puis repasse les étapes : mêmes clés de récompense.
+  for (let i = 0; i < 5; i++) {
+    const r = recompenser(jeu, ["type", "fonctionnalites"]);
+    assert.equal(r.gains, null, "aucune nouvelle récompense");
+    jeu = r.jeu;
+  }
+  assert.equal(solde({ jeu }), avant);
+});
