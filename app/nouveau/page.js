@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   TYPES, FONCTIONNALITES, PLATEFORMES, STYLES, BUDGETS, DELAIS, PRIORITES, ETAPES_SUIVI,
@@ -53,6 +53,21 @@ function Parcours() {
   const [gain, setGain] = useState(null);
   const [lieuDebloque, setLieuDebloque] = useState(null);
   const [rechargeOuverte, setRechargeOuverte] = useState(false);
+  const [depense, setDepense] = useState(null);
+  // Quand le solde de pièces baisse (maquette, génie, modification, commande), on l'affiche.
+  const soldeActuel = projet ? solde(projet) : null;
+  const soldePrecedent = useRef(null);
+  useEffect(() => {
+    if (soldeActuel === null) return;
+    const avant = soldePrecedent.current;
+    soldePrecedent.current = soldeActuel;
+    if (avant !== null && soldeActuel < avant) setDepense({ montant: avant - soldeActuel, reste: soldeActuel, cle: Date.now() });
+  }, [soldeActuel, projet?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!depense) return undefined;
+    const t = setTimeout(() => setDepense(null), 3500);
+    return () => clearTimeout(t);
+  }, [depense]);
   const [choixPerso, setChoixPerso] = useState(false);
   const [infoAchat, setInfoAchat] = useState("");
 
@@ -325,6 +340,12 @@ function Parcours() {
         {etape === 8 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
       </div>
 
+      {depense && (
+        <div key={depense.cle} className="depense-or" role="status" aria-live="polite">
+          <strong>−{depense.montant} 🪙</strong>
+          <span>Il vous reste {depense.reste} pièces d'or</span>
+        </div>
+      )}
       {gain && enJeu && <Recompense key={gain.cle} gain={gain} univers={univers} />}
       {lieuDebloque && enJeu && (
         <div key={lieuDebloque.cle} className="lieu-debloque" role="status" aria-live="polite">
@@ -582,7 +603,8 @@ function Narrateur({ jeu, etape }) {
 function Recompense({ gain, univers }) {
   return (
     <div className="recompense" role="status" aria-live="polite">
-      {gain.points > 0 && <strong>+{gain.points} {univers.monnaie}</strong>}
+      {gain.pieces > 0 && <strong>+{gain.pieces} {univers.monnaie}</strong>}
+      {gain.points > 0 && <span className="recompense-xp">+{gain.points} points d'expérience</span>}
       {gain.badges.map((id) => (
         <span key={id} className="recompense-badge">{BADGES[id].icone} Badge « {BADGES[id].nom} » débloqué !</span>
       ))}

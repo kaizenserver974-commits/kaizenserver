@@ -816,3 +816,8 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .references-maquette div { display: flex; gap: 6px; flex-wrap: wrap; }
 .references-maquette img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border: 1px solid var(--ligne-forte); }
 .option-maquette .champ { margin: 4px 0 0; }
+/* Pièces dépensées */
+.depense-or { position: fixed; left: 50%; top: 90px; transform: translateX(-50%); z-index: 52; display: grid; justify-items: center; gap: 2px; padding: 12px 22px; border-radius: 18px; background: rgba(12, 13, 42, 0.96); color: #fff; box-shadow: 0 0 0 1px rgba(245, 197, 66, 0.6), 0 0 34px rgba(245, 197, 66, 0.35); animation: rebond 0.5s cubic-bezier(.2, 1.4, .4, 1); }
+.depense-or strong { font-family: var(--titre); font-size: 24px; color: #fbbf24; }
+.depense-or span { font-size: 13px; color: var(--texte); }
+.recompense-xp { font-size: 13px; color: var(--discret); }

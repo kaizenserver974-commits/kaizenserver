@@ -43,7 +43,7 @@ test("pièces jointes : format et taille contrôlés", () => {
 
 import { solde, debiter, crediter, BONUS_CLASSIQUE, COUT_MODIFICATION, COUT_COMMANDE } from "../lib/pieces.js";
 test("pièces : solde, débit, crédit", () => {
-  const p = { jeu: { actif: true, points: 70 } };
+  const p = { jeu: { actif: true, points: 70, recompenses: ["idee", "precisions"] } };
   assert.equal(solde(p), 70);
   const apres = { ...p, pieces: debiter(p, 30) };
   assert.equal(solde(apres), 40);
