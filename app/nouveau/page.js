@@ -316,7 +316,7 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
                 onClick={() => { setAvatar({ forme: "illustre", perso: pe.id }); if (!pseudo.trim() || PERSONNAGES.some((x) => x.nom === pseudo)) setPseudo(pe.nom); }}
               >
                 <img src={pe.buste} alt="" loading="lazy" />
-                <span className="etiquette">{pe.genre}<small>{pe.nom}</small></span>
+                <span className="etiquette">{pe.nom}</span>
               </button>
             ))}
             <button
