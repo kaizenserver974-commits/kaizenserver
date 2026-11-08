@@ -13,6 +13,14 @@ const TITRES = {
   nouveau: "Choisir mon mot de passe",
 };
 
+// Page où revenir après la connexion (ex. : le parcours en cours pour payer en pièces d'or).
+// Seuls les chemins internes sont acceptés.
+function destination() {
+  if (typeof window === "undefined") return "/espace";
+  const r = new URLSearchParams(window.location.search).get("retour") || "";
+  return r.startsWith("/") && !r.startsWith("//") && !r.includes("\\") ? r : "/espace";
+}
+
 export default function Connexion() {
   const sb = supabaseNavigateur();
   const [mode, setMode] = useState("connexion");
@@ -32,12 +40,12 @@ export default function Connexion() {
     // supprimé, jeton expiré) est effacée au lieu de provoquer une boucle.
     sb.auth.getUser().then(({ data, error }) => {
       if (recuperation) return;
-      if (data?.user && !error) window.location.replace("/espace");
+      if (data?.user && !error) window.location.replace(destination());
       else sb.auth.signOut({ scope: "local" }).catch(() => {});
     });
     const { data } = sb.auth.onAuthStateChange((evt, session) => {
       if (evt === "PASSWORD_RECOVERY") { setMode("nouveau"); return; }
-      if (session && evt === "SIGNED_IN" && !recuperation) window.location.replace("/espace");
+      if (session && evt === "SIGNED_IN" && !recuperation) window.location.replace(destination());
     });
     return () => data.subscription.unsubscribe();
   }, [sb]);
@@ -58,15 +66,15 @@ export default function Connexion() {
       if (mode === "connexion") {
         const { error } = await sb.auth.signInWithPassword({ email: adresse(), password: mdp });
         if (error) throw error;
-        window.location.replace("/espace");
+        window.location.replace(destination());
       } else if (mode === "inscription") {
-        const { data, error } = await sb.auth.signUp({ email: adresse(), password: mdp, options: { emailRedirectTo: `${origine()}/espace` } });
+        const { data, error } = await sb.auth.signUp({ email: adresse(), password: mdp, options: { emailRedirectTo: `${origine()}${destination()}` } });
         if (error) throw error;
         // Supabase ne renvoie pas d'erreur pour une adresse déjà inscrite : identités vides.
         if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
           setErreur(traduireErreur("already registered"));
         } else if (data?.session) {
-          window.location.replace("/espace");
+          window.location.replace(destination());
         } else {
           setInfo(`📬 Compte créé ! Ouvrez l'e-mail envoyé à ${adresse()} pour confirmer votre adresse (une seule fois), puis connectez-vous avec votre mot de passe.`);
           setMode("connexion");
@@ -76,14 +84,14 @@ export default function Connexion() {
         if (error) throw error;
         setInfo(`📬 Si un compte existe pour ${adresse()}, un e-mail vient d'être envoyé : ouvrez-le pour choisir votre mot de passe.`);
       } else if (mode === "lien") {
-        const { error } = await sb.auth.signInWithOtp({ email: adresse(), options: { emailRedirectTo: `${origine()}/espace` } });
+        const { error } = await sb.auth.signInWithOtp({ email: adresse(), options: { emailRedirectTo: `${origine()}${destination()}` } });
         if (error) throw error;
         setInfo(`📬 Lien envoyé à ${adresse()}. Ouvrez l'e-mail et appuyez sur le lien (pensez aux indésirables).`);
       } else if (mode === "nouveau") {
         const { error } = await sb.auth.updateUser({ password: mdp });
         if (error) throw error;
         setInfo("✅ Mot de passe enregistré ! Vous pourrez désormais vous connecter avec votre e-mail et ce mot de passe.");
-        setTimeout(() => window.location.replace("/espace"), 1500);
+        setTimeout(() => window.location.replace(destination()), 1500);
       }
     } catch (err) {
       setErreur(traduireErreur(err?.message));

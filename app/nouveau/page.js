@@ -7,7 +7,9 @@ import {
   trouver, fonctionnalite,
 } from "../../lib/catalogue.js";
 import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
-import { solde, debiter, crediter, PACKS, bonusPack, meilleurPack, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, prixTexte } from "../../lib/pieces.js";
+import { PACKS, bonusPack, meilleurPack, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, prixTexte } from "../../lib/pieces.js";
+import { PortefeuilleProvider, usePortefeuille, lienConnexion } from "../../lib/portefeuille.js";
+import { jeton } from "../../lib/supabaseClient.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
@@ -29,17 +31,25 @@ const ICONES_TYPES = { reservation: "📅", accompagnement: "🤝", boutique: "�
 const ICONES_PLATEFORMES = { web: "💻", mobile: "📱", les_deux: "🔁" };
 
 
+// Appel aux routes Kaizen ; le jeton du compte est joint s'il existe (paiements en pièces d'or).
 async function appeler(url, corps) {
-  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) });
+  const t = await jeton().catch(() => null);
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify(corps) });
   const donnees = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(donnees.erreur || "Kaizen n'a pas pu répondre. Réessayez.");
+  if (!r.ok) {
+    const e = new Error(donnees.erreur || "Kaizen n'a pas pu répondre. Réessayez.");
+    e.donnees = donnees; e.status = r.status;
+    throw e;
+  }
   return donnees;
 }
 
 export default function Page() {
   return (
     <Suspense fallback={<main className="conteneur page"><p className="discret">Chargement…</p></main>}>
-      <Parcours />
+      <PortefeuilleProvider>
+        <Parcours />
+      </PortefeuilleProvider>
     </Suspense>
   );
 }
@@ -54,15 +64,22 @@ function Parcours() {
   const [lieuDebloque, setLieuDebloque] = useState(null);
   const [rechargeOuverte, setRechargeOuverte] = useState(false);
   const [depense, setDepense] = useState(null);
+  const portefeuille = usePortefeuille();
   // Quand le solde de pièces baisse (maquette, génie, modification, commande), on l'affiche.
-  const soldeActuel = projet ? solde(projet) : null;
+  const soldeActuel = portefeuille.solde;
   const soldePrecedent = useRef(null);
   useEffect(() => {
     if (soldeActuel === null) return;
     const avant = soldePrecedent.current;
     soldePrecedent.current = soldeActuel;
     if (avant !== null && soldeActuel < avant) setDepense({ montant: avant - soldeActuel, reste: soldeActuel, cle: Date.now() });
-  }, [soldeActuel, projet?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [soldeActuel]);
+
+  // Récompenses déjà gagnées dans ce projet : créditées sur le compte (une seule fois par compte).
+  const recompensesProjet = projet?.jeu?.actif ? (projet.jeu.recompenses || []).join(",") : "";
+  useEffect(() => {
+    if (portefeuille.connecte && recompensesProjet) portefeuille.recompenses(recompensesProjet.split(","));
+  }, [portefeuille.connecte, recompensesProjet]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!depense) return undefined;
     const t = setTimeout(() => setDepense(null), 3500);
@@ -127,8 +144,9 @@ function Parcours() {
     (async () => {
       try {
         const r = await appeler("/api/pieces/verifier", { achat: achatRetour });
+        portefeuille.fixerSolde(r.solde);
         if (r.statut === "paid" && r.pieces > 0) {
-          setProjet((p) => enregistrerProjet({ ...p, pieces: crediter(p, r.pieces), journal: [...(p.journal || []), { date: new Date().toISOString(), texte: `Recharge de ${r.pieces} pièces` }] }));
+          setProjet((p) => enregistrerProjet({ ...p, journal: [...(p.journal || []), { date: new Date().toISOString(), texte: `Recharge de ${r.pieces} pièces` }] }));
           setInfoAchat(`🪙 +${r.pieces} pièces ajoutées. Merci !`);
         } else if (r.statut === "paid") {
           setInfoAchat("Ces pièces ont déjà été ajoutées.");
@@ -151,6 +169,8 @@ function Parcours() {
   const gagner = (cles) => {
     const { jeu, gains } = recompenser(projet.jeu, cles);
     if (gains) setGain({ ...gains, cle: Date.now() });
+    // Les pièces d'or des récompenses sont créditées par le serveur, une fois par compte.
+    if (gains?.pieces > 0 && portefeuille.connecte) portefeuille.recompenses(cles);
     return jeu;
   };
   const maj = (champs, cles = []) => {
@@ -198,16 +218,33 @@ function Parcours() {
 
   // Demande de modification de la maquette par le client : coûte des pièces d'or.
   const modifierMaquette = (retour) => lancer("Kaizen redessine la maquette avec vos remarques… (jusqu'à une minute)", async () => {
-    const pieces = debiter(projet, COUT_MODIFICATION);
-    if (!pieces) throw new Error(`Il vous faut ${COUT_MODIFICATION} pièces pour demander une modification : rechargez vos pièces ci-dessous.`);
-    const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap, retour, consignes: projet.consignesMaquette || "", images: await imagesReference() });
+    // Le serveur vérifie le solde du compte et débite les pièces (remboursées si l'IA ne répond pas).
+    const r = await payerIA({ projet, recap: projet.recap, retour, consignes: projet.consignesMaquette || "", images: await imagesReference() });
+    const { html, source } = r;
     setProjet((p) => enregistrerProjet({
-      ...p, pieces, maquetteValidee: false,
+      ...p, maquetteValidee: false,
       maquette: { html, source, genereLe: new Date().toISOString() },
       retours: [...(p.retours || []), { texte: retour, date: new Date().toISOString() }].slice(-10),
-      journal: noter(p, `Modification demandée (−${COUT_MODIFICATION} pièces) : ${retour.slice(0, 80)}`),
+      journal: noter(p, `Modification demandée (${r.rembourse ? "pièces remboursées" : `−${COUT_MODIFICATION} pièces`}) : ${retour.slice(0, 80)}`),
     }));
   });
+
+  // Appel payant à l'IA : met à jour le solde affiché, ouvre la boutique ou la connexion si besoin.
+  async function payerIA(corps) {
+    if (!portefeuille.connecte) {
+      window.location.href = lienConnexion();
+      throw new Error("Connectez-vous pour utiliser vos pièces d'or.");
+    }
+    try {
+      const r = await appeler("/api/maquette", corps);
+      portefeuille.fixerSolde(r.solde);
+      return r;
+    } catch (e) {
+      if (e.donnees?.manque) { portefeuille.fixerSolde(e.donnees.solde); setRechargeOuverte(true); }
+      if (e.donnees?.connexion) portefeuille.charger();
+      throw e;
+    }
+  }
 
   // Images de référence du client (ajoutées à l'étape Budget), au format attendu par l'IA.
   const imagesReference = async () => (await lireFichiers(projet.id))
@@ -218,16 +255,12 @@ function Parcours() {
   const validerMaquette = () => maj({ maquetteValidee: true, journal: noter(projet, "Maquette acceptée par le client"), etape: 7 });
 
   const genererMaquette = (consignes = "") => lancer("Kaizen dessine la maquette de votre application… (jusqu'à une minute)", async () => {
-    // La maquette instantanée coûte des pièces d'or, débitées seulement si elle est bien créée.
-    if (solde(projet) < COUT_MAQUETTE) {
-      setRechargeOuverte(true);
-      throw new Error(`Il vous faut ${COUT_MAQUETTE} pièces d'or pour créer la maquette : rechargez vos pièces.`);
-    }
+    // La maquette instantanée coûte des pièces d'or : le serveur vérifie le solde et débite le compte.
     const images = await imagesReference();
-    const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap, consignes, images });
+    const { html, source } = await payerIA({ projet, recap: projet.recap, consignes, images });
     const jeu = gagner(["maquette"]);
     setProjet((p) => enregistrerProjet({
-      ...p, jeu, pieces: debiter(p, COUT_MAQUETTE) || p.pieces, consignesMaquette: consignes, maquette: { html, source, genereLe: new Date().toISOString() }, etape: 6,
+      ...p, jeu, consignesMaquette: consignes, maquette: { html, source, genereLe: new Date().toISOString() }, etape: 6,
       statut: ["idee", "cadrage"].includes(p.statut) ? "maquette" : p.statut,
       journal: noter(p, p.maquette ? "Maquette régénérée" : "Maquette générée"),
     }));
@@ -283,11 +316,11 @@ function Parcours() {
         </div>
       )}
       {enJeu
-        ? <TableauJoueur jeu={projet.jeu} pieces={solde(projet)} changer={() => setChoixPerso(true)} recharger={() => setRechargeOuverte(true)} />
+        ? <TableauJoueur jeu={projet.jeu} changer={() => setChoixPerso(true)} recharger={() => setRechargeOuverte(true)} />
         : (
           <div className="mode-classique">
             <span>Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></span>
-            <BourseOr pieces={solde(projet)} recharger={() => setRechargeOuverte(true)} />
+            <BourseOr recharger={() => setRechargeOuverte(true)} />
           </div>
         )}
       {rechargeOuverte && <FenetreRecharge projet={projet} fermer={() => setRechargeOuverte(false)} />}
@@ -526,16 +559,37 @@ function AvatarJoueur({ jeu, taille, classe }) {
 }
 
 // Bourse de pièces d'or, toujours visible en haut, avec le bouton pour en acheter.
-function BourseOr({ pieces, recharger }) {
+function BourseOr({ recharger }) {
+  const { connecte, solde, indisponible } = usePortefeuille();
+  if (connecte === null) return <div className="bourse-or"><span className="bourse-solde">🪙 …</span></div>;
+  if (!connecte) {
+    return (
+      <div className="bourse-or">
+        <a className="btn petit bourse-acheter" href={lienConnexion()}>🪙 Se connecter pour voir mes pièces d'or</a>
+      </div>
+    );
+  }
   return (
     <div className="bourse-or">
-      <span className="bourse-solde" title="Vos pièces d'or">🪙 <b>{pieces}</b> pièces d'or</span>
+      <span className="bourse-solde" title="Vos pièces d'or, gardées sur votre compte">🪙 <b>{indisponible ? "—" : solde ?? "…"}</b> pièces d'or</span>
       <button className="btn petit bourse-acheter" onClick={recharger}>＋ Acheter des pièces</button>
     </div>
   );
 }
 
+// Remplace un bouton payant quand le client n'est pas connecté.
+function BoutonConnexion({ texte = "Se connecter pour utiliser mes pièces d'or" }) {
+  return <a className="btn" href={lienConnexion()}>🔑 {texte}</a>;
+}
+
 // Fenêtre d'achat de pièces d'or (packs payés par Mollie).
+function SoldeTexte() {
+  const { connecte, dispo } = usePortefeuille();
+  return connecte
+    ? <p className="discret">Vous avez <b>🪙 {dispo}</b> pièces d'or sur votre compte.</p>
+    : <p className="discret">Connectez-vous : vos pièces d'or sont gardées sur votre compte, sur tous vos appareils.</p>;
+}
+
 function FenetreRecharge({ projet, fermer }) {
   useEffect(() => {
     const echap = (e) => { if (e.key === "Escape") fermer(); };
@@ -549,7 +603,7 @@ function FenetreRecharge({ projet, fermer }) {
           <h2>🪙 Acheter des pièces d'or</h2>
           <button className="btn petit secondaire" onClick={fermer} aria-label="Fermer">✕</button>
         </div>
-        <p className="discret">Vous avez <b>🪙 {solde(projet)}</b> pièces d'or.</p>
+        <SoldeTexte />
         <Recharge projet={projet} cout={0} monnaie="pièces d'or" />
         <p className="petit-titre">À quoi servent les pièces d'or ?</p>
         <ul className="tarifs-pieces">
@@ -563,7 +617,7 @@ function FenetreRecharge({ projet, fermer }) {
   );
 }
 
-function TableauJoueur({ jeu, changer, pieces, recharger }) {
+function TableauJoueur({ jeu, changer, recharger }) {
   const u = trouverUnivers(jeu.univers);
   const n = niveau(jeu.points);
   return (
@@ -579,7 +633,7 @@ function TableauJoueur({ jeu, changer, pieces, recharger }) {
           <i style={{ width: `${Math.max(4, n.progression * 100)}%` }} />
         </div>
         <small className="discret">Encore {n.restant} points pour le niveau {n.numero + 1}</small>
-        <BourseOr pieces={pieces} recharger={recharger} />
+        <BourseOr recharger={recharger} />
       </div>
       <div className="badges" aria-label="Badges">
         {Object.entries(BADGES).map(([id, b]) => (
@@ -946,7 +1000,7 @@ function EtapeRecap({ projet, modifier, voirMaquette, genererMaquette, actualise
 
 // Deux façons d'obtenir sa maquette : instantanée par Kaizen (IA), ou sur mesure par le génie Server.
 function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, recharger }) {
-  const dispo = solde(projet);
+  const { dispo, connecte } = usePortefeuille();
   const [genieOuvert, setGenieOuvert] = useState(false);
   const [consignes, setConsignes] = useState(projet.consignesMaquette || "");
   const [images, setImages] = useState([]);
@@ -980,13 +1034,14 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
           <p className="option-prix">🪙 {COUT_MAQUETTE} pièces d'or</p>
           {projet.maquette
             ? <button className="btn" onClick={voirMaquette}>Voir ma maquette</button>
+            : !connecte ? <BoutonConnexion />
             : dispo >= COUT_MAQUETTE
               ? <button className="btn" onClick={() => genererMaquette(consignes.trim())}>Créer ma maquette ({COUT_MAQUETTE} 🪙)</button>
               : <button className="btn secondaire" onClick={recharger}>Il vous manque {COUT_MAQUETTE - dispo} 🪙 · Acheter des pièces</button>}
         </div>
 
         <div className={`option-maquette option-genie ${genieOuvert ? "ouverte" : ""}`}>
-          <button className="genie-bouton" onClick={() => !projet.demandeGenie && setGenieOuvert(true)} aria-label="Demander une maquette au génie Server" disabled={Boolean(projet.demandeGenie)}>
+          <button className="genie-bouton" onClick={() => { if (projet.demandeGenie) return; if (!connecte) { window.location.href = lienConnexion(); return; } setGenieOuvert(true); }} aria-label="Demander une maquette au génie Server" disabled={Boolean(projet.demandeGenie)}>
             <img src="/personnages/server-complet.webp" alt="" width="120" height="120" />
           </button>
           <h3>Le génie Server</h3>
@@ -994,6 +1049,7 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
           <p className="option-prix">🪙 {COUT_GENIE} pièces d'or</p>
           {projet.demandeGenie
             ? <p className="alerte succes">🧞 Vœu envoyé au génie (n° {projet.demandeGenie.numero}). Server vous enverra sa proposition dans votre espace client.</p>
+            : !connecte ? <BoutonConnexion />
             : genieOuvert
               ? <FormulaireGenie projet={projet} maj={maj} noter={noter} recharger={recharger} annuler={() => setGenieOuvert(false)} />
               : dispo >= COUT_GENIE
@@ -1014,16 +1070,18 @@ function FormulaireGenie({ projet, maj, noter, recharger, annuler }) {
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
   const [piege, setPiege] = useState("");
-  const dispo = solde(projet);
+  const portefeuille = usePortefeuille();
+  const dispo = portefeuille.dispo;
 
   async function envoyer() {
     if (dispo < COUT_GENIE) { recharger(); return; }
     setErreur(""); setEnvoi(true);
     try {
       const fichiers = await lireFichiers(projet.id);
+      const t = await jeton();
       const r = await fetch("/api/commande", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
         body: JSON.stringify({
           demande: "genie",
           projet: { ...projet, retours: (projet.retours || []).map((x) => x.texte) },
@@ -1034,11 +1092,15 @@ function FormulaireGenie({ projet, maj, noter, recharger, annuler }) {
         }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.erreur || "La demande n'a pas pu être envoyée.");
+      if (!r.ok) {
+        if (d.manque) { portefeuille.fixerSolde(d.solde); recharger(); }
+        if (d.connexion) { window.location.href = lienConnexion(); return; }
+        throw new Error(d.erreur || "La demande n'a pas pu être envoyée.");
+      }
+      portefeuille.fixerSolde(d.solde);
       maj({
         contact: { ...contact, nom, email },
         demandeGenie: { numero: d.numero, date: new Date().toISOString() },
-        pieces: debiter(projet, COUT_GENIE) || projet.pieces,
         journal: noter(projet, `Maquette sur mesure demandée au génie Server (n° ${d.numero})`),
       });
     } catch (e) {
@@ -1132,23 +1194,30 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant, infoAchat }) {
   const [pieces, setPieces] = useState([]);
   useEffect(() => { lireFichiers(projet.id).then(setPieces); }, [projet.id]);
 
-  const dispo = solde(projet);
+  const portefeuille = usePortefeuille();
+  const dispo = portefeuille.dispo;
   const monnaie = projet.jeu?.actif ? trouverUnivers(projet.jeu.univers).monnaie : "pièces d'or";
-  const assezPieces = dispo >= COUT_COMMANDE;
+  const assezPieces = Boolean(portefeuille.connecte) && dispo >= COUT_COMMANDE;
 
   async function commander() {
     if (!assezPieces) { setErreur(`Il vous faut ${COUT_COMMANDE} ${monnaie} pour envoyer la commande.`); return; }
     setErreur(""); setNonConfigure(false); setEnvoi(true);
     try {
+      const t = await jeton();
       const r = await fetch("/api/commande", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
         body: JSON.stringify({ projet: { ...projet, retours: (projet.retours || []).map((r) => r.texte) }, recap: projet.recap, contact, formule, consentement, siteWeb: piege, pieces: pieces.map(({ nom, type, contenu }) => ({ nom, type, contenu })), maquette: projet.maquette ? { html: projet.maquette.html, source: projet.maquette.source } : null }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setNonConfigure(Boolean(d.nonConfigure)); throw new Error(d.erreur || "L'envoi a échoué. Réessayez."); }
+      if (!r.ok) {
+        setNonConfigure(Boolean(d.nonConfigure));
+        if (d.manque) portefeuille.fixerSolde(d.solde);
+        if (d.connexion) portefeuille.charger();
+        throw new Error(d.erreur || "L'envoi a échoué. Réessayez.");
+      }
+      portefeuille.fixerSolde(d.solde);
       maj({
-        pieces: debiter(projet, COUT_COMMANDE) || projet.pieces,
         commande: { numero: d.numero, date: d.date || new Date().toISOString(), formule, confirmationEnvoyee: d.confirmationEnvoyee, espaceClient: Boolean(d.espaceClient) },
         statut: ["idee", "cadrage", "maquette"].includes(projet.statut) ? "maquette" : projet.statut,
         journal: noter(projet, `Commande envoyée (n° ${d.numero}, −${COUT_COMMANDE} pièces)`),
@@ -1231,9 +1300,10 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant, infoAchat }) {
       {infoAchat && <p className="succes" style={{ marginTop: 18 }}>{infoAchat}</p>}
       <div className="cout-commande">
         <span>Envoyer la commande : <b>🪙 {COUT_COMMANDE} {monnaie}</b></span>
-        <span className="solde">🪙 {dispo} disponibles</span>
+        <span className="solde">{portefeuille.connecte ? `🪙 ${dispo} disponibles` : "Non connecté"}</span>
       </div>
-      {!assezPieces && <Recharge projet={projet} cout={COUT_COMMANDE} motif="l'envoi de la commande" monnaie={monnaie} />}
+      {portefeuille.connecte === false && <BoutonConnexion texte="Se connecter pour payer avec mes pièces d'or" />}
+      {portefeuille.connecte && !assezPieces && <Recharge projet={projet} cout={COUT_COMMANDE} motif="l'envoi de la commande" monnaie={monnaie} />}
 
       <div className="navigation">
         <button className="btn secondaire" onClick={precedent}>Retour</button>
@@ -1293,13 +1363,17 @@ function Recharge({ projet, cout, motif, monnaie }) {
   async function acheter(pack) {
     setErreur(""); setAchat(pack);
     try {
-      const r = await fetch("/api/pieces/acheter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pack, projetLocal: projet.id }) });
+      const t = await jeton();
+      if (!t) { window.location.href = lienConnexion(); return; }
+      const r = await fetch("/api/pieces/acheter", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ pack, projetLocal: projet.id }) });
       const d = await r.json().catch(() => ({}));
+      if (r.status === 401) { window.location.href = lienConnexion(); return; }
       if (!r.ok) throw new Error(d.erreur || "Le paiement n'a pas pu démarrer.");
       window.location.href = d.url;
     } catch (e) { setErreur(e.message); setAchat(""); }
   }
-  const manque = Math.max(0, cout - solde(projet));
+  const { dispo } = usePortefeuille();
+  const manque = Math.max(0, cout - dispo);
   const meilleur = meilleurPack().id;
   return (
     <div className="boutique-or">
@@ -1321,7 +1395,7 @@ function Recharge({ projet, cout, motif, monnaie }) {
           })}
         </div>
       </div>
-      <p className="note">🔒 Paiement sécurisé par Mollie. Les pièces sont ajoutées dès votre retour sur cette page.</p>
+      <p className="note">🔒 Paiement sécurisé par Mollie. Les pièces sont ajoutées à votre compte dès que le paiement est validé.</p>
       {erreur && <p className="alerte erreur">{erreur}</p>}
     </div>
   );
@@ -1360,14 +1434,14 @@ function PileOr({ niveau = 0 }) {
 // Avis du client sur la maquette : accepter, ou demander une modification (payante en pièces).
 function AvisMaquette({ projet, modifier, valider, infoAchat }) {
   const [retour, setRetour] = useState("");
-  const dispo = solde(projet);
+  const { dispo, connecte } = usePortefeuille();
   const monnaie = projet.jeu?.actif ? trouverUnivers(projet.jeu.univers).monnaie : "pièces d'or";
-  const assez = dispo >= COUT_MODIFICATION;
+  const assez = Boolean(connecte) && dispo >= COUT_MODIFICATION;
   return (
     <div className="avis-maquette">
       <div className="titre-ligne">
         <h3>💬 Votre avis sur la maquette</h3>
-        <span className="solde">🪙 {dispo} {monnaie}</span>
+        <span className="solde">{connecte ? `🪙 ${dispo} ${monnaie}` : "Non connecté"}</span>
       </div>
       {infoAchat && <p className="succes">{infoAchat}</p>}
       {projet.maquetteValidee ? (
@@ -1384,7 +1458,8 @@ function AvisMaquette({ projet, modifier, valider, infoAchat }) {
           ✏️ Demander la modification (−{COUT_MODIFICATION} {monnaie})
         </button>
       </div>
-      {!assez && <Recharge projet={projet} cout={COUT_MODIFICATION} motif="une modification" monnaie={monnaie} />}
+      {connecte === false && <BoutonConnexion />}
+      {connecte && !assez && <Recharge projet={projet} cout={COUT_MODIFICATION} motif="une modification" monnaie={monnaie} />}
       {projet.retours?.length > 0 && (
         <div className="historique-retours">
           <p className="petit-titre">Vos demandes de modification</p>

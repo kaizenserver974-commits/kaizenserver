@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/serveur/supabase.js";
 import { synchroniserPaiement } from "../../../../lib/serveur/paiements.js";
+import { webhookAchat } from "../../../../lib/serveur/pieces.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +14,8 @@ export async function POST(request) {
   try { id = String((await request.formData()).get("id") || ""); } catch { /* corps invalide */ }
   if (!sb || !/^tr_[A-Za-z0-9]+$/.test(id)) return new NextResponse("ok", { status: 200 });
   try {
-    await synchroniserPaiement(sb, request, id);
+    // Achat de pièces d'or : crédité sur le portefeuille du compte ; sinon paiement d'un devis.
+    if (!(await webhookAchat(sb, id))) await synchroniserPaiement(sb, request, id);
   } catch (e) {
     console.error("Kaizen webhook Mollie :", e?.message);
     return new NextResponse("erreur", { status: 500 }); // Mollie réessaiera plus tard

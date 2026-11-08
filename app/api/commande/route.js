@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { validerCommande, numeroCommande, resumeCommande, confirmationClient } from "../../../lib/commande.js";
-import { supabaseAdmin, enregistrerMaquette } from "../../../lib/serveur/supabase.js";
+import { supabaseAdmin, enregistrerMaquette, utilisateur } from "../../../lib/serveur/supabase.js";
+import { debiter, rembourser, SoldeInsuffisant } from "../../../lib/serveur/portefeuille.js";
+import { COUT_COMMANDE, COUT_GENIE } from "../../../lib/pieces.js";
 import { assainir } from "../../../lib/serveur/generation.js";
 import { emailConfigure, envoyerEmail, notifier, urlSite } from "../../../lib/serveur/email.js";
 
@@ -31,6 +33,22 @@ export async function POST(request) {
       { erreur: `La commande en ligne n'est pas encore activée sur ce site (réglage manquant : ${manquants.join(", ") || "configuration e-mail"}). Copiez votre dossier ou téléchargez-le en PDF pour l'envoyer.`, nonConfigure: true },
       { status: 503 },
     );
+  }
+
+  // Paiement en pièces d'or sur le compte connecté (commande : 140, vœu au génie : 250).
+  if (!sb) return NextResponse.json({ erreur: "Les pièces d'or ne sont pas encore activées sur ce site." }, { status: 503 });
+  const compte = await utilisateur(request);
+  if (!compte) return NextResponse.json({ erreur: "Connectez-vous pour utiliser vos pièces d'or.", connexion: true }, { status: 401 });
+  const genie = commande.formule === "genie";
+  const cout = genie ? COUT_GENIE : COUT_COMMANDE;
+  const motif = genie ? "Maquette sur mesure demandée au génie" : "Envoi de la commande";
+  let soldeApres;
+  try {
+    soldeApres = await debiter(sb, compte.email, cout, motif);
+  } catch (e) {
+    if (e instanceof SoldeInsuffisant) return NextResponse.json({ erreur: e.message, solde: e.solde, manque: true }, { status: 402 });
+    console.error("Kaizen /commande débit :", e?.message);
+    return NextResponse.json({ erreur: "Le paiement en pièces d'or est indisponible pour le moment." }, { status: 500 });
   }
 
   const numero = numeroCommande();
@@ -73,6 +91,7 @@ export async function POST(request) {
   }
 
   if (!enregistree && !envoyee) {
+    await rembourser(sb, compte.email, cout, motif).catch((e) => console.error("Kaizen remboursement :", e?.message));
     return NextResponse.json({ erreur: "L'envoi de la commande a échoué. Réessayez dans un instant." }, { status: 502 });
   }
 
@@ -80,5 +99,5 @@ export async function POST(request) {
   const espace = sb ? `\n\nSuivez votre commande, vos devis et vos messages : ${urlSite(request)}/connexion (connectez-vous avec ${commande.contact.email}).` : "";
   const confirmationEnvoyee = await notifier({ a: commande.contact.email, sujet: commande.formule === "genie" ? `Votre demande de maquette au génie ${numero}` : `Votre commande KaizenServer ${numero}`, texte: c.texte + espace, html: c.html, repondreA: process.env.KAIZEN_EMAIL });
 
-  return NextResponse.json({ ok: true, numero, confirmationEnvoyee, espaceClient: enregistree, date: new Date().toISOString() });
+  return NextResponse.json({ ok: true, numero, confirmationEnvoyee, espaceClient: enregistree, date: new Date().toISOString(), solde: soldeApres });
 }
