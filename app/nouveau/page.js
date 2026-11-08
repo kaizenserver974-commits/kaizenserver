@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   TYPES, FONCTIONNALITES, PLATEFORMES, STYLES, BUDGETS, DELAIS, PRIORITES, ETAPES_SUIVI,
@@ -1059,6 +1060,13 @@ function EtapeRecap({ projet, modifier, voirMaquette, genererMaquette, actualise
 function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, recharger }) {
   const { dispo, connecte } = usePortefeuille();
   const [genieOuvert, setGenieOuvert] = useState(false);
+  // Animation du vœu : null, "envoi" (nuages, le génie écoute) puis "exauce".
+  const [voeu, setVoeu] = useState(null);
+  useEffect(() => {
+    if (voeu !== "exauce") return undefined;
+    const t = setTimeout(() => setVoeu(null), 4200);
+    return () => clearTimeout(t);
+  }, [voeu]);
   const [consignes, setConsignes] = useState(projet.consignesMaquette || "");
   const [images, setImages] = useState([]);
   useEffect(() => {
@@ -1066,6 +1074,7 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
   }, [projet.id]);
   return (
     <div className="choix-maquette sans-impression" id="choix-maquette">
+      {voeu && <NuageGenie etat={voeu} fermer={() => setVoeu(null)} />}
       <h2>Créer ma maquette</h2>
       <p className="discret">Vous avez <b>🪙 {dispo}</b> pièces d'or. Chaque modification de maquette coûte ensuite <b>{COUT_MODIFICATION}</b> pièces d'or.</p>
       <div className="options-maquette">
@@ -1108,7 +1117,7 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
             ? <p className="alerte succes">🧞 Vœu envoyé au génie (n° {projet.demandeGenie.numero}). Server vous enverra sa proposition dans votre espace client.</p>
             : !connecte ? <BoutonConnexion />
             : genieOuvert
-              ? <FormulaireGenie projet={projet} maj={maj} noter={noter} recharger={recharger} annuler={() => setGenieOuvert(false)} />
+              ? <FormulaireGenie projet={projet} maj={maj} noter={noter} recharger={recharger} annuler={() => setGenieOuvert(false)} animer={setVoeu} />
               : dispo >= COUT_GENIE
                 ? <button className="btn" onClick={() => setGenieOuvert(true)}>Demander au génie ({COUT_GENIE} 🪙)</button>
                 : <button className="btn secondaire" onClick={recharger}>Il vous manque {COUT_GENIE - dispo} 🪙 · Acheter des pièces</button>}
@@ -1118,7 +1127,32 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
   );
 }
 
-function FormulaireGenie({ projet, maj, noter, recharger, annuler }) {
+// Positions (en %) des nuages et des étincelles autour du génie.
+const NUAGES = [[-25, -10], [55, -12], [-30, 25], [65, 20], [-20, 60], [60, 62], [15, 80], [-10, 85], [70, 88], [20, -15], [-35, 45], [75, 42]];
+const ETINCELLES = [[12, 18, 14], [82, 14, 22], [25, 72, 18], [70, 78, 12], [48, 10, 20], [8, 50, 16], [90, 52, 14], [35, 30, 12], [62, 28, 18], [18, 88, 20], [80, 90, 16], [52, 85, 12], [5, 8, 12], [95, 30, 18], [40, 60, 14], [58, 60, 20], [30, 5, 16], [72, 6, 12]];
+
+// Nuages magiques pendant que le génie exauce le vœu.
+function NuageGenie({ etat, fermer }) {
+  // Affiché directement sur la page (portail) : couvre tout l'écran, même dans un cadre flouté.
+  if (typeof document === "undefined") return null;
+  return createPortal((
+    <div className={`nuage-genie ${etat}`} role="status" aria-live="polite" onClick={etat === "exauce" ? fermer : undefined}>
+      <div className="nuages" aria-hidden="true">
+        {NUAGES.map(([x, y], i) => <i key={i} style={{ "--i": i, left: `${x}%`, top: `${y}%` }} />)}
+      </div>
+      <div className="etincelles" aria-hidden="true">
+        {ETINCELLES.map(([x, y, t], i) => <b key={i} style={{ "--i": i, left: `${x}%`, top: `${y}%`, fontSize: t }}>✦</b>)}
+      </div>
+      <div className="genie-apparition">
+        <img src="/personnages/server-complet.webp" alt="" width="200" height="200" />
+        <p className="genie-titre">{etat === "envoi" ? "Le génie écoute votre vœu…" : "✨ Vœu exaucé ! ✨"}</p>
+        <p className="genie-texte">{etat === "envoi" ? "Les nuages magiques emportent votre demande jusqu'à Server." : "Server, le maître du jeu, prépare votre maquette sur mesure. Vous la retrouverez dans votre espace."}</p>
+      </div>
+    </div>
+  ), document.body);
+}
+
+function FormulaireGenie({ projet, maj, noter, recharger, annuler, animer = () => {} }) {
   const contact = projet.contact || {};
   const [nom, setNom] = useState(contact.nom || "");
   const [email, setEmail] = useState(contact.email || "");
@@ -1132,7 +1166,8 @@ function FormulaireGenie({ projet, maj, noter, recharger, annuler }) {
 
   async function envoyer() {
     if (dispo < COUT_GENIE) { recharger(); return; }
-    setErreur(""); setEnvoi(true);
+    setErreur(""); setEnvoi(true); animer("envoi");
+    const debut = Date.now();
     try {
       const fichiers = await lireFichiers(projet.id);
       const t = await jeton();
@@ -1157,12 +1192,16 @@ function FormulaireGenie({ projet, maj, noter, recharger, annuler }) {
         throw new Error(d.erreur || "La demande n'a pas pu être envoyée.");
       }
       portefeuille.fixerSolde(d.solde);
+      // Laisse le temps aux nuages de remplir l'écran avant d'exaucer le vœu.
+      await new Promise((ok) => setTimeout(ok, Math.max(0, 1800 - (Date.now() - debut))));
+      animer("exauce");
       maj({
         contact: { ...contact, nom, email },
         demandeGenie: { numero: d.numero, date: new Date().toISOString() },
         journal: noter(projet, `Maquette sur mesure demandée au génie Server (n° ${d.numero})`),
       });
     } catch (e) {
+      animer(null);
       setErreur(e.message);
     } finally {
       setEnvoi(false);
