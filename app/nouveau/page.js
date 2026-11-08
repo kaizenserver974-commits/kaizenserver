@@ -292,7 +292,7 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
               {illustre
                 ? (trouverPersonnage(avatar.perso).video
                   // Animation vidéo du personnage (boucle silencieuse), si elle existe
-                  ? <video className="video-pleine" src={trouverPersonnage(avatar.perso).video} poster={trouverPersonnage(avatar.perso).affiche || trouverPersonnage(avatar.perso).buste} autoPlay muted loop playsInline preload="auto" aria-label={`Personnage ${trouverPersonnage(avatar.perso).nom} animé`} />
+                  ? <video className={`video-pleine ${trouverPersonnage(avatar.perso).decor ? "avec-decor" : ""}`} src={trouverPersonnage(avatar.perso).video} poster={trouverPersonnage(avatar.perso).affiche || trouverPersonnage(avatar.perso).buste} autoPlay muted loop playsInline preload="auto" aria-label={`Personnage ${trouverPersonnage(avatar.perso).nom} animé`} />
                   : <img className={trouverPersonnage(avatar.perso).pied ? "detoure" : ""} src={trouverPersonnage(avatar.perso).pied || trouverPersonnage(avatar.perso).buste} alt={`Personnage ${trouverPersonnage(avatar.perso).nom}`} />)
                 : <Avatar config={avatar} taille={240} titre="Aperçu de votre avatar" />}
             </div>

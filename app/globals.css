@@ -646,3 +646,8 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .vitrine-perso:has(.video-pleine) .vitrine-vivant::after { display: none; }
 .vitrine:has(.video-pleine) .vitrine-sol, .vitrine:has(.video-pleine) .vitrine-particules { display: none; }
 .vitrine-banniere, .vitrine-lieu { z-index: 3; }
+
+/* Vidéo avec son propre monde en décor : plein cadre */
+.vitrine-vivant video.video-pleine.avec-decor { top: 0; bottom: 0; height: 100%; object-fit: cover; object-position: 50% 60%; -webkit-mask-image: none; mask-image: none; }
+.vitrine:has(.avec-decor) .vitrine-banniere small { background: rgba(6,6,26,.75); }
+.vitrine:has(.avec-decor)::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 120px; z-index: 2; pointer-events: none; background: linear-gradient(rgba(6,6,26,.7), transparent); }
