@@ -68,8 +68,13 @@ function Parcours() {
 
   // Récompenses déjà gagnées dans ce projet : créditées sur le compte (une seule fois par compte).
   const recompensesProjet = projet?.jeu?.actif ? (projet.jeu.recompenses || []).join(",") : "";
+  // À l'ouverture du projet, on rattrape sans annoncer la limite ; ensuite, à chaque étape validée.
+  const premierEnvoi = useRef("");
   useEffect(() => {
-    if (portefeuille.connecte && recompensesProjet) portefeuille.recompenses(recompensesProjet.split(","));
+    if (!portefeuille.connecte || !recompensesProjet) return;
+    const premier = premierEnvoi.current !== projet?.id;
+    premierEnvoi.current = projet?.id || "";
+    portefeuille.recompenses(recompensesProjet.split(","), { annoncerPlafond: !premier });
   }, [portefeuille.connecte, recompensesProjet]); // eslint-disable-line react-hooks/exhaustive-deps
   const [choixPerso, setChoixPerso] = useState(false);
   const [infoAchat, setInfoAchat] = useState("");
@@ -371,6 +376,13 @@ function Parcours() {
         {etape === 8 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
       </div>
 
+      {portefeuille.gain && (
+        <div key={portefeuille.gain.cle} className="gain-or" role="status" aria-live="polite">
+          {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 gratuites</strong>}
+          {portefeuille.gain.montant > 0 && <span>Vous avez {portefeuille.solde} pièces d'or pour ce projet</span>}
+          {portefeuille.gain.plafond && <span className="gain-plafond">Limite de pièces gratuites du jour atteinte : revenez demain, ou achetez des pièces.</span>}
+        </div>
+      )}
       {portefeuille.depense && (
         <div key={portefeuille.depense.cle} className="depense-or" role="status" aria-live="polite">
           <strong>−{portefeuille.depense.montant} 🪙</strong>
@@ -698,8 +710,7 @@ function Recompense({ gain, univers }) {
   const { connecte } = usePortefeuille();
   return (
     <div className="recompense" role="status" aria-live="polite">
-      {gain.pieces > 0 && <strong>+{gain.pieces} {univers.monnaie} gratuites</strong>}
-      {gain.pieces > 0 && connecte === false && <span className="recompense-xp">Connectez-vous pour les encaisser : elles vous attendent.</span>}
+      {gain.pieces > 0 && connecte === false && <span className="recompense-xp">🪙 +{gain.pieces} pièces d'or vous attendent : connectez-vous pour les encaisser.</span>}
       {gain.points > 0 && <span className="recompense-xp">+{gain.points} points d'expérience</span>}
       {gain.badges.map((id) => (
         <span key={id} className="recompense-badge">{BADGES[id].icone} Badge « {BADGES[id].nom} » débloqué !</span>

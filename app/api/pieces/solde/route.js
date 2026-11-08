@@ -17,11 +17,15 @@ export async function POST(request) {
   const cleBourse = bourse(u.email, corps?.projet);
   if (!cleBourse) return NextResponse.json({ ok: true, solde: 0, email: u.email, sansProjet: true });
   try {
-    const solde = Array.isArray(corps?.recompenses)
-      ? await crediterRecompenses(sb, u.email, corps.projet, corps.recompenses.map(String))
-      : await lireSolde(sb, cleBourse);
+    let solde, gagne = 0, plafond = false;
+    if (Array.isArray(corps?.recompenses)) {
+      // Server (administrateur) n'a pas de limite quotidienne : il peut tester librement.
+      ({ solde, gagne, plafond } = await crediterRecompenses(sb, u.email, corps.projet, corps.recompenses.map(String), { sansPlafond: u.admin }));
+    } else {
+      solde = await lireSolde(sb, cleBourse);
+    }
     const mouvements = corps?.historique ? await historique(sb, cleBourse) : undefined;
-    return NextResponse.json({ ok: true, solde, email: u.email, ...(mouvements ? { mouvements } : {}) });
+    return NextResponse.json({ ok: true, solde, gagne, plafond, email: u.email, ...(mouvements ? { mouvements } : {}) });
   } catch (e) {
     console.error("Kaizen portefeuille :", e?.message);
     // Tables ou fonctions absentes : supabase/schema.sql n'a pas été lancé.

@@ -918,3 +918,7 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 @keyframes nuage-souffle { from { opacity: 0.95; } to { opacity: 0; transform: scale(1.6) translateY(-12vh); filter: blur(20px); } }
 .genie-titre { font-size: clamp(20px, 4.2vw, 34px); text-wrap: balance; }
 .souffle i { font-size: 30px; }
+.gain-or { position: fixed; left: 50%; top: 200px; transform: translateX(-50%); z-index: 52; display: grid; justify-items: center; gap: 2px; padding: 12px 22px; border-radius: 18px; background: rgba(12, 13, 42, 0.96); color: #fff; text-align: center; max-width: calc(100% - 32px); box-shadow: 0 0 0 1px rgba(110, 231, 183, 0.6), 0 0 34px rgba(110, 231, 183, 0.3); animation: rebond 0.5s cubic-bezier(.2, 1.4, .4, 1); }
+.gain-or strong { font-family: var(--titre); font-size: 24px; color: #6ee7b7; }
+.gain-or span { font-size: 13px; }
+.gain-plafond { color: #fde68a; }
