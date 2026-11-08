@@ -717,17 +717,9 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 @media (max-width: 620px) { .chemin-monde ol { grid-template-columns: repeat(2, 1fr); } }
 .carte-monde .ici button:disabled, .carte-monde .ici button { opacity: 1; filter: none; color: #fff; }
 
-/* Mondes à débloquer */
+/* Aide au choix du personnage */
 .mondes-compteur { margin: -4px 0 10px; font-size: 13px; color: var(--discret); }
 .mondes-compteur b { color: var(--texte); }
-.carte-perso.verrouillee { cursor: not-allowed; border-color: var(--ligne); }
-.carte-perso.verrouillee img { filter: grayscale(1) brightness(0.45); }
-.carte-perso.verrouillee .etiquette { color: var(--discret); }
-.carte-perso.verrouillee:hover { transform: none; box-shadow: none; }
-.carte-perso .cadenas { position: absolute; inset: 0; display: grid; place-items: center; font-size: 30px; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); pointer-events: none; }
-.carte-perso.nouveau::after { content: "NOUVEAU"; position: absolute; top: 8px; left: 8px; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .06em; background: var(--degrade); color: #fff; }
-.monde-gagne { pointer-events: auto; gap: 6px; }
-.monde-gagne .btn { margin-top: 6px; }
 
 /* Décor du monde du personnage pendant tout le parcours : l'univers en grand, sans cadre */
 .fond-monde { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: var(--fond-portrait); background-size: cover; background-position: center top; filter: brightness(0.6) saturate(1.1); }
