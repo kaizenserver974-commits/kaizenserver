@@ -312,7 +312,8 @@ function Parcours() {
   if (videoEtape && introVue !== cleIntro && !chargement) {
     return (
       <main className="conteneur page en-jeu avec-monde intro-page" style={{ "--jeu": univers.couleur, "--jeu-clair": univers.clair }}>
-        {persoMonde?.monde && <div className="fond-monde" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.monde})` }} />}
+        {/* Derrière la vidéo : le monde sans le personnage (sinon on le verrait deux fois). */}
+        {persoMonde?.monde && <div className="fond-monde fond-intro" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fondVide || persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.fondVide || persoMonde.monde})` }} />}
         <IntroVideo key={cleIntro} src={videoEtape} nom={projet.jeu.pseudo || persoJoueur.nom} lieu={`${univers.icone} ${univers.niveaux[etape]}`} texte={recit(projet.jeu, etape)} finir={() => setIntroVue(cleIntro)} />
       </main>
     );
@@ -717,33 +718,37 @@ function TableauJoueur({ jeu, changer, recharger }) {
 // Page d'introduction : le personnage dit la phrase de l'étape dans une vidéo, puis on passe au formulaire.
 function IntroVideo({ src, nom, lieu, texte, finir }) {
   const ref = useRef(null);
-  const [sansSon, setSansSon] = useState(false);
-  const [bloquee, setBloquee] = useState(false);
+  // L'iPad accepte toujours une vidéo SANS son qui démarre seule : on commence ainsi,
+  // puis le client touche la vidéo pour entendre le personnage (elle repart du début avec le son).
+  const [son, setSon] = useState(false);
+  const [figee, setFigee] = useState(false);
   useEffect(() => {
     const v = ref.current;
-    if (!v) return;
-    v.muted = false;
-    v.play().catch(() => {
-      // L'appareil bloque le son : on joue sans son et on propose de l'activer.
-      v.muted = true; setSansSon(true);
-      v.play().catch(() => setBloquee(true));
-    });
+    if (!v) return undefined;
+    v.muted = true;
+    v.play().catch(() => setFigee(true));
+    // Mode économie d'énergie : même sans son, la vidéo peut rester figée → bouton ▶.
+    const t = setTimeout(() => { if (v.paused || v.currentTime < 0.1) setFigee(true); }, 1500);
+    return () => clearTimeout(t);
   }, []);
-  function activerSon() {
+  function lancerAvecSon() {
     const v = ref.current; if (!v) return;
-    v.muted = false; v.currentTime = 0; setSansSon(false); setBloquee(false);
-    v.play().catch(() => {});
+    v.muted = false; v.currentTime = 0; setSon(true); setFigee(false);
+    v.play().catch(() => { v.muted = true; setSon(false); v.play().catch(() => setFigee(true)); });
   }
   return (
     <section className="intro-video-page">
       <p className="intro-lieu">{lieu}</p>
-      <div className="intro-ecran">
-        <video ref={ref} src={src} playsInline preload="auto" onEnded={finir} onError={finir} />
-        {bloquee && <button type="button" className="intro-lecture" onClick={activerSon} aria-label="Lancer la vidéo">▶</button>}
+      <div className="intro-ecran" onClick={!son ? lancerAvecSon : undefined}>
+        <video ref={ref} src={src} autoPlay muted playsInline preload="auto" onEnded={finir} onError={finir} />
+        {figee ? (
+          <button type="button" className="intro-lecture" onClick={(e) => { e.stopPropagation(); lancerAvecSon(); }} aria-label="Lancer la vidéo">▶</button>
+        ) : !son && (
+          <button type="button" className="intro-son" onClick={(e) => { e.stopPropagation(); lancerAvecSon(); }}>🔊 Touchez pour entendre {nom}</button>
+        )}
       </div>
       <div className="intro-sous-titre"><b>{nom}</b>{texte}</div>
       <div className="intro-actions">
-        {sansSon && !bloquee && <button type="button" className="btn petit secondaire" onClick={activerSon}>🔊 Activer le son</button>}
         <button type="button" className="btn petit" onClick={finir}>Passer ▶</button>
       </div>
     </section>

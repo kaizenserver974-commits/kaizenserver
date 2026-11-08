@@ -1020,3 +1020,6 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
   .intro-ecran video { max-height: calc(100vh - 380px); }
   .intro-sous-titre { font-size: 14px; }
 }
+.intro-ecran { cursor: pointer; }
+.intro-son { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); padding: 10px 18px; border: 0; border-radius: 999px; font-weight: 800; font-size: 15px; color: #fff; background: rgba(123, 92, 255, 0.9); box-shadow: 0 0 24px rgba(123, 92, 255, 0.7); cursor: pointer; animation: bulle-parle 0.8s ease-in-out infinite alternate; white-space: nowrap; }
+@media (min-width: 900px) { .fond-intro { background-size: cover; background-position: center; } }
