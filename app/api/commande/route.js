@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { validerCommande, numeroCommande, resumeCommande, confirmationClient } from "../../../lib/commande.js";
 import { supabaseAdmin, enregistrerMaquette, utilisateur } from "../../../lib/serveur/supabase.js";
-import { debiter, rembourser, SoldeInsuffisant } from "../../../lib/serveur/portefeuille.js";
+import { debiter, rembourser, SoldeInsuffisant, bourse } from "../../../lib/serveur/portefeuille.js";
 import { COUT_COMMANDE, COUT_GENIE } from "../../../lib/pieces.js";
 import { assainir } from "../../../lib/serveur/generation.js";
 import { emailConfigure, envoyerEmail, notifier, urlSite } from "../../../lib/serveur/email.js";
@@ -39,12 +39,14 @@ export async function POST(request) {
   if (!sb) return NextResponse.json({ erreur: "Les pièces d'or ne sont pas encore activées sur ce site." }, { status: 503 });
   const compte = await utilisateur(request);
   if (!compte) return NextResponse.json({ erreur: "Connectez-vous pour utiliser vos pièces d'or.", connexion: true }, { status: 401 });
+  const cleBourse = bourse(compte.email, corps?.projet?.id);
+  if (!cleBourse) return NextResponse.json({ erreur: "Projet inconnu." }, { status: 400 });
   const genie = commande.formule === "genie";
   const cout = genie ? COUT_GENIE : COUT_COMMANDE;
   const motif = genie ? "Maquette sur mesure demandée au génie" : "Envoi de la commande";
   let soldeApres;
   try {
-    soldeApres = await debiter(sb, compte.email, cout, motif);
+    soldeApres = await debiter(sb, cleBourse, cout, motif);
   } catch (e) {
     if (e instanceof SoldeInsuffisant) return NextResponse.json({ erreur: e.message, solde: e.solde, manque: true }, { status: 402 });
     console.error("Kaizen /commande débit :", e?.message);
@@ -93,7 +95,7 @@ export async function POST(request) {
   }
 
   if (!enregistree && !envoyee) {
-    await rembourser(sb, compte.email, cout, motif).catch((e) => console.error("Kaizen remboursement :", e?.message));
+    await rembourser(sb, cleBourse, cout, motif).catch((e) => console.error("Kaizen remboursement :", e?.message));
     return NextResponse.json({ erreur: "L'envoi de la commande a échoué. Réessayez dans un instant." }, { status: 502 });
   }
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { nettoyerProjet } from "../../../lib/moteur.js";
 import { genererMaquette, validerImagesReference } from "../../../lib/serveur/generation.js";
 import { supabaseAdmin, utilisateur } from "../../../lib/serveur/supabase.js";
-import { debiter, rembourser, SoldeInsuffisant } from "../../../lib/serveur/portefeuille.js";
+import { debiter, rembourser, SoldeInsuffisant, bourse } from "../../../lib/serveur/portefeuille.js";
 import { COUT_MAQUETTE, COUT_MODIFICATION } from "../../../lib/pieces.js";
 
 export const runtime = "nodejs";
@@ -11,9 +11,10 @@ export const maxDuration = 300; // Vercel Pro : l'IA peut prendre plus d'une min
 
 // Maquette par l'IA, payée en pièces d'or sur le compte du client (vérifié par le serveur).
 export async function POST(request) {
-  let projet, recap, retour, consignesClient, images;
+  let projet, recap, retour, consignesClient, images, projetId;
   try {
     const corps = await request.json();
+    projetId = corps?.projet?.id;
     projet = nettoyerProjet(corps?.projet);
     recap = corps?.recap && typeof corps.recap === "object" ? corps.recap : null;
     retour = String(corps?.retour || "").trim().slice(0, 1000);
@@ -29,11 +30,13 @@ export async function POST(request) {
   const u = await utilisateur(request);
   if (!u) return NextResponse.json({ erreur: "Connectez-vous pour utiliser vos pièces d'or.", connexion: true }, { status: 401 });
 
+  const cleBourse = bourse(u.email, projetId);
+  if (!cleBourse) return NextResponse.json({ erreur: "Projet inconnu." }, { status: 400 });
   const cout = retour ? COUT_MODIFICATION : COUT_MAQUETTE;
   const motif = retour ? "Modification de maquette par l'IA" : "Maquette instantanée par l'IA";
   let solde;
   try {
-    solde = await debiter(sb, u.email, cout, motif);
+    solde = await debiter(sb, cleBourse, cout, motif);
   } catch (e) {
     if (e instanceof SoldeInsuffisant) return NextResponse.json({ erreur: e.message, solde: e.solde, manque: true }, { status: 402 });
     console.error("Kaizen /maquette débit :", e?.message);
@@ -51,6 +54,6 @@ export async function POST(request) {
 
   const resultat = await genererMaquette(projet, recap, { consignes, images });
   // L'IA n'a pas répondu (maquette de secours) : le client est remboursé.
-  if (resultat.source !== "ia") solde = await rembourser(sb, u.email, cout, motif).catch(() => solde);
+  if (resultat.source !== "ia") solde = await rembourser(sb, cleBourse, cout, motif).catch(() => solde);
   return NextResponse.json({ ...resultat, rembourse: resultat.source !== "ia", solde });
 }

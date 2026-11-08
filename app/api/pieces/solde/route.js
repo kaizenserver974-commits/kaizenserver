@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, utilisateur } from "../../../../lib/serveur/supabase.js";
-import { lireSolde, crediterRecompenses, historique } from "../../../../lib/serveur/portefeuille.js";
+import { lireSolde, crediterRecompenses, historique, bourse } from "../../../../lib/serveur/portefeuille.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,11 +13,14 @@ export async function POST(request) {
   if (!u) return NextResponse.json({ erreur: "Connectez-vous pour utiliser vos pièces d'or.", connexion: true }, { status: 401 });
   let corps = {};
   try { corps = await request.json(); } catch { /* corps vide */ }
+  // Une bourse par projet : sans projet, pas de solde.
+  const cleBourse = bourse(u.email, corps?.projet);
+  if (!cleBourse) return NextResponse.json({ ok: true, solde: 0, email: u.email, sansProjet: true });
   try {
     const solde = Array.isArray(corps?.recompenses)
-      ? await crediterRecompenses(sb, u.email, corps.recompenses.map(String), corps.projet)
-      : await lireSolde(sb, u.email);
-    const mouvements = corps?.historique ? await historique(sb, u.email) : undefined;
+      ? await crediterRecompenses(sb, u.email, corps.projet, corps.recompenses.map(String))
+      : await lireSolde(sb, cleBourse);
+    const mouvements = corps?.historique ? await historique(sb, cleBourse) : undefined;
     return NextResponse.json({ ok: true, solde, email: u.email, ...(mouvements ? { mouvements } : {}) });
   } catch (e) {
     console.error("Kaizen portefeuille :", e?.message);

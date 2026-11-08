@@ -78,7 +78,7 @@ function Parcours() {
   // Récompenses déjà gagnées dans ce projet : créditées sur le compte (une seule fois par compte).
   const recompensesProjet = projet?.jeu?.actif ? (projet.jeu.recompenses || []).join(",") : "";
   useEffect(() => {
-    if (portefeuille.connecte && recompensesProjet) portefeuille.recompenses(recompensesProjet.split(","), projet.id);
+    if (portefeuille.connecte && recompensesProjet) portefeuille.recompenses(recompensesProjet.split(","));
   }, [portefeuille.connecte, recompensesProjet]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!depense) return undefined;
@@ -181,7 +181,7 @@ function Parcours() {
     const { jeu, gains } = recompenser(projet.jeu, cles);
     if (gains) setGain({ ...gains, cle: Date.now() });
     // Les pièces d'or des récompenses sont créditées par le serveur, une fois par compte.
-    if (gains?.pieces > 0 && portefeuille.connecte) portefeuille.recompenses(cles, projet.id);
+    if (gains?.pieces > 0 && portefeuille.connecte) portefeuille.recompenses(cles);
     return jeu;
   };
   const maj = (champs, cles = []) => {
@@ -607,13 +607,14 @@ function BoutonConnexion({ texte = "Se connecter pour utiliser mes pièces d'or"
 // Fenêtre d'achat de pièces d'or (packs payés par Mollie).
 // Historique des pièces du compte : gains, dépenses, remboursements, achats.
 function HistoriquePieces() {
+  const { projet } = usePortefeuille();
   const [lignes, setLignes] = useState(null);
   const [ouvert, setOuvert] = useState(false);
   async function charger() {
     setOuvert(true);
     try {
       const t = await jeton();
-      const r = await fetch("/api/pieces/solde", { method: "POST", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ historique: true }) });
+      const r = await fetch("/api/pieces/solde", { method: "POST", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ historique: true, projet }) });
       const d = await r.json().catch(() => ({}));
       setLignes(r.ok ? d.mouvements || [] : []);
     } catch { setLignes([]); }
@@ -621,7 +622,7 @@ function HistoriquePieces() {
   if (!ouvert) return <button type="button" className="btn petit secondaire" style={{ marginTop: 12 }} onClick={charger}>📜 Voir l'historique de mes pièces</button>;
   return (
     <div className="historique-pieces">
-      <p className="petit-titre">📜 Historique de mes pièces</p>
+      <p className="petit-titre">📜 Historique des pièces de ce projet</p>
       {lignes === null ? <p className="discret">Chargement…</p> : lignes.length === 0 ? <p className="discret">Aucun mouvement pour l'instant.</p> : (
         <ul>
           {lignes.map((m, i) => (
@@ -639,7 +640,7 @@ function HistoriquePieces() {
 function SoldeTexte() {
   const { connecte, dispo } = usePortefeuille();
   return connecte
-    ? <p className="discret">Vous avez <b>🪙 {dispo}</b> pièces d'or sur votre compte.</p>
+    ? <p className="discret">Vous avez <b>🪙 {dispo}</b> pièces d'or pour ce projet.</p>
     : <p className="discret">Connectez-vous : vos pièces d'or sont gardées sur votre compte, sur tous vos appareils.</p>;
 }
 
