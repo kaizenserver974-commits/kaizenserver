@@ -682,3 +682,37 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .bouton-ecoute small { color: var(--discret); font-size: 12px; }
 .bouton-ecoute.actif { border-color: var(--p); background: color-mix(in srgb, var(--p) 18%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--p) 45%, transparent); }
 @media (max-width: 720px) { .choix-sons { grid-template-columns: 1fr; } }
+
+/* Carte du monde : un lieu par étape de création, débloqué au fur et à mesure */
+.carte-monde { margin: 0 0 18px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
+.carte-monde ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(9, minmax(118px, 1fr)); gap: 8px; }
+.carte-monde .lieu { position: relative; }
+.carte-monde .lieu:not(:last-child)::after { content: ""; position: absolute; top: 24px; right: -9px; width: 10px; height: 2px; background: var(--ligne-forte); }
+.carte-monde .lieu.conquis:not(:last-child)::after, .carte-monde .lieu.ici:not(:last-child)::after { background: var(--jeu, var(--cyan)); }
+.carte-monde button { width: 100%; height: 100%; display: grid; justify-items: center; align-content: start; gap: 4px; padding: 10px 8px; text-align: center; border-radius: 14px; border: 1px solid var(--ligne); background: var(--surface-2); color: var(--texte); cursor: pointer; }
+.carte-monde button:disabled { cursor: default; }
+.carte-monde .lieu-icone { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(255, 255, 255, 0.06); font-size: 15px; }
+.carte-monde strong { font-size: 13px; line-height: 1.25; }
+.carte-monde small { font-size: 11px; color: var(--discret); }
+.carte-monde .conquis button, .carte-monde .ouvert button { border-color: color-mix(in srgb, var(--jeu, var(--cyan)) 55%, transparent); }
+.carte-monde .conquis .lieu-icone { background: color-mix(in srgb, var(--jeu, var(--cyan)) 25%, transparent); color: #fff; }
+.carte-monde .ici button { background: var(--jeu-clair, var(--accent-clair)); border-color: var(--jeu, var(--violet)); box-shadow: 0 0 20px color-mix(in srgb, var(--jeu, var(--violet)) 45%, transparent); }
+.carte-monde .ici .lieu-icone { background: var(--jeu, var(--violet)); }
+.carte-monde .verrouille button { opacity: 0.45; filter: grayscale(0.6); }
+.carte-monde button:not(:disabled):hover { transform: translateY(-2px); }
+
+.lieu-debloque { position: fixed; left: 50%; top: 90px; transform: translateX(-50%); z-index: 51; display: grid; justify-items: center; gap: 2px; padding: 14px 24px; border-radius: 18px; background: rgba(12, 13, 42, 0.96); color: #fff; text-align: center; box-shadow: 0 0 0 1px var(--jeu, var(--violet)), 0 0 40px color-mix(in srgb, var(--jeu, var(--violet)) 55%, transparent); animation: rebond 0.5s cubic-bezier(.2, 1.4, .4, 1); max-width: calc(100% - 32px); }
+.lieu-debloque span { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--discret); }
+.lieu-debloque strong { font-family: var(--titre); font-size: 20px; color: var(--jeu, var(--cyan)); }
+.lieu-debloque small { color: var(--texte); font-size: 13px; }
+
+.chemin-monde { margin: 0 0 18px; }
+.chemin-monde .petit-titre { margin-top: 0; }
+.chemin-monde ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.chemin-monde li { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--ligne); opacity: 0.6; }
+.chemin-monde li.ouvert { opacity: 1; border-color: var(--violet); }
+.chemin-monde li span { grid-row: span 2; }
+.chemin-monde li strong { font-size: 12.5px; line-height: 1.2; }
+.chemin-monde li small { font-size: 11px; color: var(--discret); }
+@media (max-width: 620px) { .chemin-monde ol { grid-template-columns: repeat(2, 1fr); } }
+.carte-monde .ici button:disabled, .carte-monde .ici button { opacity: 1; filter: none; color: #fff; }

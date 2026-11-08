@@ -51,6 +51,7 @@ function Parcours() {
   const [chargement, setChargement] = useState("");
   const [erreur, setErreur] = useState("");
   const [gain, setGain] = useState(null);
+  const [lieuDebloque, setLieuDebloque] = useState(null);
   const [choixPerso, setChoixPerso] = useState(false);
   const [infoAchat, setInfoAchat] = useState("");
 
@@ -75,6 +76,27 @@ function Parcours() {
     const t = setTimeout(() => setGain(null), 3800);
     return () => clearTimeout(t);
   }, [gain]);
+
+  // Lieux débloqués : chaque lieu du monde correspond à une étape de création.
+  // On mémorise l'étape la plus avancée atteinte ; atteindre une nouvelle étape débloque son lieu.
+  useEffect(() => {
+    if (!projet) return;
+    const e = projet.etape || 0;
+    if (projet.etapeMax === undefined) {
+      // Projet existant : on reconstitue sans animation les lieux déjà atteints.
+      const deduit = projet.commande ? 8 : projet.maquette ? 6 : projet.recap ? 5 : 0;
+      setProjet((p) => enregistrerProjet({ ...p, etapeMax: Math.max(e, deduit) }));
+    } else if (e > projet.etapeMax) {
+      setProjet((p) => enregistrerProjet({ ...p, etapeMax: e }));
+      if (projet.jeu?.actif) setLieuDebloque({ index: e, cle: Date.now() });
+    }
+  }, [projet?.id, projet?.etape]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!lieuDebloque) return undefined;
+    const t = setTimeout(() => setLieuDebloque(null), 4200);
+    return () => clearTimeout(t);
+  }, [lieuDebloque]);
 
   // À chaque changement d'étape (de niveau), on remonte en haut pour voir le narrateur.
   const etapeCourante = projet?.etape;
@@ -223,6 +245,9 @@ function Parcours() {
         ? <TableauJoueur jeu={projet.jeu} pieces={solde(projet)} changer={() => setChoixPerso(true)} />
         : <p className="mode-classique">Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></p>}
 
+      {enJeu ? (
+        <CarteMonde univers={univers} etape={etape} debloque={(i) => i <= Math.max(etape, projet.etapeMax || 0) && accessible(i)} aller={allerA} occupe={Boolean(chargement)} />
+      ) : (
       <ol className="progression">
         {ETAPES.map((nom, i) => (
           <li key={nom} className={i === etape ? "actif" : i < etape ? "fait" : ""}>
@@ -232,6 +257,7 @@ function Parcours() {
           </li>
         ))}
       </ol>
+      )}
 
       {enJeu && <Narrateur jeu={projet.jeu} etape={etape} />}
       {erreur && <p className="alerte erreur">{erreur}</p>}
@@ -250,6 +276,13 @@ function Parcours() {
       </div>
 
       {gain && enJeu && <Recompense key={gain.cle} gain={gain} univers={univers} />}
+      {lieuDebloque && enJeu && (
+        <div key={lieuDebloque.cle} className="lieu-debloque" role="status" aria-live="polite">
+          <span>🔓 Nouveau lieu débloqué</span>
+          <strong>{univers.niveaux[lieuDebloque.index]}</strong>
+          <small>Étape {lieuDebloque.index + 1} : {ETAPES[lieuDebloque.index]}</small>
+        </div>
+      )}
     </main>
   );
 }
@@ -332,6 +365,19 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
         </div>
 
         <div className="vestiaire-choix">
+          <div className="chemin-monde">
+            <p className="petit-titre">{u.icone} Le chemin de {u.nom}</p>
+            <ol>
+              {u.niveaux.map((lieu, i) => (
+                <li key={lieu} className={i === 0 ? "ouvert" : ""}>
+                  <span aria-hidden="true">{i === 0 ? "📍" : "🔒"}</span>
+                  <strong>{lieu}</strong>
+                  <small>{ETAPES[i]}</small>
+                </li>
+              ))}
+            </ol>
+            <p className="note">Chaque lieu correspond à une étape de création de votre application. Il se débloque quand vous atteignez cette étape.</p>
+          </div>
           <label className="champ" style={{ marginTop: 0 }}>
             <span>Votre nom de joueur</span>
             <input value={pseudo} maxLength={30} placeholder="Ex. : Kai, Mia, Capitaine Zoé…" onChange={(e) => setPseudo(e.target.value)} />
@@ -371,6 +417,30 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
         <button className="btn grand" onClick={() => { arreterSon(); valider({ univers, avatar, pseudo }); }}>Commencer l'aventure →</button>
       </div>
     </section>
+  );
+}
+
+// Carte du monde : les 9 lieux du monde, un par étape de création de l'application.
+function CarteMonde({ univers, etape, debloque, aller, occupe }) {
+  return (
+    <nav className="carte-monde" aria-label={`Carte de ${univers.nom}`}>
+      <ol>
+        {ETAPES.map((nom, i) => {
+          const ouvert = debloque(i);
+          const etat = i === etape ? "ici" : ouvert && i < etape ? "conquis" : ouvert ? "ouvert" : "verrouille";
+          return (
+            <li key={nom} className={`lieu ${etat}`}>
+              <button disabled={!ouvert || occupe || i === etape} onClick={() => aller(i)} aria-current={i === etape ? "step" : undefined}
+                title={ouvert ? `${univers.niveaux[i]} — étape ${i + 1} : ${nom}` : `Verrouillé : atteignez l'étape « ${nom} » pour débloquer ce lieu`}>
+                <span className="lieu-icone" aria-hidden="true">{etat === "ici" ? "📍" : etat === "verrouille" ? "🔒" : "✓"}</span>
+                <strong>{univers.niveaux[i]}</strong>
+                <small>Étape {i + 1} · {nom}</small>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
 
