@@ -633,3 +633,6 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
   animation: particule calc(4s + (var(--i) * .37s)) linear calc(var(--i) * -0.8s) infinite; }
 .vitrine-particules i:nth-child(3n) { width: 4px; height: 4px; }
 @keyframes particule { 0% { transform: translateY(0) translateX(0); opacity: 0; } 15% { opacity: .9; } 100% { transform: translateY(-560px) translateX(18px); opacity: 0; } }
+
+/* Personnage détouré : pas de fondu, il se pose sur le sol de la vitrine */
+.vitrine-vivant img.detoure { -webkit-mask-image: none; mask-image: none; max-height: 100%; }
