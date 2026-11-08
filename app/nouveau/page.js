@@ -10,7 +10,7 @@ import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stock
 import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, COUT_COMMANDE, prixTexte } from "../../lib/pieces.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
-import { OPTIONS_AVATAR, PRESETS_AVATAR, AVATAR_DEFAUT, PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
+import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
 import {
   UNIVERS, BADGES, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
 } from "../../lib/jeu.js";
@@ -261,22 +261,7 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
   const [avatar, setAvatar] = useState(typeof debut?.avatar === "object" ? debut.avatar : { forme: "illustre", perso: "kai" });
   const [pseudo, setPseudo] = useState(debut?.pseudo || (debut ? "" : "Kai"));
   const u = trouverUnivers(univers);
-  const changer = (champ, valeur) => setAvatar((a) => ({ ...a, [champ]: valeur }));
-  const humain = avatar.forme !== "robot";
   const illustre = avatar.forme === "illustre";
-
-  const couleurs = (champ, liste, nom) => (
-    <div className="pastilles" role="radiogroup" aria-label={nom}>
-      {liste.map((c) => (
-        <button key={c} role="radio" aria-checked={avatar[champ] === c} aria-label={`${nom} ${c}`} className={`pastille-couleur ${avatar[champ] === c ? "choisie" : ""}`} style={{ background: c }} onClick={() => changer(champ, c)} />
-      ))}
-    </div>
-  );
-  const options = (champ, liste) => (
-    <div className="puces">
-      {liste.map((o) => <button key={o.id} className={`puce ${avatar[champ] === o.id ? "choisie" : ""}`} onClick={() => changer(champ, o.id)}>{o.label}</button>)}
-    </div>
-  );
 
   return (
     <section className="carte etape choix-perso" style={{ "--jeu": u.couleur, "--jeu-clair": u.clair }}>
@@ -343,40 +328,8 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
                 <span className="etiquette">{pe.nom}</span>
               </button>
             ))}
-            <button
-              role="radio"
-              aria-checked={!illustre}
-              className={`carte-perso creer ${!illustre ? "choisie" : ""}`}
-              style={{ "--p": "#2ad4ff" }}
-              onClick={() => { if (illustre) setAvatar({ ...AVATAR_DEFAUT }); }}
-            >
-              <span className="plus" aria-hidden="true">✏️</span>
-              <strong>Créer le mien</strong>
-              <small className="discret">Peau, coiffure, couleurs…</small>
-            </button>
           </div>
 
-          {!illustre && (
-            <>
-              <p className="petit-titre">Modèles de départ</p>
-              <div className="presets">
-                {PRESETS_AVATAR.map((pr) => (
-                  <button key={pr.nom} className="preset" onClick={() => setAvatar({ ...pr.config })}>
-                    <Avatar config={pr.config} taille={56} titre={pr.nom} />{pr.nom}
-                  </button>
-                ))}
-              </div>
-
-              <p className="petit-titre">Personnaliser</p>
-              <div className="reglage"><span>Forme</span>{options("forme", OPTIONS_AVATAR.forme)}</div>
-              {humain && <div className="reglage"><span>Peau</span>{couleurs("peau", OPTIONS_AVATAR.peau, "Couleur de peau")}</div>}
-              {humain && <div className="reglage"><span>Coiffure</span>{options("coiffure", OPTIONS_AVATAR.coiffure)}</div>}
-              {humain && <div className="reglage"><span>Cheveux</span>{couleurs("cheveux", OPTIONS_AVATAR.cheveux, "Couleur des cheveux")}</div>}
-              <div className="reglage"><span>{humain ? "Yeux" : "Lumières"}</span>{couleurs("yeux", OPTIONS_AVATAR.yeux, "Couleur des yeux")}</div>
-              <div className="reglage"><span>Tenue</span>{couleurs("tenue", OPTIONS_AVATAR.tenue, "Couleur de la tenue")}</div>
-              {humain && <div className="reglage"><span>Accessoire</span>{options("accessoire", OPTIONS_AVATAR.accessoire)}</div>}
-            </>
-          )}
         </div>
       </div>
 
