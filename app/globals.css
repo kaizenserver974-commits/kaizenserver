@@ -869,3 +869,11 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
   .vitrine { max-height: 80vh; }
   .fenetre { max-height: calc(100vh - 16px); }
 }
+/* Historique des pièces */
+.historique-pieces ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; max-height: 220px; overflow-y: auto; }
+.historique-pieces li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; background: var(--surface-2); font-size: 13px; }
+.historique-pieces li span { display: grid; }
+.historique-pieces li small { color: var(--discret); font-size: 11px; }
+.historique-pieces b { white-space: nowrap; }
+.historique-pieces b.plus { color: #6ee7b7; }
+.historique-pieces b.moins { color: #fca5a5; }

@@ -605,6 +605,37 @@ function BoutonConnexion({ texte = "Se connecter pour utiliser mes pièces d'or"
 }
 
 // Fenêtre d'achat de pièces d'or (packs payés par Mollie).
+// Historique des pièces du compte : gains, dépenses, remboursements, achats.
+function HistoriquePieces() {
+  const [lignes, setLignes] = useState(null);
+  const [ouvert, setOuvert] = useState(false);
+  async function charger() {
+    setOuvert(true);
+    try {
+      const t = await jeton();
+      const r = await fetch("/api/pieces/solde", { method: "POST", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ historique: true }) });
+      const d = await r.json().catch(() => ({}));
+      setLignes(r.ok ? d.mouvements || [] : []);
+    } catch { setLignes([]); }
+  }
+  if (!ouvert) return <button type="button" className="btn petit secondaire" style={{ marginTop: 12 }} onClick={charger}>📜 Voir l'historique de mes pièces</button>;
+  return (
+    <div className="historique-pieces">
+      <p className="petit-titre">📜 Historique de mes pièces</p>
+      {lignes === null ? <p className="discret">Chargement…</p> : lignes.length === 0 ? <p className="discret">Aucun mouvement pour l'instant.</p> : (
+        <ul>
+          {lignes.map((m, i) => (
+            <li key={i}>
+              <span>{m.motif}<small>{new Date(m.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</small></span>
+              <b className={m.montant < 0 ? "moins" : "plus"}>{m.montant > 0 ? "+" : ""}{m.montant} 🪙</b>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function SoldeTexte() {
   const { connecte, dispo } = usePortefeuille();
   return connecte
@@ -627,6 +658,7 @@ function FenetreRecharge({ projet, fermer }) {
         </div>
         <SoldeTexte />
         <Recharge projet={projet} cout={0} monnaie="pièces d'or" />
+        <HistoriquePieces />
         <p className="petit-titre">À quoi servent les pièces d'or ?</p>
         <ul className="tarifs-pieces">
           <li>✨ Maquette instantanée <b>🪙 {COUT_MAQUETTE}</b></li>
