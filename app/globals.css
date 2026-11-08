@@ -922,3 +922,25 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .gain-or strong { font-family: var(--titre); font-size: 24px; color: #6ee7b7; }
 .gain-or span { font-size: 13px; }
 .gain-plafond { color: #fde68a; }
+
+/* Le personnage du décor parle : bulle au-dessus de lui (grand écran) */
+.bulle-perso { display: none; }
+.bouton-voix { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--ligne-forte); background: rgba(12, 14, 46, 0.7); color: #fff; font-size: 16px; cursor: pointer; }
+.narrateur { align-items: center; }
+@media (min-width: 1000px) {
+  /* Colonne libre réservée au personnage (≈ 0,6 × hauteur du décor depuis le bord droit). */
+  .bulle-perso { display: flex; align-items: flex-start; gap: 8px; position: fixed; z-index: 5; top: 80px;
+    right: 20px; width: calc(0.6 * (100vh - 70px) - 30px); max-width: 520px; padding: 10px 10px 10px 16px; border-radius: 20px;
+    background: rgba(255, 255, 255, 0.95); color: #1a1033; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45), 0 0 0 3px color-mix(in srgb, var(--jeu) 70%, transparent);
+    animation: bulle-arrive 0.45s cubic-bezier(.2, 1.4, .4, 1) both; }
+  /* Pointe de la bulle vers la tête du personnage (≈ 0,38 × hauteur du décor depuis le bord droit). */
+  .bulle-perso::after { content: ""; position: absolute; bottom: -14px; right: calc(0.38 * (100vh - 70px) - 34px); border: 14px solid transparent; border-bottom: 0; border-top-color: rgba(255, 255, 255, 0.95); }
+  .bulle-perso p { margin: 0; flex: 1; font-size: 14px; font-weight: 600; line-height: 1.35; }
+  .bulle-perso p b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: color-mix(in srgb, var(--jeu) 80%, #1a1033); }
+  .bulle-perso .bouton-voix { background: #f1edff; color: #1a1033; border-color: #ddd6fe; }
+  .bulle-perso.parle { animation: bulle-arrive 0.45s cubic-bezier(.2, 1.4, .4, 1) both, bulle-parle 0.5s ease-in-out 0.45s infinite alternate; }
+  .narrateur-avec-perso { display: none; }
+}
+@keyframes bulle-arrive { from { opacity: 0; transform: translateY(10px) scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes bulle-parle { from { transform: scale(1); } to { transform: scale(1.02); } }
+@media (prefers-reduced-motion: reduce) { .bulle-perso, .bulle-perso.parle { animation: none; } }

@@ -342,7 +342,7 @@ function Parcours() {
       </ol>
       )}
 
-      {enJeu && <Narrateur jeu={projet.jeu} etape={etape} />}
+      {enJeu && <Narrateur jeu={projet.jeu} etape={etape} perso={persoJoueur} />}
       {(() => {
         // Bouton « Retour » en haut de chaque étape : on peut toujours revenir en arrière pour changer d'avis.
         const prec = etape === 0 ? null : etape === 7 ? (projet.maquette ? 6 : 5) : etape - 1;
@@ -697,12 +697,61 @@ function TableauJoueur({ jeu, changer, recharger }) {
   );
 }
 
-function Narrateur({ jeu, etape }) {
+// Voix du personnage : synthèse vocale de l'appareil (iPad, téléphone, ordinateur), en français.
+function parler(texte, perso) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  const synth = window.speechSynthesis;
+  synth.cancel();
+  const phrase = new SpeechSynthesisUtterance(texte.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, ""));
+  phrase.lang = "fr-FR";
+  const voixFr = synth.getVoices().filter((v) => v.lang?.toLowerCase().startsWith("fr"));
+  const fille = perso?.genre === "Fille";
+  // On préfère une voix féminine pour les filles, masculine pour les garçons, quand l'appareil en propose.
+  const cherche = fille ? /amelie|amélie|audrey|aurelie|marie|julie|denise|celine|léa|lea|female|femme/i : /thomas|nicolas|daniel|henri|paul|male|homme/i;
+  phrase.voice = voixFr.find((v) => cherche.test(v.name)) || voixFr[0] || null;
+  phrase.pitch = fille ? 1.25 : 1.1; // voix un peu plus jeune
+  phrase.rate = 1.02;
+  synth.speak(phrase);
+}
+
+function Narrateur({ jeu, etape, perso }) {
+  const texte = recit(jeu, etape);
+  const [voix, setVoix] = useState(false);
+  const [parle, setParle] = useState(false);
+  useEffect(() => { try { setVoix(localStorage.getItem("kaizen.voix") !== "0"); } catch { setVoix(true); } }, []);
+  // Le personnage dit sa phrase à chaque nouvelle étape (si la voix est activée).
+  useEffect(() => {
+    if (!voix || !texte) return undefined;
+    const t = setTimeout(() => { parler(texte, perso); setParle(true); }, 450);
+    const fin = setTimeout(() => setParle(false), 450 + Math.min(9000, texte.length * 70));
+    return () => { clearTimeout(t); clearTimeout(fin); window.speechSynthesis?.cancel(); };
+  }, [texte, voix]); // eslint-disable-line react-hooks/exhaustive-deps
+  function basculer() {
+    const v = !voix;
+    setVoix(v);
+    try { localStorage.setItem("kaizen.voix", v ? "1" : "0"); } catch { /* stockage indisponible */ }
+    if (!v) { window.speechSynthesis?.cancel(); setParle(false); } else { parler(texte, perso); }
+  }
+  const boutonVoix = (
+    <button type="button" className="bouton-voix" onClick={basculer} aria-pressed={voix} title={voix ? "Couper la voix" : "Faire parler le personnage"}>
+      {voix ? "🔊" : "🔇"}
+    </button>
+  );
   return (
-    <div className="narrateur">
-      <AvatarJoueur jeu={jeu} taille={52} classe="avatar-moyen" />
-      <p className="bulle">{recit(jeu, etape)}</p>
-    </div>
+    <>
+      {/* Grand écran : le personnage du décor parle dans une bulle au-dessus de lui. */}
+      {perso && (
+        <div className={`bulle-perso ${parle ? "parle" : ""}`} role="status" aria-live="polite">
+          <p><b>{jeu.pseudo || perso.nom}</b>{texte}</p>
+          {boutonVoix}
+        </div>
+      )}
+      <div className={`narrateur ${perso ? "narrateur-avec-perso" : ""}`}>
+        <AvatarJoueur jeu={jeu} taille={52} classe="avatar-moyen" />
+        <p className="bulle">{texte}</p>
+        {boutonVoix}
+      </div>
+    </>
   );
 }
 
