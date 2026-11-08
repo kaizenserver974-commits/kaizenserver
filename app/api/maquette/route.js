@@ -7,7 +7,7 @@ import { COUT_MAQUETTE, COUT_MODIFICATION } from "../../../lib/pieces.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300; // Vercel Pro : l'IA peut prendre plus d'une minute (surtout avec des images)
 
 // Maquette par l'IA, payée en pièces d'or sur le compte du client (vérifié par le serveur).
 export async function POST(request) {

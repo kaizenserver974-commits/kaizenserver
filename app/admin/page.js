@@ -113,7 +113,7 @@ export default function Admin() {
                 infos={c.maquette ? `${c.projet?.maquetteValidee ? `✅ Maquette ACCEPTÉE par le client${c.projet?.maquetteAccepteeLe ? ` le ${date(c.projet.maquetteAccepteeLe)}` : ""}. ` : "⏳ Maquette pas encore acceptée par le client. "}${c.maquette.source === "ia" ? "Créée par l'IA" : "Créée à partir du modèle"}, mise à jour le ${date(c.maquette.updated_at)}. Visible aussi par le client dans son espace.` : "Pas encore de maquette pour ce projet."}
                 lire={async () => (await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
                 consignesInitiales={c.projet?.idee && c.projet.idee.length >= 10 ? c.projet.idee : ""}
-                generer={async ({ consignes, images }) => { await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_generer", commandeId: c.id, consignes, images }) }); await charger(); }}
+                generer={async ({ consignes, images }) => { const r = await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_generer", commandeId: c.id, consignes, images }) }); await charger(); return r; }}
               />
             </div>
 

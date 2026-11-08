@@ -11,7 +11,7 @@ import { numeroCommande } from "../../../lib/commande.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300; // Vercel Pro : l'IA peut prendre plus d'une minute (surtout avec des images)
 
 const refus = (message, status) => NextResponse.json({ erreur: message }, { status });
 
@@ -122,10 +122,10 @@ export async function POST(request) {
       // Récapitulatif instantané (moteur de règles) pour rester sous la limite de temps :
       // l'IA est réservée à la maquette, qui reçoit aussi les consignes et les images.
       const recap = commande.recap?.ecrans?.length ? commande.recap : recapitulatifSecours(projet, estimer(projet));
-      const { html, source } = await genererMaquette(projet, recap, { consignes, images });
+      const { html, source, raison } = await genererMaquette(projet, recap, { consignes, images });
       await enregistrerMaquette(sb, commande.id, html, source);
       if (recap !== commande.recap) await sb.from("kaizen_commandes").update({ recap: { ...recap, titre: commande.recap?.titre || recap.titre || projet.nom } }).eq("id", commande.id);
-      return NextResponse.json({ ok: true, source });
+      return NextResponse.json({ ok: true, source, raison });
     } catch (e) {
       console.error("Kaizen maquette Server :", e?.message);
       return refus("La maquette n'a pas pu être générée. Réessayez.", 502);

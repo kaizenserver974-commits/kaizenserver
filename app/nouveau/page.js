@@ -228,7 +228,7 @@ function Parcours() {
   });
 
   // Demande de modification de la maquette par le client : coûte des pièces d'or.
-  const modifierMaquette = (retour) => lancer("Kaizen redessine la maquette avec vos remarques… (jusqu'à une minute)", async () => {
+  const modifierMaquette = (retour) => lancer("Kaizen redessine la maquette avec vos remarques… (cela peut prendre 1 à 3 minutes)", async () => {
     // Le serveur vérifie le solde du compte et débite les pièces (remboursées si l'IA ne répond pas).
     const r = await payerIA({ projet, recap: projet.recap, retour, consignes: projet.consignesMaquette || "", images: await imagesReference() });
     const { html, source } = r;
@@ -249,6 +249,8 @@ function Parcours() {
     try {
       const r = await appeler("/api/maquette", corps);
       portefeuille.fixerSolde(r.solde);
+      // L'IA n'a pas abouti : le serveur a remboursé ; on n'affiche pas le modèle de secours.
+      if (r.rembourse) throw new Error(`La maquette n'a pas pu être créée (${r.raison || "l'IA n'a pas répondu"}). Vos pièces d'or ont été remboursées : réessayez dans un instant.`);
       return r;
     } catch (e) {
       if (e.donnees?.manque) { portefeuille.fixerSolde(e.donnees.solde); setRechargeOuverte(true); }
@@ -265,7 +267,7 @@ function Parcours() {
 
   const validerMaquette = () => maj({ maquetteValidee: true, journal: noter(projet, "Maquette acceptée par le client"), etape: 7 });
 
-  const genererMaquette = (consignes = "") => lancer("Kaizen dessine la maquette de votre application… (jusqu'à une minute)", async () => {
+  const genererMaquette = (consignes = "") => lancer("Kaizen dessine la maquette de votre application… (cela peut prendre 1 à 3 minutes, gardez la page ouverte)", async () => {
     // La maquette instantanée coûte des pièces d'or : le serveur vérifie le solde et débite le compte.
     const images = await imagesReference();
     const { html, source } = await payerIA({ projet, recap: projet.recap, consignes, images });

@@ -197,8 +197,12 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
   useEffect(() => { if (ouvrir && disponible) voir(); }, [ouvrir, disponible]); // eslint-disable-line react-hooks/exhaustive-deps
   async function creer() {
     if (acceptee && !window.confirm("Le client a déjà accepté cette maquette. La remplacer par une nouvelle version ?")) return;
-    setErreur(""); setAttente("L'IA dessine la maquette… (jusqu'à une minute)");
-    try { await generer({ consignes, images }); setHtml(await lire()); } catch (e) { setErreur(e.message); } finally { setAttente(""); }
+    setErreur(""); setAttente("L'IA dessine la maquette… (1 à 3 minutes, surtout avec des images)");
+    try {
+      const r = await generer({ consignes, images });
+      setHtml(await lire());
+      if (r?.source && r.source !== "ia") setErreur(`L'IA n'a pas abouti (${r.raison || "pas de réponse"}) : c'est le modèle simple qui s'affiche. Réessayez.`);
+    } catch (e) { setErreur(e.message); } finally { setAttente(""); }
   }
   function telecharger() {
     const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
