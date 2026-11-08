@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { nettoyerProjet } from "../../../lib/moteur.js";
-import { genererMaquette, validerImagesReference } from "../../../lib/serveur/generation.js";
+import { genererMaquette, validerImagesReference, validerPhotos, preparerBase } from "../../../lib/serveur/generation.js";
 import { supabaseAdmin, utilisateur } from "../../../lib/serveur/supabase.js";
 import { debiter, rembourser, SoldeInsuffisant, bourse } from "../../../lib/serveur/portefeuille.js";
 import { COUT_MAQUETTE, COUT_MODIFICATION } from "../../../lib/pieces.js";
@@ -11,7 +11,7 @@ export const maxDuration = 300; // Vercel Pro : l'IA peut prendre plus d'une min
 
 // Maquette par l'IA, payée en pièces d'or sur le compte du client (vérifié par le serveur).
 export async function POST(request) {
-  let projet, recap, retour, consignesClient, images, projetId;
+  let projet, recap, retour, consignesClient, images, projetId, photos, base;
   try {
     const corps = await request.json();
     projetId = corps?.projet?.id;
@@ -21,6 +21,10 @@ export async function POST(request) {
     consignesClient = String(corps?.consignes || "").trim().slice(0, 1000);
     // Images de référence ajoutées par le client à l'étape précédente (3 au plus).
     images = validerImagesReference(corps?.images);
+    // Photos à placer dans la maquette (ex. : vraies photos de moto en arrière-plan).
+    photos = validerPhotos(corps?.photos);
+    // Modification : on part de la maquette actuelle au lieu de tout redessiner.
+    base = corps?.retour && corps?.maquetteActuelle ? preparerBase(corps.maquetteActuelle, photos) : "";
   } catch {
     return NextResponse.json({ erreur: "Requête invalide." }, { status: 400 });
   }
@@ -49,7 +53,7 @@ export async function POST(request) {
     retour && `Modifications demandées sur la maquette précédente (prioritaires) : ${retour}`,
   ].filter(Boolean).join("\n");
 
-  const resultat = await genererMaquette(projet, recap, { consignes, images, auteur: "client" });
+  const resultat = await genererMaquette(projet, recap, { consignes, images: validerImagesReference([...photos, ...images]), auteur: "client", photos, base });
   // L'IA n'a pas répondu (maquette de secours) : le client est remboursé.
   if (resultat.source !== "ia") solde = await rembourser(sb, cleBourse, cout, motif).catch(() => solde);
   return NextResponse.json({ ...resultat, rembourse: resultat.source !== "ia", solde });

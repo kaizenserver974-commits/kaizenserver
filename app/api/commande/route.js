@@ -73,7 +73,7 @@ export async function POST(request) {
       enregistree = true;
       // Images et PDF du client : visibles dans l'Espace Server (et données à l'IA de Server).
       await enregistrerPiecesJointes(sb, ligne.id, commande.pieces).catch((e) => console.error("Kaizen pièces jointes :", e?.message, "— relancez supabase/schema.sql"));
-      const html = assainir(String(corps?.maquette?.html || "").slice(0, 120000));
+      const html = assainir(String(corps?.maquette?.html || "").slice(0, 2_000_000));
       if (html.toLowerCase().startsWith("<!doctype html")) {
         await enregistrerMaquette(sb, ligne.id, html, corps.maquette.source === "ia" ? "ia" : "gabarit").catch((e) => console.error("Kaizen maquette :", e?.message));
       }

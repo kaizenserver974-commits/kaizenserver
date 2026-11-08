@@ -19,7 +19,7 @@ export async function POST(request) {
   const { data: commande } = await sb.from("kaizen_commandes").select("id, numero, projet").eq("numero", numero).maybeSingle();
   if (!commande || commande.projet?.cleClient !== cle) return NextResponse.json({ erreur: "Commande inconnue." }, { status: 404 });
 
-  const html = assainir(String(corps?.html || "").slice(0, 120000));
+  const html = assainir(String(corps?.html || "").slice(0, 2_000_000));
   if (html.toLowerCase().startsWith("<!doctype html")) {
     await enregistrerMaquette(sb, commande.id, html, corps.source === "ia" ? "ia" : "gabarit");
   }

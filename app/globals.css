@@ -956,3 +956,14 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 }
 @media (min-width: 900px) and (min-aspect-ratio: 16/9) { .perso-anime { height: calc(100vw * 941 / 1672); max-height: none; } }
 @media (prefers-reduced-motion: reduce) { .perso-anime { display: none; } }
+/* Conseils de Bip et photos pour la maquette */
+.conseils-bip { display: flex; gap: 12px; align-items: flex-start; margin: 12px 0; padding: 12px 14px; border-radius: 16px; background: rgba(42, 212, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(42, 212, 255, 0.35); }
+.conseils-bip img { flex: none; border-radius: 50%; background: #0b0c2a; }
+.conseils-bip ul { margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 3px; }
+.photos-maquette { margin: 10px 0; }
+.photos-liste { display: flex; flex-wrap: wrap; gap: 8px; }
+.photos-liste .vignette { position: relative; }
+.photos-liste .vignette img { width: 96px; height: 96px; object-fit: cover; border-radius: 12px; border: 1px solid var(--ligne-forte); display: block; }
+.photos-liste .photo-num { position: absolute; left: 4px; bottom: 4px; padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 800; background: rgba(6, 6, 26, 0.8); color: #fff; }
+.photos-liste .vignette button { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: #ef4444; color: #fff; cursor: pointer; }
+.photos-liste .depot-petit { width: 96px; height: 96px; }

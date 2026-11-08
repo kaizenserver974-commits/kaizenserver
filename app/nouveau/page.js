@@ -220,7 +220,8 @@ function Parcours() {
   // Demande de modification de la maquette par le client : coûte des pièces d'or.
   const modifierMaquette = (retour) => lancer("Kaizen redessine la maquette avec vos remarques… (cela peut prendre 1 à 3 minutes)", async () => {
     // Le serveur vérifie le solde du compte et débite les pièces (remboursées si l'IA ne répond pas).
-    const r = await payerIA({ projet, recap: projet.recap, retour, consignes: projet.consignesMaquette || "", images: await imagesReference() });
+    // On envoie la maquette actuelle (l'IA la modifie au lieu de tout refaire) et les photos du client.
+    const r = await payerIA({ projet, recap: projet.recap, retour, consignes: projet.consignesMaquette || "", images: await imagesReference(), photos: projet.photosMaquette || [], maquetteActuelle: projet.maquette?.html || "" });
     const { html, source } = r;
     setProjet((p) => enregistrerProjet({
       ...p, maquetteValidee: false,
@@ -260,7 +261,7 @@ function Parcours() {
   const genererMaquette = (consignes = "") => lancer("Kaizen dessine la maquette de votre application… (cela peut prendre 1 à 3 minutes, gardez la page ouverte)", async () => {
     // La maquette instantanée coûte des pièces d'or : le serveur vérifie le solde et débite le compte.
     const images = await imagesReference();
-    const { html, source } = await payerIA({ projet, recap: projet.recap, consignes, images });
+    const { html, source } = await payerIA({ projet, recap: projet.recap, consignes, images, photos: projet.photosMaquette || [] });
     const jeu = gagner(["maquette"]);
     setProjet((p) => enregistrerProjet({
       ...p, jeu, consignesMaquette: consignes, maquette: { html, source, genereLe: new Date().toISOString() }, etape: 6,
@@ -372,7 +373,7 @@ function Parcours() {
         {etape === 3 && <EtapeStyle projet={projet} maj={maj} suivant={() => allerA(4, ["style"])} precedent={() => allerA(2)} />}
         {etape === 4 && <EtapeBudget projet={projet} maj={maj} suivant={preparerRecap} precedent={() => allerA(3)} />}
         {etape === 5 && <EtapeRecap projet={projet} modifier={() => allerA(1)} voirMaquette={() => allerA(6)} genererMaquette={genererMaquette} actualiser={preparerRecap} commander={() => allerA(7)} maj={maj} noter={noter} recharger={() => setRechargeOuverte(true)} />}
-        {etape === 6 && <EtapeMaquette projet={projet} modifier={modifierMaquette} valider={validerMaquette} infoAchat={infoAchat} precedent={() => allerA(5)} suivant={() => allerA(7)} />}
+        {etape === 6 && <EtapeMaquette projet={projet} maj={maj} modifier={modifierMaquette} valider={validerMaquette} infoAchat={infoAchat} precedent={() => allerA(5)} suivant={() => allerA(7)} />}
         {etape === 7 && <EtapeCommande projet={projet} infoAchat={infoAchat} maj={maj} noter={noter} precedent={() => allerA(projet.maquette ? 6 : 5)} suivant={() => allerA(8)} />}
         {etape === 8 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
       </div>
@@ -1504,7 +1505,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant, infoAchat }) {
   );
 }
 
-function EtapeMaquette({ projet, modifier, valider, infoAchat, precedent, suivant }) {
+function EtapeMaquette({ projet, maj, modifier, valider, infoAchat, precedent, suivant }) {
   const [format, setFormat] = useState("bureau");
   const m = projet.maquette;
   if (!m) return null;
@@ -1533,7 +1534,7 @@ function EtapeMaquette({ projet, modifier, valider, infoAchat, precedent, suivan
       <p className="note">
         {m.source === "ia" ? "Maquette dessinée par l'IA de Kaizen" : "Maquette générée à partir du gabarit Kaizen"} le {new Date(m.genereLe).toLocaleString("fr-FR")}.
       </p>
-      <AvisMaquette projet={projet} modifier={modifier} valider={valider} infoAchat={infoAchat} />
+      <AvisMaquette projet={projet} modifier={modifier} valider={valider} infoAchat={infoAchat} maj={maj} />
       <div className="navigation">
         <div className="actions">
           <button className="btn secondaire" onClick={precedent}>Récapitulatif</button>
@@ -1621,7 +1622,76 @@ function PileOr({ niveau = 0 }) {
 }
 
 // Avis du client sur la maquette : accepter, ou demander une modification (payante en pièces).
-function AvisMaquette({ projet, modifier, valider, infoAchat }) {
+// Réduit une photo pour l'insérer dans la maquette (≈ 1000 px, JPEG).
+async function photoPourMaquette(fichier) {
+  const url = URL.createObjectURL(fichier);
+  try {
+    const img = new Image(); img.src = url; await img.decode();
+    const r = Math.min(1, 1000 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * r); c.height = Math.round(img.naturalHeight * r);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    for (const q of [0.75, 0.6, 0.45]) { const d = c.toDataURL("image/jpeg", q); if (d.length <= 380_000) return d; }
+    return null;
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// Photos que le client veut voir DANS sa maquette (fond, image d'accueil…), 4 au plus.
+function PhotosMaquette({ projet, maj }) {
+  const photos = projet.photosMaquette || [];
+  const [erreur, setErreur] = useState("");
+  async function ajouter(liste) {
+    setErreur("");
+    const nouvelles = [];
+    for (const f of [...liste].slice(0, 4 - photos.length)) {
+      if (!f.type.startsWith("image/")) { setErreur("Images uniquement (JPG, PNG…)."); continue; }
+      const d = await photoPourMaquette(f).catch(() => null);
+      if (d) nouvelles.push(d); else setErreur(`${f.name} : image illisible ou trop lourde.`);
+    }
+    if (nouvelles.length) maj({ photosMaquette: [...photos, ...nouvelles].slice(0, 4) });
+  }
+  return (
+    <div className="photos-maquette">
+      <p className="petit-titre">📷 Vos photos pour la maquette <small className="discret">(4 max)</small></p>
+      <div className="photos-liste">
+        {photos.map((src, i) => (
+          <div key={i} className="vignette">
+            <img src={src} alt={`Photo ${i + 1}`} />
+            <span className="photo-num">IMAGE {i + 1}</span>
+            <button type="button" aria-label="Retirer la photo" onClick={() => maj({ photosMaquette: photos.filter((_, j) => j !== i) })}>×</button>
+          </div>
+        ))}
+        {photos.length < 4 && (
+          <label className="depot depot-petit">
+            <input type="file" accept="image/*" multiple onChange={(e) => { ajouter(e.target.files); e.target.value = ""; }} />
+            <span aria-hidden="true">📷</span><small>Ajouter des photos</small>
+          </label>
+        )}
+      </div>
+      {erreur && <p className="alerte">{erreur}</p>}
+    </div>
+  );
+}
+
+// Bip explique comment bien demander une modification, avant chaque demande.
+function ConseilsBip() {
+  return (
+    <div className="conseils-bip">
+      <img src="/personnages/bip-buste.webp" alt="" width="56" height="56" />
+      <div>
+        <p className="petit-titre" style={{ marginTop: 0 }}>Bip vous aide à bien demander 🤖</p>
+        <ul>
+          <li><b>Un point par ligne</b>, en disant <b>où</b> : « Accueil : mettre un bouton Réserver en haut ».</li>
+          <li><b>Des photos ?</b> Ajoutez-les avec 📷 ci-dessous, puis dites où les mettre : « IMAGE 1 en arrière-plan de l'accueil ».</li>
+          <li><b>Couleurs, textes, écrans</b> : soyez précis (« vert foncé », « ajouter un écran Historique »).</li>
+          <li>La maquette est un <b>aperçu</b> : les boutons ne font rien de réel et il n'y a pas de vraies données.</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function AvisMaquette({ projet, modifier, valider, infoAchat, maj }) {
   const [retour, setRetour] = useState("");
   const { dispo, connecte } = usePortefeuille();
   const monnaie = projet.jeu?.actif ? trouverUnivers(projet.jeu.univers).monnaie : "pièces d'or";
@@ -1638,12 +1708,19 @@ function AvisMaquette({ projet, modifier, valider, infoAchat }) {
       ) : (
         <button className="btn" onClick={valider}>✅ J'accepte la maquette</button>
       )}
+      <ConseilsBip />
+      <PhotosMaquette projet={projet} maj={maj} />
       <label className="champ">
         <span>Il manque quelque chose ? Une couleur, un écran, un texte à changer ?</span>
         <textarea rows={3} maxLength={1000} value={retour} onChange={(e) => setRetour(e.target.value)} placeholder="Ex. : je voudrais du vert plutôt que du violet, ajouter un écran « Mes réservations », et mettre mon logo en haut." />
       </label>
       <div className="actions">
-        <button className="btn secondaire" disabled={retour.trim().length < 5 || !assez} onClick={() => { modifier(retour.trim()); setRetour(""); }}>
+        <button className="btn secondaire" disabled={retour.trim().length < 5 || !assez} onClick={() => {
+          // Bip vérifie la demande avant de dépenser les pièces.
+          if (/photo|image|arri[eè]re[- ]plan|fond/i.test(retour) && !(projet.photosMaquette || []).length
+            && !window.confirm("Bip 🤖 : vous parlez d'images, mais vous n'avez ajouté aucune photo avec 📷. Sans photo, l'IA dessinera des illustrations. Envoyer quand même ?")) return;
+          modifier(retour.trim()); setRetour("");
+        }}>
           ✏️ Demander la modification (−{COUT_MODIFICATION} {monnaie})
         </button>
       </div>
