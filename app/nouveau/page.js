@@ -78,7 +78,7 @@ function Parcours() {
   // Récompenses déjà gagnées dans ce projet : créditées sur le compte (une seule fois par compte).
   const recompensesProjet = projet?.jeu?.actif ? (projet.jeu.recompenses || []).join(",") : "";
   useEffect(() => {
-    if (portefeuille.connecte && recompensesProjet) portefeuille.recompenses(recompensesProjet.split(","));
+    if (portefeuille.connecte && recompensesProjet) portefeuille.recompenses(recompensesProjet.split(","), projet.id);
   }, [portefeuille.connecte, recompensesProjet]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!depense) return undefined;
@@ -181,7 +181,7 @@ function Parcours() {
     const { jeu, gains } = recompenser(projet.jeu, cles);
     if (gains) setGain({ ...gains, cle: Date.now() });
     // Les pièces d'or des récompenses sont créditées par le serveur, une fois par compte.
-    if (gains?.pieces > 0 && portefeuille.connecte) portefeuille.recompenses(cles);
+    if (gains?.pieces > 0 && portefeuille.connecte) portefeuille.recompenses(cles, projet.id);
     return jeu;
   };
   const maj = (champs, cles = []) => {
@@ -666,9 +666,11 @@ function Narrateur({ jeu, etape }) {
 }
 
 function Recompense({ gain, univers }) {
+  const { connecte } = usePortefeuille();
   return (
     <div className="recompense" role="status" aria-live="polite">
-      {gain.pieces > 0 && <strong>+{gain.pieces} {univers.monnaie}</strong>}
+      {gain.pieces > 0 && <strong>+{gain.pieces} {univers.monnaie} gratuites</strong>}
+      {gain.pieces > 0 && connecte === false && <span className="recompense-xp">Connectez-vous pour les encaisser : elles vous attendent.</span>}
       {gain.points > 0 && <span className="recompense-xp">+{gain.points} points d'expérience</span>}
       {gain.badges.map((id) => (
         <span key={id} className="recompense-badge">{BADGES[id].icone} Badge « {BADGES[id].nom} » débloqué !</span>

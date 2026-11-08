@@ -15,7 +15,7 @@ export async function POST(request) {
   try { corps = await request.json(); } catch { /* corps vide */ }
   try {
     const solde = Array.isArray(corps?.recompenses)
-      ? await crediterRecompenses(sb, u.email, corps.recompenses.map(String))
+      ? await crediterRecompenses(sb, u.email, corps.recompenses.map(String), corps.projet)
       : await lireSolde(sb, u.email);
     return NextResponse.json({ ok: true, solde, email: u.email });
   } catch (e) {
