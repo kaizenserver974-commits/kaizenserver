@@ -812,3 +812,7 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
   .offre-quantite { font-size: 13px; }
   .offre-prix { font-size: 15px; padding: 6px 2px; }
 }
+.references-maquette { display: grid; gap: 6px; }
+.references-maquette div { display: flex; gap: 6px; flex-wrap: wrap; }
+.references-maquette img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border: 1px solid var(--ligne-forte); }
+.option-maquette .champ { margin: 4px 0 0; }

@@ -185,7 +185,7 @@ function Parcours() {
   const modifierMaquette = (retour) => lancer("Kaizen redessine la maquette avec vos remarques… (jusqu'à une minute)", async () => {
     const pieces = debiter(projet, COUT_MODIFICATION);
     if (!pieces) throw new Error(`Il vous faut ${COUT_MODIFICATION} pièces pour demander une modification : rechargez vos pièces ci-dessous.`);
-    const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap, retour });
+    const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap, retour, consignes: projet.consignesMaquette || "", images: await imagesReference() });
     setProjet((p) => enregistrerProjet({
       ...p, pieces, maquetteValidee: false,
       maquette: { html, source, genereLe: new Date().toISOString() },
@@ -194,18 +194,25 @@ function Parcours() {
     }));
   });
 
+  // Images de référence du client (ajoutées à l'étape Budget), au format attendu par l'IA.
+  const imagesReference = async () => (await lireFichiers(projet.id))
+    .filter((f) => ["image/png", "image/jpeg", "image/webp"].includes(f.type))
+    .slice(0, 3)
+    .map((f) => `data:${f.type};base64,${f.contenu}`);
+
   const validerMaquette = () => maj({ maquetteValidee: true, journal: noter(projet, "Maquette acceptée par le client"), etape: 7 });
 
-  const genererMaquette = () => lancer("Kaizen dessine la maquette de votre application… (jusqu'à une minute)", async () => {
+  const genererMaquette = (consignes = "") => lancer("Kaizen dessine la maquette de votre application… (jusqu'à une minute)", async () => {
     // La maquette instantanée coûte des pièces d'or, débitées seulement si elle est bien créée.
     if (solde(projet) < COUT_MAQUETTE) {
       setRechargeOuverte(true);
       throw new Error(`Il vous faut ${COUT_MAQUETTE} pièces d'or pour créer la maquette : rechargez vos pièces.`);
     }
-    const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap });
+    const images = await imagesReference();
+    const { html, source } = await appeler("/api/maquette", { projet, recap: projet.recap, consignes, images });
     const jeu = gagner(["maquette"]);
     setProjet((p) => enregistrerProjet({
-      ...p, jeu, pieces: debiter(p, COUT_MAQUETTE) || p.pieces, maquette: { html, source, genereLe: new Date().toISOString() }, etape: 6,
+      ...p, jeu, pieces: debiter(p, COUT_MAQUETTE) || p.pieces, consignesMaquette: consignes, maquette: { html, source, genereLe: new Date().toISOString() }, etape: 6,
       statut: ["idee", "cadrage"].includes(p.statut) ? "maquette" : p.statut,
       journal: noter(p, p.maquette ? "Maquette régénérée" : "Maquette générée"),
     }));
@@ -919,6 +926,11 @@ function EtapeRecap({ projet, modifier, voirMaquette, genererMaquette, actualise
 function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, recharger }) {
   const dispo = solde(projet);
   const [genieOuvert, setGenieOuvert] = useState(false);
+  const [consignes, setConsignes] = useState(projet.consignesMaquette || "");
+  const [images, setImages] = useState([]);
+  useEffect(() => {
+    lireFichiers(projet.id).then((f) => setImages(f.filter((x) => ["image/png", "image/jpeg", "image/webp"].includes(x.type)).slice(0, 3)));
+  }, [projet.id]);
   return (
     <div className="choix-maquette sans-impression" id="choix-maquette">
       <h2>Créer ma maquette</h2>
@@ -927,12 +939,27 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
         <div className="option-maquette">
           <span className="option-icone" aria-hidden="true">✨</span>
           <h3>Maquette instantanée</h3>
-          <p>Kaizen dessine tout de suite une maquette cliquable de votre application, à partir de votre récapitulatif.</p>
+          <p>L'IA de Kaizen, la même que celle de Server, dessine tout de suite une maquette cliquable à partir de votre récapitulatif.</p>
+          {!projet.maquette && (
+            <>
+              {images.length > 0 ? (
+                <div className="references-maquette">
+                  <small>🖼️ Elle s'inspirera de {images.length > 1 ? `vos ${images.length} images` : "votre image"} :</small>
+                  <div>{images.map((f, i) => <img key={i} src={`data:${f.type};base64,${f.contenu}`} alt={f.nom} />)}</div>
+                </div>
+              ) : (
+                <small className="discret">💡 Ajoutez des images de référence à l'étape « Budget et délai » : l'IA s'en inspirera (couleurs, mise en page, ambiance).</small>
+              )}
+              <label className="champ"><span>Vos consignes pour l'IA <small className="discret">(facultatif)</small></span>
+                <textarea rows={2} maxLength={1000} value={consignes} placeholder="Ex. : couleurs vertes, un gros bouton « Réserver » sur l'accueil, style épuré…" onChange={(e) => setConsignes(e.target.value)} />
+              </label>
+            </>
+          )}
           <p className="option-prix">🪙 {COUT_MAQUETTE} pièces d'or</p>
           {projet.maquette
             ? <button className="btn" onClick={voirMaquette}>Voir ma maquette</button>
             : dispo >= COUT_MAQUETTE
-              ? <button className="btn" onClick={genererMaquette}>Créer ma maquette ({COUT_MAQUETTE} 🪙)</button>
+              ? <button className="btn" onClick={() => genererMaquette(consignes.trim())}>Créer ma maquette ({COUT_MAQUETTE} 🪙)</button>
               : <button className="btn secondaire" onClick={recharger}>Il vous manque {COUT_MAQUETTE - dispo} 🪙 · Acheter des pièces</button>}
         </div>
 
