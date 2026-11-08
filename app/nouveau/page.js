@@ -363,7 +363,8 @@ function Parcours() {
       </ol>
       )}
 
-      {enJeu && <Narrateur jeu={projet.jeu} etape={etape} perso={persoJoueur} dejaDit={apresIntro} />}
+      {/* Étape avec vidéo : le personnage a déjà dit sa phrase, pas de bulle en plus. */}
+      {enJeu && !videoEtape && <Narrateur jeu={projet.jeu} etape={etape} perso={persoJoueur} />}
       {(() => {
         // Bouton « Retour » en haut de chaque étape : on peut toujours revenir en arrière pour changer d'avis.
         const prec = etape === 0 ? null : etape === 7 ? (projet.maquette ? 6 : 5) : etape - 1;
