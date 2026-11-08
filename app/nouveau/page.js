@@ -317,7 +317,17 @@ function Parcours() {
       <main className="conteneur page en-jeu avec-monde intro-page" style={{ "--jeu": univers.couleur, "--jeu-clair": univers.clair }}>
         {/* Derrière la vidéo : le monde sans le personnage (sinon on le verrait deux fois). */}
         {persoMonde?.monde && <div className="fond-monde fond-intro" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fondVide || persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.fondVide || persoMonde.monde})` }} />}
-        <IntroVideo key={cleIntro} src={videoEtape} nom={projet.jeu.pseudo || persoJoueur.nom} lieu={`${univers.icone} ${univers.niveaux[etape]}`} texte={recit(projet.jeu, etape)} finir={() => setIntroVue(cleIntro)} />
+        <IntroVideo key={cleIntro} src={videoEtape} nom={projet.jeu.pseudo || persoJoueur.nom} lieu={`${univers.icone} ${univers.niveaux[etape]}`} texte={recit(projet.jeu, etape)} finir={() => setIntroVue(cleIntro)}
+          bourse={portefeuille.connecte ? portefeuille.solde : null} />
+        {/* Les pièces gagnées à l'étape validée s'annoncent aussi pendant la vidéo. */}
+        {portefeuille.gain && (
+          <div key={portefeuille.gain.cle} className="gain-or" role="status" aria-live="polite">
+            {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 gratuites</strong>}
+            {portefeuille.gain.montant > 0 && <span>Vous avez {portefeuille.solde} pièces d'or pour ce projet</span>}
+            {portefeuille.gain.plafond && <span className="gain-plafond">Limite de pièces gratuites du jour atteinte : revenez demain, ou achetez des pièces.</span>}
+          </div>
+        )}
+        {gain && <Recompense key={gain.cle} gain={gain} univers={univers} />}
       </main>
     );
   }
@@ -720,7 +730,7 @@ function TableauJoueur({ jeu, changer, recharger }) {
 }
 
 // Page d'introduction : le personnage dit la phrase de l'étape dans une vidéo, puis on passe au formulaire.
-function IntroVideo({ src, nom, lieu, texte, finir }) {
+function IntroVideo({ src, nom, lieu, texte, finir, bourse = null }) {
   const boite = useRef(null);
   // Le personnage parle automatiquement avec le son ; le client peut le couper (choix mémorisé).
   const [muet, setMuet] = useState(false);
@@ -760,7 +770,7 @@ function IntroVideo({ src, nom, lieu, texte, finir }) {
   }
   return (
     <section className="intro-video-page">
-      <p className="intro-lieu">{lieu}</p>
+      <p className="intro-lieu">{lieu}{typeof bourse === "number" && <span className="intro-bourse">🪙 {bourse} pièces d'or</span>}</p>
       <div className="intro-ecran" ref={boite}>
         {figee ? (
           <button type="button" className="intro-lecture" onClick={() => activerSon(true)} aria-label="Lancer la vidéo">▶</button>

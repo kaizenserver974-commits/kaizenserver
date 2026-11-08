@@ -1027,3 +1027,4 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 @media (max-width: 1080px) { .intro-ecran .video-intro { max-height: calc(100vh - 380px); } }
 @media (orientation: portrait) and (max-width: 899px) { .intro-ecran .video-intro { aspect-ratio: 4 / 5; } }
 .intro-muet { position: absolute; right: 14px; top: 14px; width: 46px; height: 46px; border-radius: 50%; border: 0; font-size: 20px; color: #fff; background: rgba(6, 6, 26, 0.65); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3); cursor: pointer; }
+.intro-bourse { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, 0.3); color: #fde68a; }
