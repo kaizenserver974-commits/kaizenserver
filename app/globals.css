@@ -668,3 +668,16 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 /* Bouton d'ambiance sonore de la vitrine */
 .bouton-son { position: absolute; top: 14px; right: 14px; z-index: 4; display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--ligne-forte); background: rgba(6,6,26,.75); color: #fff; font-size: 13px; font-weight: 600; backdrop-filter: blur(6px); }
 .bouton-son.actif { border-color: var(--p, var(--violet)); box-shadow: 0 0 14px color-mix(in srgb, var(--p, #7b5cff) 60%, transparent); }
+
+/* Page d'écoute des ambiances */
+.liste-sons { display: grid; gap: 12px; margin-top: 18px; }
+.ligne-son { display: flex; gap: 14px; align-items: flex-start; }
+.ligne-son-corps { flex: 1; }
+.ligne-son h2 { margin: 0 0 8px; font-size: 19px; }
+.choix-sons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bouton-ecoute { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--ligne); background: var(--surface-2); color: var(--texte); }
+.bouton-ecoute .lettre { font-weight: 800; color: var(--p); }
+.bouton-ecoute strong { color: #fff; font-size: 14px; }
+.bouton-ecoute small { color: var(--discret); font-size: 12px; }
+.bouton-ecoute.actif { border-color: var(--p); background: color-mix(in srgb, var(--p) 18%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--p) 45%, transparent); }
+@media (max-width: 720px) { .choix-sons { grid-template-columns: 1fr; } }

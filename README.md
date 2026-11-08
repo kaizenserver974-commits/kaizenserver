@@ -74,20 +74,7 @@ Les personnages illustrés **Kai** (garçon), **Mia** (fille) et **Bip** (robot)
 
 ## Ambiances sonores
 
-Chaque personnage a l'ambiance de son monde, générée par le navigateur (Web Audio, `lib/sons.js`), sans aucun fichier à télécharger :
-
-| Personnage | Monde | Ambiance |
-|---|---|---|
-| Kai | ville néon | arpège synthé, basse pulsée |
-| Mia | lagon | vagues, carillons |
-| Léo | portail | bourdon cosmique, scintillements |
-| Malik | studio | beat hip-hop |
-| Téo | skatepark | électro-rock rapide |
-| Axel | laboratoire | bips électroniques |
-| Jade | terrasse | accords lo-fi |
-| Nala | scène | house 4/4 |
-| Lou | observatoire | nappe céleste, étoiles |
-| Yuna | village | mélodie et vent |
+Chaque personnage a l'ambiance de son monde. Elle est générée par le navigateur (Web Audio, `lib/sons.js`), sans aucun fichier à télécharger. Chaque personnage a **3 propositions** (A, B, C), à écouter sur la page **`/sons`**, qui n'apparaît pas dans le menu. L'ambiance utilisée dans le jeu se règle dans `CHOIX`, dans `lib/sons.js`.
 
 Le bouton 🔇/🔊 de la vitrine active le son (préférence gardée sur l'appareil). Le son s'arrête quand l'aventure commence. Pour utiliser un vrai fichier audio, ajoutez `son: "/sons/nom.mp3"` au personnage dans `lib/avatar.js`.
 
