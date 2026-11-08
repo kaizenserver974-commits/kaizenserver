@@ -6,7 +6,7 @@ const base = {
   contact: { nom: "Lina Martin", email: "lina@exemple.fr", telephone: "06 12 34 56 78" },
   formule: "v1",
   consentement: true,
-  projet: { idee: "Une application de réservation pour mon salon", typeId: "reservation", fonctionnalites: ["reservation", "comptes"], budget: "5k_10k", delai: "1_3m", priorite: "elevee" },
+  projet: { idee: "Une application de réservation pour mon salon", typeId: "reservation", fonctionnalites: ["reservation", "comptes"], budget: "b700", delai: "1_3m", priorite: "elevee" },
   recap: { titre: "RésaSalon", resume: "Réservation en ligne", v1: ["Réservation"] },
 };
 

@@ -13,7 +13,7 @@ test("une idée d'accompagnement est reconnue", () => {
 });
 
 test("le budget trop faible déclenche une première version réduite et une alerte", () => {
-  const p = nettoyerProjet({ typeId: "reservation", plateforme: "web", fonctionnalites: ["comptes", "calendrier", "reservation", "rappels", "paiement", "tableau_admin", "messagerie"], budget: "2k_5k", delai: "moins_1m" });
+  const p = nettoyerProjet({ typeId: "reservation", plateforme: "web", fonctionnalites: ["comptes", "calendrier", "reservation", "rappels", "paiement", "tableau_admin", "messagerie"], budget: "b500", delai: "moins_1m" });
   const e = estimer(p);
   assert.ok(e.v1.fonctionnalites.length < p.fonctionnalites.length);
   assert.ok(e.plusTard.length > 0);
@@ -23,7 +23,7 @@ test("le budget trop faible déclenche une première version réduite et une ale
 });
 
 test("un budget suffisant garde tout dans la première version", () => {
-  const p = nettoyerProjet({ typeId: "vitrine", fonctionnalites: ["pages_presentation", "formulaire_contact"], budget: "plus_20k", delai: "libre" });
+  const p = nettoyerProjet({ typeId: "vitrine", fonctionnalites: ["pages_presentation", "formulaire_contact"], budget: "b1200", delai: "libre" });
   const e = estimer(p);
   assert.deepEqual(e.plusTard, []);
   assert.equal(e.alertes.length, 0);
