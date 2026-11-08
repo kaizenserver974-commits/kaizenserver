@@ -248,6 +248,12 @@ function Parcours() {
         // Le monde du personnage en grand : version large sur ordinateur, portrait sur téléphone.
         <div className="fond-monde" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.monde})` }} />
       )}
+      {persoJoueur?.fond && (
+        // Téléphone : le personnage dans son monde, en haut du parcours (sans cadre).
+        <div className="scene-mobile" aria-hidden="true" style={{ backgroundImage: `url(${persoJoueur.fond})` }}>
+          <span>{univers.icone} {univers.niveaux[etape]}</span>
+        </div>
+      )}
       {enJeu
         ? <TableauJoueur jeu={projet.jeu} pieces={solde(projet)} changer={() => setChoixPerso(true)} />
         : <p className="mode-classique">Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></p>}

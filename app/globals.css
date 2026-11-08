@@ -722,7 +722,7 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .mondes-compteur b { color: var(--texte); }
 
 /* Décor du monde du personnage pendant tout le parcours : l'univers en grand, sans cadre */
-.fond-monde { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: var(--fond-portrait); background-size: cover; background-position: center top; filter: brightness(0.6) saturate(1.1); }
+.fond-monde { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: var(--fond-large); background-size: cover; background-position: 15% center; filter: brightness(0.75) saturate(1.1); }
 .fond-monde::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6, 6, 26, 0.35), rgba(6, 6, 26, 0.15) 40%, rgba(6, 6, 26, 0.45)); }
 .avec-monde .carte, .avec-monde .joueur, .avec-monde .carte-monde button { background: rgba(12, 14, 46, 0.62); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .avec-monde .carte { box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 45%, transparent), 0 20px 60px rgba(0, 0, 0, 0.3); }
@@ -748,3 +748,10 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .bouton-retour:hover:not(:disabled) { border-color: var(--jeu, var(--cyan)); box-shadow: 0 0 16px color-mix(in srgb, var(--jeu, var(--cyan)) 35%, transparent); }
 /* Écrans très larges : le décor couvre toute la largeur (on rogne un peu le ciel). */
 @media (min-width: 900px) and (min-aspect-ratio: 16/9) { .fond-monde { background-size: cover; } }
+
+/* Téléphone et tablette en hauteur : le personnage en bandeau en haut du parcours, fondu dans le décor */
+.scene-mobile { display: none; }
+@media (max-width: 899px) {
+  .scene-mobile { display: block; position: relative; height: min(72vw, 330px); margin: -26px -16px 4px; background-size: cover; background-position: 79% 12%; -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); mask-image: linear-gradient(180deg, #000 70%, transparent); }
+  .scene-mobile span { position: absolute; left: 16px; bottom: 22%; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff; background: rgba(6, 6, 26, 0.65); backdrop-filter: blur(8px); box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 50%, transparent); }
+}
