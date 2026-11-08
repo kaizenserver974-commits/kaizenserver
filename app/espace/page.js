@@ -8,7 +8,7 @@ import MotDePasse from "../components/MotDePasse.js";
 import { SuiviCommande, FilMessages, CarteDevis, BlocMaquette, date } from "../components/Espace.js";
 
 const ONGLETS = [
-  { id: "commandes", label: "Suivre ma commande", icone: "🚚" },
+  { id: "commandes", label: "Ma commande", icone: "🚚" },
   { id: "devis", label: "Offres de Server", icone: "🧾" },
   { id: "messages", label: "Maître du jeu", icone: "👑" },
   { id: "profil", label: "Profil", icone: "👤" },
