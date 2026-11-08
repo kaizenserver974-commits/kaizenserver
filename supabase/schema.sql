@@ -175,3 +175,16 @@ end $$;
 
 revoke all on function public.kaizen_crediter(text, integer, text, text) from public, anon, authenticated;
 revoke all on function public.kaizen_debiter(text, integer, text) from public, anon, authenticated;
+
+-- Pièces jointes du client (images de référence, PDF), visibles dans l'Espace Server.
+-- Les images sont aussi données à l'IA quand Server améliore la maquette.
+create table if not exists public.kaizen_pieces_jointes (
+  id bigint generated always as identity primary key,
+  commande_id uuid not null references public.kaizen_commandes(id) on delete cascade,
+  nom text not null,
+  type text not null,
+  contenu text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists kaizen_pieces_jointes_commande on public.kaizen_pieces_jointes (commande_id);
+alter table public.kaizen_pieces_jointes enable row level security;

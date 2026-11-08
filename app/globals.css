@@ -877,3 +877,5 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .historique-pieces b { white-space: nowrap; }
 .historique-pieces b.plus { color: #6ee7b7; }
 .historique-pieces b.moins { color: #fca5a5; }
+.pieces-client { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.pieces-client img { width: 140px; height: 140px; object-fit: cover; border-radius: 14px; border: 1px solid var(--ligne-forte); }

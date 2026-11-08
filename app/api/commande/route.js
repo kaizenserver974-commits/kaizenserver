@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validerCommande, numeroCommande, resumeCommande, confirmationClient } from "../../../lib/commande.js";
-import { supabaseAdmin, enregistrerMaquette, utilisateur } from "../../../lib/serveur/supabase.js";
+import { supabaseAdmin, enregistrerMaquette, enregistrerPiecesJointes, utilisateur } from "../../../lib/serveur/supabase.js";
 import { debiter, rembourser, SoldeInsuffisant, bourse } from "../../../lib/serveur/portefeuille.js";
 import { COUT_COMMANDE, COUT_GENIE } from "../../../lib/pieces.js";
 import { assainir } from "../../../lib/serveur/generation.js";
@@ -71,6 +71,8 @@ export async function POST(request) {
     if (error) console.error("Kaizen /commande Supabase :", error.message);
     else {
       enregistree = true;
+      // Images et PDF du client : visibles dans l'Espace Server (et données à l'IA de Server).
+      await enregistrerPiecesJointes(sb, ligne.id, commande.pieces).catch((e) => console.error("Kaizen pièces jointes :", e?.message, "— relancez supabase/schema.sql"));
       const html = assainir(String(corps?.maquette?.html || "").slice(0, 120000));
       if (html.toLowerCase().startsWith("<!doctype html")) {
         await enregistrerMaquette(sb, ligne.id, html, corps.maquette.source === "ia" ? "ia" : "gabarit").catch((e) => console.error("Kaizen maquette :", e?.message));

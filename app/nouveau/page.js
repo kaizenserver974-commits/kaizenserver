@@ -1146,6 +1146,8 @@ function FormulaireGenie({ projet, maj, noter, recharger, annuler }) {
           contact: { nom, email, message: voeu ? `Vœu pour la maquette : ${voeu}` : "" },
           consentement, siteWeb: piege,
           pieces: fichiers.map(({ nom: n, type, contenu }) => ({ nom: n, type, contenu })),
+          // La maquette déjà proposée au client (s'il en a une) : Server la voit et peut l'améliorer.
+          maquette: projet.maquette ? { html: projet.maquette.html, source: projet.maquette.source } : null,
         }),
       });
       const d = await r.json().catch(() => ({}));

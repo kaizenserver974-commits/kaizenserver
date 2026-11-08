@@ -117,6 +117,8 @@ export default function Admin() {
               />
             </div>
 
+            {c.projet?.pieces?.length > 0 && <PiecesClient key={`p-${c.id}`} commandeId={c.id} />}
+
             <Liens c={c} action={action} />
 
             <div className="carte">
@@ -184,6 +186,28 @@ function FormulaireOffre({ envoyer, annuler, paiementEnLigne, initial, libelle, 
         <button type="button" className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
     </form>
+  );
+}
+
+// Images de référence et documents envoyés par le client avec sa demande.
+function PiecesClient({ commandeId }) {
+  const [pieces, setPieces] = useState(null);
+  useEffect(() => {
+    appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "pieces_lire", commandeId }) })
+      .then((d) => setPieces(d.pieces || [])).catch(() => setPieces([]));
+  }, [commandeId]);
+  if (pieces === null) return <div className="carte"><p className="discret">Chargement des images du client…</p></div>;
+  if (pieces.length === 0) return null;
+  return (
+    <div className="carte">
+      <h2>🖼️ Images et documents du client</h2>
+      <p className="note">Les images sont données automatiquement à l'IA quand vous améliorez la maquette (avec les vôtres, 3 au total).</p>
+      <div className="pieces-client">
+        {pieces.map((p, i) => (p.type.startsWith("image/")
+          ? <a key={i} href={p.url} target="_blank" rel="noopener noreferrer" title={p.nom}><img src={p.url} alt={p.nom} /></a>
+          : <a key={i} className="btn petit secondaire" href={p.url} download={p.nom}>📄 {p.nom}</a>))}
+      </div>
+    </div>
   );
 }
 

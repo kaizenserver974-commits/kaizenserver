@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette, enregistrerMaquette } from "../../../lib/serveur/supabase.js";
+import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette, enregistrerMaquette, lirePiecesJointes } from "../../../lib/serveur/supabase.js";
 import { genererMaquette, validerImagesReference } from "../../../lib/serveur/generation.js";
 import { nettoyerProjet, estimer, recapitulatifSecours } from "../../../lib/moteur.js";
 import { STATUTS, validerMessage, validerDevis, statut, nonLus } from "../../../lib/espace.js";
@@ -103,6 +103,11 @@ export async function POST(request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (corps.action === "pieces_lire") {
+    const pieces = await lirePiecesJointes(sb, commande.id);
+    return NextResponse.json({ ok: true, pieces: pieces.map((p) => ({ nom: p.nom, type: p.type, url: `data:${p.type};base64,${p.contenu}` })) });
+  }
+
   if (corps.action === "maquette_lire") {
     const m = await lireMaquette(sb, commande.id);
     return m ? NextResponse.json({ ok: true, ...m }) : refus("Pas encore de maquette pour ce projet.", 404);
@@ -112,7 +117,10 @@ export async function POST(request) {
   if (corps.action === "maquette_generer") {
     try {
       const consignes = String(corps.consignes || "").trim().slice(0, 2000);
-      const images = validerImagesReference(corps.images);
+      // Images de Server d'abord, puis celles du client (3 au total).
+      const imagesClient = (await lirePiecesJointes(sb, commande.id))
+        .filter((p) => /^image\/(png|jpe?g|webp)$/.test(p.type)).map((p) => `data:${p.type};base64,${p.contenu}`);
+      const images = validerImagesReference([...(corps.images || []), ...imagesClient]);
       const ideeActuelle = String(commande.projet?.idee || "").trim();
       // Une description trop courte est remplacée par les consignes saisies par Server.
       const idee = ideeActuelle.length >= 10 ? ideeActuelle : consignes;
