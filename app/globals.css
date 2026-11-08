@@ -997,3 +997,26 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 @media (min-width: 1000px) {
   .intro-video .avec-monde .carte, .intro-video .avec-monde .joueur, .intro-video .avec-monde .carte-monde button { background: rgba(12, 14, 46, 0.86); }
 }
+
+/* Page 1 d'une étape : la vidéo du personnage seule, en grand */
+.intro-page { display: block !important; }
+.intro-video-page { display: grid; justify-items: center; gap: 12px; max-width: 1100px; margin: 0 auto; animation: genie-fond 0.5s ease-out both; }
+.intro-lieu { margin: 0; padding: 6px 14px; border-radius: 999px; background: rgba(6, 6, 26, 0.65); color: #fff; font-weight: 700; font-size: 14px; }
+.intro-ecran { position: relative; width: 100%; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 2px color-mix(in srgb, var(--jeu) 60%, transparent); background: #000; }
+.intro-ecran video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100vh - 260px); object-fit: cover; object-position: 72% 30%; }
+.intro-lecture { position: absolute; inset: 0; margin: auto; width: 84px; height: 84px; border-radius: 50%; border: 0; font-size: 34px; color: #fff; background: rgba(123, 92, 255, 0.85); box-shadow: 0 0 40px rgba(123, 92, 255, 0.8); cursor: pointer; }
+.intro-sous-titre { width: 100%; padding: 12px 16px; border-radius: 18px; background: rgba(255, 255, 255, 0.95); color: #1a1033; font-weight: 600; font-size: 16px; line-height: 1.4; }
+.intro-sous-titre b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: color-mix(in srgb, var(--jeu) 80%, #1a1033); }
+.intro-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+@media (orientation: portrait) and (max-width: 899px) { .intro-ecran video { aspect-ratio: 4 / 5; max-height: calc(100vh - 300px); } }
+/* Page 2 : tout apparaît peu à peu */
+.apparition > :not(.fond-monde):not(.perso-anime) { animation: intro-formulaire 1.4s cubic-bezier(.2, .7, .2, 1) both; }
+.apparition > :nth-child(4) { animation-delay: 0.1s; }
+.apparition > :nth-child(5) { animation-delay: 0.25s; }
+.apparition > :nth-child(6) { animation-delay: 0.4s; }
+.apparition > :nth-child(n+7) { animation-delay: 0.55s; }
+@media (max-width: 1080px) {
+  .intro-video-page { padding-bottom: 96px; gap: 8px; }
+  .intro-ecran video { max-height: calc(100vh - 380px); }
+  .intro-sous-titre { font-size: 14px; }
+}

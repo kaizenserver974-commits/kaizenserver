@@ -64,6 +64,8 @@ function Parcours() {
   const [gain, setGain] = useState(null);
   const [lieuDebloque, setLieuDebloque] = useState(null);
   const [rechargeOuverte, setRechargeOuverte] = useState(false);
+  // Vidéo d'introduction d'étape déjà vue (clé « projet:étape ») : ensuite le formulaire apparaît.
+  const [introVue, setIntroVue] = useState("");
   const portefeuille = usePortefeuille();
 
   // Récompenses déjà gagnées dans ce projet : créditées sur le compte (une seule fois par compte).
@@ -304,9 +306,22 @@ function Parcours() {
     i === 6 ? Boolean(projet.maquette) :
     Boolean(projet.maquette || projet.commande);
 
+  // Page 1 : la vidéo où le personnage dit la phrase de l'étape. Page 2 : le formulaire apparaît peu à peu.
+  const videoEtape = persoJoueur?.paroles?.[etape + 1];
+  const cleIntro = `${projet.id}:${etape}`;
+  if (videoEtape && introVue !== cleIntro && !chargement) {
+    return (
+      <main className="conteneur page en-jeu avec-monde intro-page" style={{ "--jeu": univers.couleur, "--jeu-clair": univers.clair }}>
+        {persoMonde?.monde && <div className="fond-monde" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.monde})` }} />}
+        <IntroVideo key={cleIntro} src={videoEtape} nom={projet.jeu.pseudo || persoJoueur.nom} lieu={`${univers.icone} ${univers.niveaux[etape]}`} texte={recit(projet.jeu, etape)} finir={() => setIntroVue(cleIntro)} />
+      </main>
+    );
+  }
+  const apresIntro = Boolean(videoEtape) && introVue === cleIntro;
+
   return (
     <main
-      className={`conteneur page ${enJeu ? "en-jeu" : ""} ${persoMonde?.monde ? "avec-monde" : ""} ${persoJoueur?.monde ? "avec-perso" : ""}`}
+      className={`conteneur page ${apresIntro ? "apparition" : ""} ${enJeu ? "en-jeu" : ""} ${persoMonde?.monde ? "avec-monde" : ""} ${persoJoueur?.monde ? "avec-perso" : ""}`}
       style={enJeu ? { "--jeu": univers.couleur, "--jeu-clair": univers.clair } : undefined}
     >
       {persoMonde?.monde && (
@@ -317,7 +332,6 @@ function Parcours() {
       {persoJoueur?.fond && (
         // Téléphone : le personnage dans son monde, en haut du parcours (sans cadre).
         <div className="scene-mobile" aria-hidden="true" style={{ backgroundImage: `url(${persoJoueur.fond})` }}>
-          <VideoParoleMobile />
           <span>{univers.icone} {univers.niveaux[etape]}</span>
         </div>
       )}
@@ -345,7 +359,7 @@ function Parcours() {
       </ol>
       )}
 
-      {enJeu && <Narrateur jeu={projet.jeu} etape={etape} perso={persoJoueur} />}
+      {enJeu && <Narrateur jeu={projet.jeu} etape={etape} perso={persoJoueur} dejaDit={apresIntro} />}
       {(() => {
         // Bouton « Retour » en haut de chaque étape : on peut toujours revenir en arrière pour changer d'avis.
         const prec = etape === 0 ? null : etape === 7 ? (projet.maquette ? 6 : 5) : etape - 1;
@@ -700,6 +714,42 @@ function TableauJoueur({ jeu, changer, recharger }) {
   );
 }
 
+// Page d'introduction : le personnage dit la phrase de l'étape dans une vidéo, puis on passe au formulaire.
+function IntroVideo({ src, nom, lieu, texte, finir }) {
+  const ref = useRef(null);
+  const [sansSon, setSansSon] = useState(false);
+  const [bloquee, setBloquee] = useState(false);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.muted = false;
+    v.play().catch(() => {
+      // L'appareil bloque le son : on joue sans son et on propose de l'activer.
+      v.muted = true; setSansSon(true);
+      v.play().catch(() => setBloquee(true));
+    });
+  }, []);
+  function activerSon() {
+    const v = ref.current; if (!v) return;
+    v.muted = false; v.currentTime = 0; setSansSon(false); setBloquee(false);
+    v.play().catch(() => {});
+  }
+  return (
+    <section className="intro-video-page">
+      <p className="intro-lieu">{lieu}</p>
+      <div className="intro-ecran">
+        <video ref={ref} src={src} playsInline preload="auto" onEnded={finir} onError={finir} />
+        {bloquee && <button type="button" className="intro-lecture" onClick={activerSon} aria-label="Lancer la vidéo">▶</button>}
+      </div>
+      <div className="intro-sous-titre"><b>{nom}</b>{texte}</div>
+      <div className="intro-actions">
+        {sansSon && !bloquee && <button type="button" className="btn petit secondaire" onClick={activerSon}>🔊 Activer le son</button>}
+        <button type="button" className="btn petit" onClick={finir}>Passer ▶</button>
+      </div>
+    </section>
+  );
+}
+
 // Téléphone : la vidéo où le personnage parle joue dans l'image du haut, puis disparaît.
 function VideoParoleMobile() {
   const ref = useRef(null);
@@ -795,25 +845,19 @@ function parler(texte, perso) {
   synth.speak(phrase);
 }
 
-function Narrateur({ jeu, etape, perso }) {
+function Narrateur({ jeu, etape, perso, dejaDit = false }) {
   const texte = recit(jeu, etape);
   const [voix, setVoix] = useState(false);
   const [parle, setParle] = useState(false);
   useEffect(() => { try { setVoix(localStorage.getItem("kaizen.voix") !== "0"); } catch { setVoix(true); } }, []);
-  // Vidéo où le personnage dit lui-même la phrase de cette étape (grand écran uniquement).
-  const videoParole = perso?.paroles?.[etape + 1];
-  // Grand écran : vidéo à droite. Téléphone / iPad droit : vidéo dans l'image du personnage en haut.
-  const avecVideo = () => Boolean(videoParole) && typeof window !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // La vidéo d'introduction (page 1) a déjà dit la phrase : pas de voix automatique en plus.
+  const videoParole = null;
+  const avecVideo = () => dejaDit;
   // Prévient la scène : le personnage du décor s'anime pendant qu'il parle.
   useEffect(() => {
     if (parle && avecVideo()) return; // la vidéo parlante est lancée à part
     window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: parle }));
   }, [parle]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!avecVideo()) return undefined;
-    const t = setTimeout(() => window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: { video: videoParole, son: voix } })), 450);
-    return () => clearTimeout(t);
-  }, [texte, voix, videoParole]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (voix || !texte || avecVideo()) return undefined;
     setParle(true);
@@ -833,7 +877,6 @@ function Narrateur({ jeu, etape, perso }) {
     setVoix(v);
     try { localStorage.setItem("kaizen.voix", v ? "1" : "0"); } catch { /* stockage indisponible */ }
     if (!v) { window.speechSynthesis?.cancel(); setParle(false); }
-    else if (avecVideo()) window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: { video: videoParole, son: true } }));
     else parler(texte, perso);
   }
   const boutonVoix = (
