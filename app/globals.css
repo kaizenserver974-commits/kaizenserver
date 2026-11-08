@@ -853,3 +853,5 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .suivi-etapes li.actif small { font-weight: 700; color: #fff; }
 .suivi-suite { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; }
 @media (max-width: 620px) { .suivi-etapes small { display: none; } }
+.bourse-erreur { background: rgba(248, 113, 113, 0.12); box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.5); color: #fecaca; }
+.bourse-detail { flex-basis: 100%; color: var(--discret); font-size: 12px; }

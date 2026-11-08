@@ -571,8 +571,17 @@ function AvatarJoueur({ jeu, taille, classe }) {
 
 // Bourse de pièces d'or, toujours visible en haut, avec le bouton pour en acheter.
 function BourseOr({ recharger }) {
-  const { connecte, solde, indisponible } = usePortefeuille();
+  const { connecte, solde, indisponible, erreur, charger } = usePortefeuille();
   if (connecte === null) return <div className="bourse-or"><span className="bourse-solde">🪙 …</span></div>;
+  if (connecte && solde === null && erreur) {
+    return (
+      <div className="bourse-or">
+        <span className="bourse-solde bourse-erreur" title={erreur}>⚠️ Pièces d'or indisponibles</span>
+        <button className="btn petit secondaire" onClick={charger}>Réessayer</button>
+        <small className="bourse-detail">{erreur}</small>
+      </div>
+    );
+  }
   if (!connecte) {
     return (
       <div className="bourse-or">

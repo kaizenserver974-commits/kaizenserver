@@ -20,6 +20,13 @@ export async function POST(request) {
     return NextResponse.json({ ok: true, solde, email: u.email });
   } catch (e) {
     console.error("Kaizen portefeuille :", e?.message);
-    return NextResponse.json({ erreur: "Le solde de pièces est indisponible pour le moment." }, { status: 500 });
+    // Tables ou fonctions absentes : supabase/schema.sql n'a pas été lancé.
+    const schema = /schema\.sql|does not exist|Could not find|PGRST202|42883|42P01/i.test(String(e?.message));
+    return NextResponse.json({
+      erreur: schema
+        ? (u.admin ? "Base de données à mettre à jour : lancez supabase/schema.sql dans Supabase (SQL Editor)." : "Les pièces d'or sont en cours d'installation. Réessayez un peu plus tard.")
+        : "Le solde de pièces est indisponible pour le moment.",
+      schema,
+    }, { status: 500 });
   }
 }
