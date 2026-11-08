@@ -1037,7 +1037,7 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
         <div className="option-maquette">
           <span className="option-icone" aria-hidden="true">✨</span>
           <h3>Maquette instantanée</h3>
-          <p>L'IA de Kaizen, la même que celle de Server, dessine tout de suite une maquette cliquable à partir de votre récapitulatif.</p>
+          <p>Votre maquette cliquable, tout de suite, à partir de votre récapitulatif.</p>
           {!projet.maquette && (
             <>
               {images.length > 0 ? (
@@ -1046,9 +1046,9 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
                   <div>{images.map((f, i) => <img key={i} src={`data:${f.type};base64,${f.contenu}`} alt={f.nom} />)}</div>
                 </div>
               ) : (
-                <small className="discret">💡 Ajoutez des images de référence à l'étape « Budget et délai » : l'IA s'en inspirera (couleurs, mise en page, ambiance).</small>
+                <small className="discret">💡 Ajoutez des images de référence à l'étape « Budget et délai » : la maquette s'en inspirera (couleurs, mise en page, ambiance).</small>
               )}
-              <label className="champ"><span>Vos consignes pour l'IA <small className="discret">(facultatif)</small></span>
+              <label className="champ"><span>Vos consignes <small className="discret">(facultatif)</small></span>
                 <textarea rows={2} maxLength={1000} value={consignes} placeholder="Ex. : couleurs vertes, un gros bouton « Réserver » sur l'accueil, style épuré…" onChange={(e) => setConsignes(e.target.value)} />
               </label>
             </>
@@ -1067,7 +1067,7 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
             <img src="/personnages/server-complet.webp" alt="" width="120" height="120" />
           </button>
           <h3>Le génie Server</h3>
-          <p>Faites un vœu : Server, le maître du jeu, prépare lui-même une proposition de maquette sur mesure pour votre application.</p>
+          <p>Faites un vœu : Server, le maître du jeu, ajuste lui-même votre maquette pour obtenir la meilleure version de votre application.</p>
           <p className="option-prix">🪙 {COUT_GENIE} pièces d'or</p>
           {projet.demandeGenie
             ? <p className="alerte succes">🧞 Vœu envoyé au génie (n° {projet.demandeGenie.numero}). Server vous enverra sa proposition dans votre espace client.</p>
