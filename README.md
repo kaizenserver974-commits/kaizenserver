@@ -72,6 +72,25 @@ Sur la page d'accueil, les exemples d'idées ouvrent le parcours avec l'idée d�
 
 Les personnages illustrés **Kai** (garçon), **Mia** (fille) et **Bip** (robot) viennent de la maquette KaizenServer fournie par le porteur du projet. Ils se trouvent dans `public/personnages/` : portraits pour les avatars ronds, bustes pour les cartes de choix, et la scène d'accueil. Pour des images plus nettes, remplacez ces fichiers par les originaux en haute définition, en gardant les mêmes noms. La carte « Créer le mien » ouvre le créateur d'avatar dessiné.
 
+## Ambiances sonores
+
+Chaque personnage a l'ambiance de son monde, générée par le navigateur (Web Audio, `lib/sons.js`), sans aucun fichier à télécharger :
+
+| Personnage | Monde | Ambiance |
+|---|---|---|
+| Kai | ville néon | arpège synthé, basse pulsée |
+| Mia | lagon | vagues, carillons |
+| Léo | portail | bourdon cosmique, scintillements |
+| Malik | studio | beat hip-hop |
+| Téo | skatepark | électro-rock rapide |
+| Axel | laboratoire | bips électroniques |
+| Jade | terrasse | accords lo-fi |
+| Nala | scène | house 4/4 |
+| Lou | observatoire | nappe céleste, étoiles |
+| Yuna | village | mélodie et vent |
+
+Le bouton 🔇/🔊 de la vitrine active le son (préférence gardée sur l'appareil). Le son s'arrête quand l'aventure commence. Pour utiliser un vrai fichier audio, ajoutez `son: "/sons/nom.mp3"` au personnage dans `lib/avatar.js`.
+
 ## Mode jeu
 
 Au début de chaque projet, la personne choisit :

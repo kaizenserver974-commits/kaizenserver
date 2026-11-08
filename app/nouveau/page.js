@@ -11,6 +11,7 @@ import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, COUT_COMMANDE, prix
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
+import { jouerSon, arreterSon, sonDisponible } from "../../lib/sons.js";
 import {
   UNIVERS, BADGES, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
 } from "../../lib/jeu.js";
@@ -260,6 +261,20 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
   const [univers, setUnivers] = useState(debut?.univers || UNIVERS[0].id);
   const [avatar, setAvatar] = useState(typeof debut?.avatar === "object" ? debut.avatar : { forme: "illustre", perso: "kai" });
   const [pseudo, setPseudo] = useState(debut?.pseudo || (debut ? "" : "Kai"));
+  // Ambiance sonore du monde du personnage (préférence mémorisée sur l'appareil)
+  const [son, setSon] = useState(false);
+  useEffect(() => { try { setSon(window.localStorage.getItem("kaizen.son") === "1"); } catch { /* stockage indisponible */ } }, []);
+  useEffect(() => () => arreterSon(), []);
+  const persoSon = avatar.forme === "illustre" ? trouverPersonnage(avatar.perso) : null;
+  function basculerSon() {
+    const actif = !son; setSon(actif);
+    try { window.localStorage.setItem("kaizen.son", actif ? "1" : "0"); } catch { /* stockage indisponible */ }
+    if (actif && persoSon) jouerSon(persoSon.id, persoSon.son); else arreterSon();
+  }
+  function choisirPerso(pe) {
+    setAvatar({ forme: "illustre", perso: pe.id });
+    if (son) jouerSon(pe.id, pe.son);
+  }
   const u = trouverUnivers(univers);
   const illustre = avatar.forme === "illustre";
 
@@ -301,6 +316,11 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
           </div>
           <div className="vitrine-sol" aria-hidden="true" />
           <p className="vitrine-lieu">Premier lieu : {u.niveaux[0]}</p>
+          {sonDisponible() && (
+            <button type="button" className={`bouton-son ${son ? "actif" : ""}`} onClick={basculerSon} aria-pressed={son} aria-label={son ? "Couper l'ambiance sonore" : "Activer l'ambiance sonore"}>
+              {son ? "🔊" : "🔇"}<span>{son ? "Son du monde" : "Activer le son"}</span>
+            </button>
+          )}
         </div>
 
         <div className="vestiaire-choix">
@@ -324,7 +344,7 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
                 aria-checked={illustre && avatar.perso === pe.id}
                 className={`carte-perso ${illustre && avatar.perso === pe.id ? "choisie" : ""}`}
                 style={{ "--p": pe.couleur }}
-                onClick={() => { setAvatar({ forme: "illustre", perso: pe.id }); if (!pseudo.trim() || PERSONNAGES.some((x) => x.nom === pseudo)) setPseudo(pe.nom); }}
+                onClick={() => { choisirPerso(pe); if (!pseudo.trim() || PERSONNAGES.some((x) => x.nom === pseudo)) setPseudo(pe.nom); }}
               >
                 <img src={pe.buste} alt="" loading="lazy" />
                 <span className="etiquette">{pe.nom}</span>
@@ -351,7 +371,7 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
           {annuler && <button className="btn secondaire" onClick={annuler}>Annuler</button>}
           <button className="btn secondaire" onClick={() => valider(null)}>Mode classique, sans jeu</button>
         </div>
-        <button className="btn grand" onClick={() => valider({ univers, avatar, pseudo })}>Commencer l'aventure →</button>
+        <button className="btn grand" onClick={() => { arreterSon(); valider({ univers, avatar, pseudo }); }}>Commencer l'aventure →</button>
       </div>
     </section>
   );
