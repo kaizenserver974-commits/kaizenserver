@@ -11,6 +11,7 @@ import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stock
 import { PACKS, bonusPack, meilleurPack, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, prixTexte } from "../../lib/pieces.js";
 import { PortefeuilleProvider, usePortefeuille, lienConnexion } from "../../lib/portefeuille.js";
 import { jeton } from "../../lib/supabaseClient.js";
+import { videoPartagee, installerDeverrouillage } from "../../lib/videoPartagee.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
@@ -67,6 +68,8 @@ function Parcours() {
   // Vidéo d'introduction d'étape déjà vue (clé « projet:étape ») : ensuite le formulaire apparaît.
   const [introVue, setIntroVue] = useState("");
   const portefeuille = usePortefeuille();
+  // Débloque le son des vidéos au premier toucher (exigence de Safari iPad / iPhone).
+  useEffect(() => { installerDeverrouillage(); }, []);
 
   // Récompenses déjà gagnées dans ce projet : créditées sur le compte (une seule fois par compte).
   const recompensesProjet = projet?.jeu?.actif ? (projet.jeu.recompenses || []).join(",") : "";
@@ -717,34 +720,53 @@ function TableauJoueur({ jeu, changer, recharger }) {
 
 // Page d'introduction : le personnage dit la phrase de l'étape dans une vidéo, puis on passe au formulaire.
 function IntroVideo({ src, nom, lieu, texte, finir }) {
-  const ref = useRef(null);
-  // L'iPad accepte toujours une vidéo SANS son qui démarre seule : on commence ainsi,
-  // puis le client touche la vidéo pour entendre le personnage (elle repart du début avec le son).
-  const [son, setSon] = useState(false);
+  const boite = useRef(null);
+  // Le personnage parle automatiquement avec le son ; le client peut le couper (choix mémorisé).
+  const [muet, setMuet] = useState(false);
+  const [bloque, setBloque] = useState(false);
   const [figee, setFigee] = useState(false);
   useEffect(() => {
-    const v = ref.current;
-    if (!v) return undefined;
-    v.muted = true;
-    v.play().catch(() => setFigee(true));
-    // Mode économie d'énergie : même sans son, la vidéo peut rester figée → bouton ▶.
-    const t = setTimeout(() => { if (v.paused || v.currentTime < 0.1) setFigee(true); }, 1500);
-    return () => clearTimeout(t);
-  }, []);
-  function lancerAvecSon() {
-    const v = ref.current; if (!v) return;
-    v.muted = false; v.currentTime = 0; setSon(true); setFigee(false);
-    v.play().catch(() => { v.muted = true; setSon(false); v.play().catch(() => setFigee(true)); });
+    const v = videoPartagee();
+    const conteneur = boite.current;
+    if (!v || !conteneur) return undefined;
+    let veutSon = true;
+    try { veutSon = localStorage.getItem("kaizen.voix") !== "0"; } catch { /* stockage indisponible */ }
+    setMuet(!veutSon);
+    v.className = "video-intro";
+    v.onended = finir;
+    v.onerror = () => { if ((v.getAttribute("src") || "") === src) finir(); };
+    conteneur.prepend(v);
+    v.src = src;
+    v.muted = !veutSon;
+    v.play().catch(() => {
+      // Son refusé (aucun toucher encore) : on joue sans le son et on propose de l'activer.
+      v.muted = true; setBloque(veutSon);
+      v.play().catch(() => setFigee(true));
+    });
+    const t = setTimeout(() => { if (v.paused || v.currentTime < 0.1) setFigee(true); }, 1800);
+    return () => { clearTimeout(t); v.onended = null; v.onerror = null; v.pause(); if (v.parentNode === conteneur) conteneur.removeChild(v); };
+  }, [src]); // eslint-disable-line react-hooks/exhaustive-deps
+  function memoriser(avecSon) { try { localStorage.setItem("kaizen.voix", avecSon ? "1" : "0"); } catch { /* stockage indisponible */ } }
+  function activerSon(depuisDebut) {
+    const v = videoPartagee(); if (!v) return;
+    v.muted = false; if (depuisDebut) v.currentTime = 0;
+    setMuet(false); setBloque(false); setFigee(false); memoriser(true);
+    v.play().catch(() => { v.muted = true; setBloque(true); v.play().catch(() => setFigee(true)); });
+  }
+  function couperSon() {
+    const v = videoPartagee(); if (v) v.muted = true;
+    setMuet(true); memoriser(false);
   }
   return (
     <section className="intro-video-page">
       <p className="intro-lieu">{lieu}</p>
-      <div className="intro-ecran" onClick={!son ? lancerAvecSon : undefined}>
-        <video ref={ref} src={src} autoPlay muted playsInline preload="auto" onEnded={finir} onError={finir} />
+      <div className="intro-ecran" ref={boite}>
         {figee ? (
-          <button type="button" className="intro-lecture" onClick={(e) => { e.stopPropagation(); lancerAvecSon(); }} aria-label="Lancer la vidéo">▶</button>
-        ) : !son && (
-          <button type="button" className="intro-son" onClick={(e) => { e.stopPropagation(); lancerAvecSon(); }}>🔊 Touchez pour entendre {nom}</button>
+          <button type="button" className="intro-lecture" onClick={() => activerSon(true)} aria-label="Lancer la vidéo">▶</button>
+        ) : bloque ? (
+          <button type="button" className="intro-son" onClick={() => activerSon(true)}>🔊 Touchez pour entendre {nom}</button>
+        ) : (
+          <button type="button" className="intro-muet" onClick={() => (muet ? activerSon(false) : couperSon())} aria-label={muet ? "Remettre le son" : "Couper le son"}>{muet ? "🔇" : "🔊"}</button>
         )}
       </div>
       <div className="intro-sous-titre"><b>{nom}</b>{texte}</div>
