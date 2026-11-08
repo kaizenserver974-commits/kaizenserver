@@ -702,20 +702,41 @@ function TableauJoueur({ jeu, changer, recharger }) {
 // Le personnage du décor prend vie : sa vidéo joue (fondue dans le décor) pendant qu'il parle.
 function PersoAnime({ perso }) {
   const ref = useRef(null);
-  const [parle, setParle] = useState(false);
+  // etat : false (repos), true (anime : vidéo de mouvement) ou { video, son } (vidéo où il dit la phrase).
+  const [etat, setEtat] = useState(false);
   useEffect(() => {
-    const ecoute = (e) => setParle(Boolean(e.detail));
+    const ecoute = (e) => setEtat(e.detail || false);
     window.addEventListener("kaizen-parle", ecoute);
     return () => window.removeEventListener("kaizen-parle", ecoute);
   }, []);
+  const parole = etat && typeof etat === "object" ? etat : null;
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
-    if (parle) { v.play().catch(() => {}); } else { v.pause(); }
-  }, [parle]);
+    if (!etat) { v.pause(); return; }
+    if (parole) {
+      v.currentTime = 0;
+      v.muted = !parole.son;
+      // Si l'appareil bloque le son (pas encore touché l'écran), on joue sans son.
+      v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+    } else {
+      v.muted = true;
+      v.play().catch(() => {});
+    }
+  }, [etat]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className={`perso-anime ${parle ? "actif" : ""}`} aria-hidden="true">
-      <video ref={ref} src={perso.video} poster={perso.affiche} muted loop playsInline preload="auto" />
+    <div className={`perso-anime ${etat ? "actif" : ""} ${parole ? "parole" : ""}`} aria-hidden="true">
+      <video
+        ref={ref}
+        key={parole?.video || perso.video}
+        src={parole?.video || perso.video}
+        poster={parole ? undefined : perso.affiche}
+        muted={!parole}
+        loop={!parole}
+        playsInline
+        preload="auto"
+        onEnded={() => { if (parole) window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: false })); }}
+      />
     </div>
   );
 }
@@ -742,17 +763,28 @@ function Narrateur({ jeu, etape, perso }) {
   const [voix, setVoix] = useState(false);
   const [parle, setParle] = useState(false);
   useEffect(() => { try { setVoix(localStorage.getItem("kaizen.voix") !== "0"); } catch { setVoix(true); } }, []);
+  // Vidéo où le personnage dit lui-même la phrase de cette étape (grand écran uniquement).
+  const videoParole = perso?.paroles?.[etape + 1];
+  const avecVideo = () => Boolean(videoParole) && typeof window !== "undefined" && window.matchMedia("(min-width: 1000px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   // Prévient la scène : le personnage du décor s'anime pendant qu'il parle.
-  useEffect(() => { window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: parle })); }, [parle]);
   useEffect(() => {
-    if (voix || !texte) return undefined;
+    if (parle && avecVideo()) return; // la vidéo parlante est lancée à part
+    window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: parle }));
+  }, [parle]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!avecVideo()) return undefined;
+    const t = setTimeout(() => window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: { video: videoParole, son: voix } })), 450);
+    return () => clearTimeout(t);
+  }, [texte, voix, videoParole]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (voix || !texte || avecVideo()) return undefined;
     setParle(true);
     const fin = setTimeout(() => setParle(false), Math.min(6000, texte.length * 55));
     return () => clearTimeout(fin);
   }, [texte, voix]);
   // Le personnage dit sa phrase à chaque nouvelle étape (si la voix est activée).
   useEffect(() => {
-    if (!voix || !texte) return undefined;
+    if (!voix || !texte || avecVideo()) return undefined;
     const t = setTimeout(() => { parler(texte, perso); setParle(true); }, 450);
     const fin = setTimeout(() => setParle(false), 450 + Math.min(9000, texte.length * 70));
     // Sans voix (coupée) : le personnage s'anime quand même le temps de la bulle.
@@ -762,7 +794,9 @@ function Narrateur({ jeu, etape, perso }) {
     const v = !voix;
     setVoix(v);
     try { localStorage.setItem("kaizen.voix", v ? "1" : "0"); } catch { /* stockage indisponible */ }
-    if (!v) { window.speechSynthesis?.cancel(); setParle(false); } else { parler(texte, perso); }
+    if (!v) { window.speechSynthesis?.cancel(); setParle(false); }
+    else if (avecVideo()) window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: { video: videoParole, son: true } }));
+    else parler(texte, perso);
   }
   const boutonVoix = (
     <button type="button" className="bouton-voix" onClick={basculer} aria-pressed={voix} title={voix ? "Couper la voix" : "Faire parler le personnage"}>
@@ -773,7 +807,7 @@ function Narrateur({ jeu, etape, perso }) {
     <>
       {/* Grand écran : le personnage du décor parle dans une bulle au-dessus de lui. */}
       {perso && (
-        <div className={`bulle-perso ${parle ? "parle" : ""}`} role="status" aria-live="polite">
+        <div className={`bulle-perso ${parle ? "parle" : ""} ${videoParole ? "sous-titre" : ""}`} role="status" aria-live="polite">
           <p><b>{jeu.pseudo || perso.nom}</b>{texte}</p>
           {boutonVoix}
         </div>

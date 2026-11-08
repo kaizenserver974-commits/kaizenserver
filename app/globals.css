@@ -967,3 +967,13 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .photos-liste .photo-num { position: absolute; left: 4px; bottom: 4px; padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 800; background: rgba(6, 6, 26, 0.8); color: #fff; }
 .photos-liste .vignette button { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: #ef4444; color: #fff; cursor: pointer; }
 .photos-liste .depot-petit { width: 96px; height: 96px; }
+/* Vidéo où le personnage dit sa phrase (format paysage, personnage au centre). */
+@media (min-width: 1000px) {
+  .perso-anime.parole { aspect-ratio: auto; width: calc(0.75 * (100vh - 70px)); }
+  .perso-anime.parole video { object-position: 78% 30%; }
+}
+/* Pendant la vidéo parlante, la bulle passe en bas (sous-titres) pour laisser voir le visage. */
+@media (min-width: 1000px) {
+  .bulle-perso.sous-titre { top: auto; bottom: 92px; }
+  .bulle-perso.sous-titre::after { display: none; }
+}
