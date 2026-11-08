@@ -728,19 +728,23 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .avec-monde .carte { box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 45%, transparent), 0 20px 60px rgba(0, 0, 0, 0.3); }
 .avec-monde .bulle { background: rgba(12, 14, 46, 0.72); backdrop-filter: blur(10px); }
 .avec-monde .carte-monde .verrouille button { opacity: 0.7; }
-.place-perso { display: none; }
 @media (min-width: 900px) {
   .fond-monde { top: 70px; background-image: var(--fond-large); background-size: auto 100%; background-position: right bottom; background-repeat: no-repeat; background-color: #0b0c2a; filter: saturate(1.1); }
   .fond-monde::after { background: linear-gradient(90deg, rgba(6, 6, 26, 0.5), rgba(6, 6, 26, 0.2) 55%, transparent 75%), linear-gradient(180deg, rgba(6, 6, 26, 0.45), transparent 18%); }
 }
-@media (min-width: 1180px) {
-  /* Une place libre à droite : le personnage reste visible dans son monde. */
-  .page.avec-perso { width: min(1480px, calc(100% - 48px)); display: grid; grid-template-columns: minmax(0, 1fr) 380px; column-gap: 28px; align-items: start; }
-  .page.avec-perso > * { grid-column: 1; }
-  .page.avec-perso > .place-perso { display: block; grid-column: 2; grid-row: 1; }
+@media (min-width: 1000px) {
+  /* Les panneaux s'arrêtent avant le personnage. Le décor fait la hauteur de l'écran (moins l'en-tête),
+     au format 16/9, calé à droite : le personnage commence vers 0,57 × cette hauteur depuis le bord droit. */
+  .page.avec-perso {
+    width: max(640px, min(1100px, calc(100vw - 0.6 * (100vh - 70px) - 48px)));
+    margin-left: max(24px, calc((100vw - 1480px) / 2));
+    margin-right: auto;
+  }
 }
 
 /* Bouton « Retour » en haut de chaque étape */
 .barre-retour { margin: 0 0 12px; }
 .bouton-retour { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--ligne-forte); background: rgba(12, 14, 46, 0.7); backdrop-filter: blur(10px); color: var(--texte); font-size: 14px; font-weight: 600; cursor: pointer; }
 .bouton-retour:hover:not(:disabled) { border-color: var(--jeu, var(--cyan)); box-shadow: 0 0 16px color-mix(in srgb, var(--jeu, var(--cyan)) 35%, transparent); }
+/* Écrans très larges : le décor couvre toute la largeur (on rogne un peu le ciel). */
+@media (min-width: 900px) and (min-aspect-ratio: 16/9) { .fond-monde { background-size: cover; } }
