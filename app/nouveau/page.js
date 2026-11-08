@@ -11,7 +11,7 @@ import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, COUT_COMMANDE, prix
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
-import { jouerSon, arreterSon, sonDisponible } from "../../lib/sons.js";
+import { jouerSon, arreterSon, sonDisponible, redemarrerSon } from "../../lib/sons.js";
 import {
   UNIVERS, BADGES, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
 } from "../../lib/jeu.js";
@@ -307,7 +307,13 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
               {illustre
                 ? (trouverPersonnage(avatar.perso).video
                   // Animation vidéo du personnage (boucle silencieuse), si elle existe
-                  ? <video className={`video-pleine ${trouverPersonnage(avatar.perso).decor ? "avec-decor" : ""}`} src={trouverPersonnage(avatar.perso).video} poster={trouverPersonnage(avatar.perso).affiche || trouverPersonnage(avatar.perso).buste} autoPlay muted loop playsInline preload="auto" aria-label={`Personnage ${trouverPersonnage(avatar.perso).nom} animé`} />
+                  ? <video className={`video-pleine ${trouverPersonnage(avatar.perso).decor ? "avec-decor" : ""}`} src={trouverPersonnage(avatar.perso).video} poster={trouverPersonnage(avatar.perso).affiche || trouverPersonnage(avatar.perso).buste} autoPlay muted loop playsInline preload="auto"
+                    onTimeUpdate={(e) => {
+                      // La vidéo vient de reboucler : la musique repart du début de son extrait.
+                      const v = e.currentTarget, avant = Number(v.dataset.t || 0);
+                      if (v.currentTime + 0.5 < avant) redemarrerSon();
+                      v.dataset.t = String(v.currentTime);
+                    }} aria-label={`Personnage ${trouverPersonnage(avatar.perso).nom} animé`} />
                   : trouverPersonnage(avatar.perso).monde
                     ? <img className="video-pleine avec-decor" src={trouverPersonnage(avatar.perso).monde} alt={`Personnage ${trouverPersonnage(avatar.perso).nom} dans son monde`} />
                     : <img className={trouverPersonnage(avatar.perso).pied ? "detoure" : ""} src={trouverPersonnage(avatar.perso).pied || trouverPersonnage(avatar.perso).buste} alt={`Personnage ${trouverPersonnage(avatar.perso).nom}`} />)
