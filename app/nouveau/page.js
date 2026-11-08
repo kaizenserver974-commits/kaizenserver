@@ -1131,6 +1131,13 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
 const NUAGES = [[-25, -10], [55, -12], [-30, 25], [65, 20], [-20, 60], [60, 62], [15, 80], [-10, 85], [70, 88], [20, -15], [-35, 45], [75, 42]];
 const ETINCELLES = [[12, 18, 14], [82, 14, 22], [25, 72, 18], [70, 78, 12], [48, 10, 20], [8, 50, 16], [90, 52, 14], [35, 30, 12], [62, 28, 18], [18, 88, 20], [80, 90, 16], [52, 85, 12], [5, 8, 12], [95, 30, 18], [40, 60, 14], [58, 60, 20], [30, 5, 16], [72, 6, 12]];
 
+// Souffle magique du génie : direction (vw, vh), délai, couleur de chaque étincelle.
+const SOUFFLE = Array.from({ length: 32 }, (_, i) => {
+  const angle = (i / 32) * Math.PI * 2;
+  const portee = 28 + (i % 4) * 9;
+  return [Math.round(Math.cos(angle) * portee), Math.round(Math.sin(angle) * portee * 0.8), ((i % 5) * 0.06).toFixed(2), ["#fde68a", "#c4b5fd", "#67e8f9", "#f9a8d4"][i % 4]];
+});
+
 // Nuages magiques pendant que le génie exauce le vœu.
 function NuageGenie({ etat, fermer }) {
   // Affiché directement sur la page (portail) : couvre tout l'écran, même dans un cadre flouté.
@@ -1144,9 +1151,18 @@ function NuageGenie({ etat, fermer }) {
         {ETINCELLES.map(([x, y, t], i) => <b key={i} style={{ "--i": i, left: `${x}%`, top: `${y}%`, fontSize: t }}>✦</b>)}
       </div>
       <div className="genie-apparition">
-        <img src="/personnages/server-complet.webp" alt="" width="200" height="200" />
-        <p className="genie-titre">{etat === "envoi" ? "Le génie écoute votre vœu…" : "✨ Vœu exaucé ! ✨"}</p>
-        <p className="genie-texte">{etat === "envoi" ? "Les nuages magiques emportent votre demande jusqu'à Server." : "Server, le maître du jeu, prépare votre maquette sur mesure. Vous la retrouverez dans votre espace."}</p>
+        <div className="genie-souffleur">
+          <img src="/personnages/server-complet.webp" alt="" width="200" height="200" />
+          {etat === "exauce" && (
+            <div className="souffle" aria-hidden="true">
+              <span className="onde" />
+              <span className="onde onde-2" />
+              {SOUFFLE.map(([dx, dy, d, c], i) => <i key={i} style={{ "--dx": `${dx}vw`, "--dy": `${dy}vh`, "--d": `${d}s`, "--c": c }}>{i % 3 ? "✦" : "✧"}</i>)}
+            </div>
+          )}
+        </div>
+        <p className="genie-titre">{etat === "envoi" ? "Le génie écoute votre vœu…" : "✨ Votre vœu est exaucé ! ✨"}</p>
+        <p className="genie-texte">{etat === "envoi" ? "Le génie prend une grande inspiration…" : "Server, le maître du jeu, prépare votre maquette sur mesure. Vous la retrouverez dans votre espace."}</p>
       </div>
     </div>
   ), document.body);
