@@ -317,6 +317,7 @@ function Parcours() {
       {persoJoueur?.fond && (
         // Téléphone : le personnage dans son monde, en haut du parcours (sans cadre).
         <div className="scene-mobile" aria-hidden="true" style={{ backgroundImage: `url(${persoJoueur.fond})` }}>
+          <VideoParoleMobile />
           <span>{univers.icone} {univers.niveaux[etape]}</span>
         </div>
       )}
@@ -699,13 +700,39 @@ function TableauJoueur({ jeu, changer, recharger }) {
   );
 }
 
+// Téléphone : la vidéo où le personnage parle joue dans l'image du haut, puis disparaît.
+function VideoParoleMobile() {
+  const ref = useRef(null);
+  const [parole, setParole] = useState(null);
+  useEffect(() => {
+    const ecoute = (e) => {
+      if (window.matchMedia("(min-width: 1000px)").matches) return;
+      setParole(e.detail && typeof e.detail === "object" ? e.detail : null);
+    };
+    window.addEventListener("kaizen-parle", ecoute);
+    return () => window.removeEventListener("kaizen-parle", ecoute);
+  }, []);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !parole) return;
+    v.currentTime = 0;
+    v.muted = !parole.son;
+    v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+  }, [parole]);
+  if (!parole) return null;
+  return (
+    <video ref={ref} key={parole.video} className="video-parole-mobile" src={parole.video} playsInline preload="auto"
+      onEnded={() => setParole(null)} />
+  );
+}
+
 // Le personnage du décor prend vie : sa vidéo joue (fondue dans le décor) pendant qu'il parle.
 function PersoAnime({ perso }) {
   const ref = useRef(null);
   // etat : false (repos), true (anime : vidéo de mouvement) ou { video, son } (vidéo où il dit la phrase).
   const [etat, setEtat] = useState(false);
   useEffect(() => {
-    const ecoute = (e) => setEtat(e.detail || false);
+    const ecoute = (e) => { if (window.matchMedia("(min-width: 1000px)").matches) setEtat(e.detail || false); };
     window.addEventListener("kaizen-parle", ecoute);
     return () => window.removeEventListener("kaizen-parle", ecoute);
   }, []);
@@ -765,7 +792,8 @@ function Narrateur({ jeu, etape, perso }) {
   useEffect(() => { try { setVoix(localStorage.getItem("kaizen.voix") !== "0"); } catch { setVoix(true); } }, []);
   // Vidéo où le personnage dit lui-même la phrase de cette étape (grand écran uniquement).
   const videoParole = perso?.paroles?.[etape + 1];
-  const avecVideo = () => Boolean(videoParole) && typeof window !== "undefined" && window.matchMedia("(min-width: 1000px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Grand écran : vidéo à droite. Téléphone / iPad droit : vidéo dans l'image du personnage en haut.
+  const avecVideo = () => Boolean(videoParole) && typeof window !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   // Prévient la scène : le personnage du décor s'anime pendant qu'il parle.
   useEffect(() => {
     if (parle && avecVideo()) return; // la vidéo parlante est lancée à part
