@@ -7,7 +7,6 @@ import MotDePasse from "../components/MotDePasse.js";
 import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date, euros } from "../components/Espace.js";
 import { TYPES, BUDGETS, DELAIS, PRIORITES, trouver, fonctionnalite } from "../../lib/catalogue.js";
 import { labelFormule } from "../../lib/commande.js";
-import { estimer, euros as eurosRond } from "../../lib/moteur.js";
 
 export default function Admin() {
   const sb = supabaseNavigateur();
@@ -118,7 +117,6 @@ export default function Admin() {
 
             <div className="carte">
               <h2>Votre offre au client</h2>
-              <ReperePrive projet={c.projet} />
               {c.devis.map((d) => <OffreServer key={d.id} d={d} c={c} action={action} paiementEnLigne={donnees.paiementEnLigne} />)}
               <NouveauDevis paiementEnLigne={donnees.paiementEnLigne} envoyer={(d) => action({ action: "devis", commandeId: c.id, ...d })} />
             </div>
@@ -182,20 +180,6 @@ function FormulaireOffre({ envoyer, annuler, paiementEnLigne, initial, libelle, 
         <button type="button" className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
     </form>
-  );
-}
-
-// Repère calculé par le moteur, visible uniquement par Server : c'est vous
-// qui fixez le tarif et le délai communiqués au client.
-function ReperePrive({ projet }) {
-  if (!projet?.idee) return null;
-  const e = estimer({ ...projet, personnalisees: projet.personnalisees || [], fonctionnalites: projet.fonctionnalites || [] });
-  return (
-    <details className="repere">
-      <summary>🔒 Repère interne (jamais montré au client)</summary>
-      <p>Première version : {eurosRond(e.v1.coutMin)} – {eurosRond(e.v1.coutMax)} · ~{e.v1.semaines} sem. · Complet : {eurosRond(e.complet.coutMin)} – {eurosRond(e.complet.coutMax)} · ~{e.complet.semaines} sem. · No-code : {eurosRond(e.nocode.coutMin)} – {eurosRond(e.nocode.coutMax)}</p>
-      {e.alertes.map((a) => <p key={a} className="note">⚠️ {a}</p>)}
-    </details>
   );
 }
 
