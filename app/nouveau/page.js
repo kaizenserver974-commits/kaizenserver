@@ -608,7 +608,7 @@ function PiecesJointes({ projetId }) {
         <input type="file" multiple accept={LIMITES.types.join(",")} onChange={(e) => { ajouter(e.target.files); e.target.value = ""; }} />
         <span aria-hidden="true">⬆️</span>
         <strong>Ajouter des images, documents…</strong>
-        <small className="discret">Facultatif · images ou PDF · {LIMITES.nombre} fichiers, 2,5 Mo au total · joints à votre commande</small>
+        <small className="discret">Facultatif · images ou PDF · {LIMITES.nombre} fichiers maximum · les images lourdes sont réduites automatiquement · joints à votre commande</small>
       </label>
       {fichiers.length > 0 && (
         <ul className="perso">
