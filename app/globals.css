@@ -821,3 +821,10 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .depense-or strong { font-family: var(--titre); font-size: 24px; color: #fbbf24; }
 .depense-or span { font-size: 13px; color: var(--texte); }
 .recompense-xp { font-size: 13px; color: var(--discret); }
+/* Connexion / déconnexion dans l'en-tête */
+.compte-entete { display: inline-flex; align-items: center; gap: 8px; }
+.bouton-deconnexion { white-space: nowrap; }
+@media (max-width: 620px) { .bouton-deconnexion { padding: 6px 10px; min-width: 36px; } }
+.compte-entete .btn { white-space: nowrap; }
+.texte-deconnexion { display: none; }
+@media (min-width: 1440px) { .texte-deconnexion { display: inline; } }

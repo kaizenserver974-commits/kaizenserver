@@ -16,11 +16,26 @@ export default function Compte() {
     const depuisLien = /access_token=|type=magiclink|code=/.test(adresse) && !/type=recovery/.test(adresse) && !window.location.pathname.startsWith("/connexion");
     const { data } = sb.auth.onAuthStateChange((evt, s) => {
       setConnecte(Boolean(s));
-      if (s && depuisLien && (evt === "SIGNED_IN" || evt === "INITIAL_SESSION") && !window.location.pathname.startsWith("/espace")) {
+      // Sauf sur le parcours (/nouveau) : le client y revient pour payer avec ses pièces d'or.
+      if (s && depuisLien && (evt === "SIGNED_IN" || evt === "INITIAL_SESSION") && !window.location.pathname.startsWith("/espace") && !window.location.pathname.startsWith("/nouveau")) {
         window.location.replace("/espace");
       }
     });
     return () => data.subscription.unsubscribe();
   }, []);
-  return <a href={connecte ? "/espace" : "/connexion"} className="btn petit contour masque-mobile">{connecte ? "Mon espace" : "Se connecter"}</a>;
+  async function deconnecter() {
+    if (!window.confirm("Se déconnecter de KaizenServer ?")) return;
+    const sb = supabaseNavigateur();
+    await sb?.auth.signOut().catch(() => sb?.auth.signOut({ scope: "local" }));
+    window.location.href = "/";
+  }
+  if (!connecte) return <a href="/connexion" className="btn petit contour masque-mobile">Se connecter</a>;
+  return (
+    <span className="compte-entete">
+      <a href="/espace" className="btn petit contour masque-mobile">Mon espace</a>
+      <button type="button" className="btn petit secondaire bouton-deconnexion" onClick={deconnecter} title="Se déconnecter" aria-label="Se déconnecter">
+        <span aria-hidden="true">⏻</span><span className="texte-deconnexion"> Se déconnecter</span>
+      </button>
+    </span>
+  );
 }
