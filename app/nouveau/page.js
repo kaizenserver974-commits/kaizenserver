@@ -737,6 +737,11 @@ function PersoAnime({ perso }) {
     return () => window.removeEventListener("kaizen-parle", ecoute);
   }, []);
   const parole = etat && typeof etat === "object" ? etat : null;
+  // Introduction : la vidéo parlante démarre en grand, puis le formulaire apparaît peu à peu.
+  const [intro, setIntro] = useState(false);
+  const finIntro = () => { setIntro(false); document.documentElement.classList.remove("intro-video"); };
+  useEffect(() => () => document.documentElement.classList.remove("intro-video"), []);
+  useEffect(() => { if (!parole) finIntro(); }, [parole]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
@@ -752,7 +757,8 @@ function PersoAnime({ perso }) {
     }
   }, [etat]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className={`perso-anime ${etat ? "actif" : ""} ${parole ? "parole" : ""}`} aria-hidden="true">
+    <div className={`perso-anime ${etat ? "actif" : ""} ${parole ? "parole" : ""} ${intro ? "intro" : ""}`} aria-hidden="true">
+      {intro && <button type="button" className="btn petit passer-intro" onClick={finIntro}>Passer ▶</button>}
       <video
         ref={ref}
         key={parole?.video || perso.video}
@@ -762,7 +768,11 @@ function PersoAnime({ perso }) {
         loop={!parole}
         playsInline
         preload="auto"
-        onEnded={() => { if (parole) window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: false })); }}
+        onPlaying={() => {
+          // Seulement si la vidéo joue vraiment (sinon le formulaire ne doit jamais être masqué).
+          if (parole && window.matchMedia("(min-width: 1000px)").matches) { setIntro(true); document.documentElement.classList.add("intro-video"); }
+        }}
+        onEnded={() => { finIntro(); if (parole) window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: false })); }}
       />
     </div>
   );
