@@ -23,7 +23,7 @@ export default function APropos() {
             <a className="btn secondaire grand" href="/ressources">Lire nos guides</a>
           </div>
         </div>
-        <img src="/personnages/scene.webp" alt="Kai, Mia et Bip, les personnages de KaizenServer" className="apropos-image" />
+        <img src="/personnages/scene.webp" alt="Les personnages de KaizenServer et Bip, le robot qui vous aide" className="apropos-image" />
       </section>
       <div className="guides">
         {VALEURS.map((v) => (

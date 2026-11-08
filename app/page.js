@@ -40,8 +40,8 @@ export default function Accueil() {
         </div>
 
         <div className="scene-image">
-          <img src="/personnages/scene.webp" width="1064" height="680" alt="Kai, Mia et le robot Bip, les personnages de KaizenServer, devant une ville futuriste" fetchPriority="high" />
-          <div className="carte-flottante">🏆 Choisissez Kai, Mia ou Bip · <b>et gagnez des badges</b></div>
+          <img src="/personnages/scene.webp" width="1064" height="680" alt="Les personnages de KaizenServer et Bip, le robot qui vous aide, devant une ville futuriste" fetchPriority="high" />
+          <div className="carte-flottante">🏆 Choisissez votre personnage · <b>et gagnez des badges</b></div>
         </div>
       </section>
 
