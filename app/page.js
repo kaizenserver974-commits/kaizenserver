@@ -1,6 +1,7 @@
 import CarteExemple from "./components/CarteExemple.js";
 import { EXEMPLES_IDEES } from "../lib/exemples.js";
-import { UNIVERS } from "../lib/jeu.js";
+import { MONDES } from "../lib/jeu.js";
+import { trouverPersonnage } from "../lib/avatar.js";
 
 const ATOUTS = [
   { i: "⚡", t: "Maquette en quelques minutes" },
@@ -84,13 +85,14 @@ export default function Accueil() {
 
       <section className="section">
         <div className="section-titre">
-          <div><p className="surtitre">Mode jeu</p><h2>Choisissez votre univers</h2></div>
+          <div><p className="surtitre">Mode jeu</p><h2>Un univers pour chaque personnage</h2></div>
         </div>
         <div className="univers-vitrine">
-          {UNIVERS.map((u) => (
+          {MONDES.map((u) => (
             <div key={u.id} className="univers-carte" style={{ "--u": u.couleur }}>
               <span aria-hidden="true">{u.icone}</span>
               <h3>{u.nom}</h3>
+              <small className="univers-perso">Le monde de {trouverPersonnage(u.perso).nom}</small>
               <p>{u.accroche}</p>
             </div>
           ))}

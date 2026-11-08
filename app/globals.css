@@ -145,11 +145,12 @@ h1 { font-size: clamp(36px, 5.4vw, 64px); line-height: 1.05; margin: 12px 0 18px
 .mini-ecran .tuiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
 .mini-ecran .tuiles b { height: 34px; border-radius: 8px; background: rgba(255, 255, 255, 0.25); }
 
-.univers-vitrine { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.univers-vitrine { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
 .univers-carte { padding: 18px; border-radius: 18px; background: linear-gradient(160deg, color-mix(in srgb, var(--u) 22%, transparent), var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--u) 45%, transparent); }
 .univers-carte span { font-size: 34px; }
 .univers-carte h3 { margin: 8px 0 4px; color: var(--u); }
 .univers-carte p { margin: 0; color: var(--texte); font-size: 14px; }
+.univers-carte .univers-perso { display: block; margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--discret); }
 
 .bandeau-cta { margin: 30px 0 10px; padding: 30px; border-radius: 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; background: linear-gradient(120deg, rgba(79, 124, 255, 0.25), rgba(217, 70, 239, 0.22)); box-shadow: inset 0 0 0 1px var(--ligne-forte), 0 0 60px rgba(123, 92, 255, 0.18); }
 .bandeau-cta h2 { margin: 0; }

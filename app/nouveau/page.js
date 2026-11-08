@@ -13,7 +13,7 @@ import Avatar from "../components/Avatar.js";
 import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
 import { jouerSon, arreterSon, sonDisponible, redemarrerSon } from "../../lib/sons.js";
 import {
-  UNIVERS, BADGES, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
+  UNIVERS, BADGES, universPourPerso, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
 } from "../../lib/jeu.js";
 
 const ETAPES = ["Idée", "Type", "Fonctionnalités", "Style", "Budget & délai", "Récapitulatif", "Maquette", "Commander", "Suivi"];
@@ -258,7 +258,7 @@ function Parcours() {
 
 function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }) {
   const debut = initial?.actif ? initial : null;
-  const [univers, setUnivers] = useState(debut?.univers || UNIVERS[0].id);
+
   const [avatar, setAvatar] = useState(typeof debut?.avatar === "object" ? debut.avatar : { forme: "illustre", perso: "kai" });
   const [pseudo, setPseudo] = useState(debut?.pseudo || (debut ? "" : "Kai"));
   // Ambiance sonore du monde du personnage (préférence mémorisée sur l'appareil)
@@ -275,6 +275,8 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
     setAvatar({ forme: "illustre", perso: pe.id });
     if (son) jouerSon(pe.id, pe.son);
   }
+  // L'univers du jeu est celui du monde du personnage choisi.
+  const univers = universPourPerso(avatar.forme === "illustre" ? avatar.perso : "kai").id;
   const u = trouverUnivers(univers);
   const illustre = avatar.forme === "illustre";
 
@@ -321,7 +323,7 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
             </div>
           </div>
           <div className="vitrine-sol" aria-hidden="true" />
-          <p className="vitrine-lieu">Premier lieu : {u.niveaux[0]}</p>
+          <p className="vitrine-lieu">{u.icone} Premier lieu : {u.niveaux[0]}</p>
           {sonDisponible() && (
             <button type="button" className={`bouton-son ${son ? "actif" : ""}`} onClick={basculerSon} aria-pressed={son} aria-label={son ? "Couper l'ambiance sonore" : "Activer l'ambiance sonore"}>
               {son ? "🔊" : "🔇"}<span>{son ? "Son du monde" : "Activer le son"}</span>
@@ -359,17 +361,6 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
           </div>
 
         </div>
-      </div>
-
-      <p className="petit-titre">Votre univers de jeu</p>
-      <div className="choix-grille univers-grille">
-        {UNIVERS.map((x) => (
-          <button key={x.id} className={`choix univers ${univers === x.id ? "choisi" : ""}`} style={{ "--u": x.couleur }} onClick={() => setUnivers(x.id)}>
-            <span className="univers-icone" aria-hidden="true">{x.icone}</span>
-            <strong>{x.nom}</strong>
-            <span>{x.accroche}</span>
-          </button>
-        ))}
       </div>
 
       <div className="navigation">
