@@ -286,16 +286,31 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
 
       <div className="perso-grille vestiaire">
         {/* Vitrine : le personnage choisi en grand, façon vestiaire */}
-        <div className="vitrine" style={{ "--p": illustre ? trouverPersonnage(avatar.perso).couleur : "var(--jeu)" }}>
+        <div
+          className="vitrine"
+          style={{ "--p": illustre ? trouverPersonnage(avatar.perso).couleur : "var(--jeu)" }}
+          onPointerMove={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            e.currentTarget.style.setProperty("--rx", `${(((e.clientY - r.top) / r.height) - 0.5) * -10}deg`);
+            e.currentTarget.style.setProperty("--ry", `${(((e.clientX - r.left) / r.width) - 0.5) * 14}deg`);
+          }}
+          onPointerLeave={(e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.currentTarget.style.setProperty("--ry", "0deg"); }}
+        >
           <div className="vitrine-fond" aria-hidden="true" />
           <div className="vitrine-banniere">
             <strong>{(pseudo.trim() || (illustre ? trouverPersonnage(avatar.perso).nom : "Votre nom")).toUpperCase()}</strong>
             <small>{u.icone} {u.nom} · Niveau 1</small>
           </div>
+          <div className="vitrine-particules" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ "--i": i }} />)}</div>
           <div key={illustre ? avatar.perso : "perso"} className="vitrine-perso">
-            {illustre
-              ? <img src={trouverPersonnage(avatar.perso).buste} alt={`Personnage ${trouverPersonnage(avatar.perso).nom}`} />
-              : <Avatar config={avatar} taille={240} titre="Aperçu de votre avatar" />}
+            <div className="vitrine-vivant">
+              {illustre
+                ? (trouverPersonnage(avatar.perso).video
+                  // Animation vidéo du personnage (boucle silencieuse), si elle existe
+                  ? <video src={trouverPersonnage(avatar.perso).video} poster={trouverPersonnage(avatar.perso).buste} autoPlay muted loop playsInline aria-label={`Personnage ${trouverPersonnage(avatar.perso).nom}`} />
+                  : <img src={trouverPersonnage(avatar.perso).buste} alt={`Personnage ${trouverPersonnage(avatar.perso).nom}`} />)
+                : <Avatar config={avatar} taille={240} titre="Aperçu de votre avatar" />}
+            </div>
           </div>
           <div className="vitrine-sol" aria-hidden="true" />
           <p className="vitrine-lieu">Premier lieu : {u.niveaux[0]}</p>
