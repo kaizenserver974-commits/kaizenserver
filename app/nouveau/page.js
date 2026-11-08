@@ -10,7 +10,7 @@ import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stock
 import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, COUT_COMMANDE, prixTexte } from "../../lib/pieces.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
-import { OPTIONS_AVATAR, PRESETS_AVATAR, AVATAR_DEFAUT, PERSONNAGES } from "../../lib/avatar.js";
+import { OPTIONS_AVATAR, PRESETS_AVATAR, AVATAR_DEFAUT, PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
 import {
   UNIVERS, BADGES, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
 } from "../../lib/jeu.js";
@@ -284,15 +284,24 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
       <h1 className="h-page">Créez votre avatar</h1>
       <p className="discret">Chaque étape de votre projet deviendra un niveau. Gagnez des {u.monnaie} et des badges jusqu'à la mise en ligne de votre application !</p>
 
-      <div className="perso-grille">
-        <div className="perso-apercu">
-          <Avatar config={avatar} taille={200} titre="Aperçu de votre avatar" />
-          <strong>{pseudo.trim() || "Votre nom"}</strong>
-          <small>{u.icone} {u.nom} · Niveau 1</small>
-          <small>Premier lieu : {u.niveaux[0]}</small>
+      <div className="perso-grille vestiaire">
+        {/* Vitrine : le personnage choisi en grand, façon vestiaire */}
+        <div className="vitrine" style={{ "--p": illustre ? trouverPersonnage(avatar.perso).couleur : "var(--jeu)" }}>
+          <div className="vitrine-fond" aria-hidden="true" />
+          <div className="vitrine-banniere">
+            <strong>{(pseudo.trim() || (illustre ? trouverPersonnage(avatar.perso).nom : "Votre nom")).toUpperCase()}</strong>
+            <small>{u.icone} {u.nom} · Niveau 1</small>
+          </div>
+          <div key={illustre ? avatar.perso : "perso"} className="vitrine-perso">
+            {illustre
+              ? <img src={trouverPersonnage(avatar.perso).buste} alt={`Personnage ${trouverPersonnage(avatar.perso).nom}`} />
+              : <Avatar config={avatar} taille={240} titre="Aperçu de votre avatar" />}
+          </div>
+          <div className="vitrine-sol" aria-hidden="true" />
+          <p className="vitrine-lieu">Premier lieu : {u.niveaux[0]}</p>
         </div>
 
-        <div>
+        <div className="vestiaire-choix">
           <label className="champ" style={{ marginTop: 0 }}>
             <span>Votre nom de joueur</span>
             <input value={pseudo} maxLength={30} placeholder="Ex. : Kai, Mia, Capitaine Zoé…" onChange={(e) => setPseudo(e.target.value)} />
