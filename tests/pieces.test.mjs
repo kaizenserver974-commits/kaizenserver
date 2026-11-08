@@ -3,6 +3,12 @@ import assert from "node:assert/strict";
 import { solde, debiter, COUT_MAQUETTE, COUT_COMMANDE } from "../lib/pieces.js";
 import { recompenser, nouveauJeu } from "../lib/jeu.js";
 
+test("le client arrive à la maquette avec 330 pièces", () => {
+  let jeu = nouveauJeu({ univers: "monde-mia", avatar: { forme: "illustre", perso: "mia" }, pseudo: "Mia" });
+  jeu = recompenser(jeu, ["idee", "type", "fonctionnalites", "perso", "style", "budget", "precisions", "recap"]).jeu;
+  assert.equal(solde({ jeu }), 330);
+});
+
 test("payer la maquette puis la commande fait bien baisser les pièces", () => {
   let jeu = nouveauJeu({ univers: "monde-lou", avatar: { forme: "illustre", perso: "lou" }, pseudo: "Lou" });
   jeu = recompenser(jeu, ["idee", "type", "fonctionnalites", "style", "budget", "recap"]).jeu;
