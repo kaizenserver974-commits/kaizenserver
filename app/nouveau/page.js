@@ -15,6 +15,7 @@ import { jouerSon, arreterSon, sonDisponible, redemarrerSon } from "../../lib/so
 import {
   UNIVERS, BADGES, universPourPerso, trouverUnivers, trouverAvatar, niveau, nouveauJeu, recompenser, recit,
 } from "../../lib/jeu.js";
+import { etatMondes, peutChoisir, estOuvert, ouvrirMonde, recompenserProjetTermine } from "../../lib/progression-mondes.js";
 
 const ETAPES = ["Idée", "Type", "Fonctionnalités", "Style", "Budget & délai", "Récapitulatif", "Maquette", "Commander", "Suivi"];
 
@@ -52,6 +53,7 @@ function Parcours() {
   const [erreur, setErreur] = useState("");
   const [gain, setGain] = useState(null);
   const [lieuDebloque, setLieuDebloque] = useState(null);
+  const [mondeGagne, setMondeGagne] = useState(null);
   const [choixPerso, setChoixPerso] = useState(false);
   const [infoAchat, setInfoAchat] = useState("");
 
@@ -86,11 +88,20 @@ function Parcours() {
       // Projet existant : on reconstitue sans animation les lieux déjà atteints.
       const deduit = projet.commande ? 8 : projet.maquette ? 6 : projet.recap ? 5 : 0;
       setProjet((p) => enregistrerProjet({ ...p, etapeMax: Math.max(e, deduit) }));
+      if (projet.jeu?.actif && Math.max(e, deduit) >= 8) recompenserProjetTermine(projet.id);
     } else if (e > projet.etapeMax) {
       setProjet((p) => enregistrerProjet({ ...p, etapeMax: e }));
       if (projet.jeu?.actif) setLieuDebloque({ index: e, cle: Date.now() });
+      // Projet mené jusqu'au suivi : le monde d'un autre personnage se débloque.
+      if (projet.jeu?.actif && e >= 8 && recompenserProjetTermine(projet.id)) setMondeGagne(Date.now());
     }
   }, [projet?.id, projet?.etape]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!mondeGagne) return undefined;
+    const t = setTimeout(() => setMondeGagne(null), 7000);
+    return () => clearTimeout(t);
+  }, [mondeGagne]);
 
   useEffect(() => {
     if (!lieuDebloque) return undefined;
@@ -276,6 +287,14 @@ function Parcours() {
       </div>
 
       {gain && enJeu && <Recompense key={gain.cle} gain={gain} univers={univers} />}
+      {mondeGagne && enJeu && !lieuDebloque && (
+        <div key={mondeGagne} className="lieu-debloque monde-gagne" role="status" aria-live="polite">
+          <span>🌍 Nouveau monde débloqué</span>
+          <strong>Bravo, {projet.jeu.pseudo} !</strong>
+          <small>Votre projet est lancé. Le monde d'un autre personnage vous attend pour votre prochaine idée.</small>
+          <a className="btn petit" href="/nouveau">Choisir mon prochain monde →</a>
+        </div>
+      )}
       {lieuDebloque && enJeu && (
         <div key={lieuDebloque.cle} className="lieu-debloque" role="status" aria-live="polite">
           <span>🔓 Nouveau lieu débloqué</span>
@@ -294,6 +313,20 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
 
   const [avatar, setAvatar] = useState(typeof debut?.avatar === "object" ? debut.avatar : { forme: "illustre", perso: "kai" });
   const [pseudo, setPseudo] = useState(debut?.pseudo || (debut ? "" : "Kai"));
+  // Mondes débloqués sur cet appareil (lu après le montage : localStorage).
+  const [mondes, setMondes] = useState(null);
+  useEffect(() => {
+    const etat = etatMondes();
+    setMondes(etat);
+    // Si le personnage proposé par défaut est verrouillé, on propose le premier monde ouvert.
+    setAvatar((a) => {
+      if (a.forme !== "illustre" || peutChoisir(etat, a.perso)) return a;
+      const libre = PERSONNAGES.find((pe) => peutChoisir(etat, pe.id));
+      if (libre && (!debut?.pseudo)) setPseudo(libre.nom);
+      return libre ? { ...a, perso: libre.id } : a;
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const verrouille = (id) => Boolean(mondes) && !peutChoisir(mondes, id);
   // Ambiance sonore du monde du personnage (préférence mémorisée sur l'appareil)
   const [son, setSon] = useState(false);
   useEffect(() => { try { setSon(window.localStorage.getItem("kaizen.son") === "1"); } catch { /* stockage indisponible */ } }, []);
@@ -390,18 +423,32 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
           <p className="note">🔒 Vos coordonnées restent sur votre appareil et servent seulement si vous commandez.</p>
 
           <p className="petit-titre">Choisissez votre personnage</p>
+          {mondes && (
+            <p className="mondes-compteur">
+              🌍 <b>{mondes.debloques.length} / {PERSONNAGES.length} mondes débloqués</b>
+              {" · "}
+              {mondes.debloques.length === 0
+                ? "Choisissez votre premier monde. Les autres se débloquent à chaque projet mené jusqu'à la commande."
+                : mondes.credits > 0
+                  ? `${mondes.credits} nouveau${mondes.credits > 1 ? "x" : ""} monde${mondes.credits > 1 ? "s" : ""} à choisir !`
+                  : "Menez un projet jusqu'à la commande pour débloquer un nouveau monde."}
+            </p>
+          )}
           <div className="personnages" role="radiogroup" aria-label="Personnage">
             {PERSONNAGES.map((pe) => (
               <button
                 key={pe.id}
                 role="radio"
                 aria-checked={illustre && avatar.perso === pe.id}
-                className={`carte-perso ${illustre && avatar.perso === pe.id ? "choisie" : ""}`}
+                aria-disabled={verrouille(pe.id)}
+                title={verrouille(pe.id) ? `Monde verrouillé : menez un projet jusqu'à la commande pour le débloquer` : undefined}
+                className={`carte-perso ${illustre && avatar.perso === pe.id ? "choisie" : ""} ${verrouille(pe.id) ? "verrouillee" : ""} ${mondes && !estOuvert(mondes, pe.id) && !verrouille(pe.id) && mondes.debloques.length > 0 ? "nouveau" : ""}`}
                 style={{ "--p": pe.couleur }}
-                onClick={() => { choisirPerso(pe); if (!pseudo.trim() || PERSONNAGES.some((x) => x.nom === pseudo)) setPseudo(pe.nom); }}
+                onClick={() => { if (verrouille(pe.id)) return; choisirPerso(pe); if (!pseudo.trim() || PERSONNAGES.some((x) => x.nom === pseudo)) setPseudo(pe.nom); }}
               >
                 <img src={pe.buste} alt="" loading="lazy" />
                 <span className="etiquette">{pe.nom}</span>
+                {verrouille(pe.id) && <span className="cadenas" aria-hidden="true">🔒</span>}
               </button>
             ))}
           </div>
@@ -414,7 +461,12 @@ function ChoixPersonnage({ initial, valider, annuler, contact = {}, majContact }
           {annuler && <button className="btn secondaire" onClick={annuler}>Annuler</button>}
           <button className="btn secondaire" onClick={() => valider(null)}>Mode classique, sans jeu</button>
         </div>
-        <button className="btn grand" onClick={() => { arreterSon(); valider({ univers, avatar, pseudo }); }}>Commencer l'aventure →</button>
+        <button className="btn grand" disabled={illustre && verrouille(avatar.perso)} onClick={() => {
+          if (illustre && verrouille(avatar.perso)) return;
+          arreterSon();
+          ouvrirMonde(illustre ? avatar.perso : "kai");
+          valider({ univers, avatar, pseudo });
+        }}>Commencer l'aventure →</button>
       </div>
     </section>
   );
