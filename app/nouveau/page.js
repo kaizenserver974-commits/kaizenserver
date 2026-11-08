@@ -312,6 +312,7 @@ function Parcours() {
         // Le monde du personnage en grand : version large sur ordinateur, portrait sur téléphone.
         <div className="fond-monde" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.monde})` }} />
       )}
+      {persoJoueur?.video && <PersoAnime perso={persoJoueur} />}
       {persoJoueur?.fond && (
         // Téléphone : le personnage dans son monde, en haut du parcours (sans cadre).
         <div className="scene-mobile" aria-hidden="true" style={{ backgroundImage: `url(${persoJoueur.fond})` }}>
@@ -697,6 +698,27 @@ function TableauJoueur({ jeu, changer, recharger }) {
   );
 }
 
+// Le personnage du décor prend vie : sa vidéo joue (fondue dans le décor) pendant qu'il parle.
+function PersoAnime({ perso }) {
+  const ref = useRef(null);
+  const [parle, setParle] = useState(false);
+  useEffect(() => {
+    const ecoute = (e) => setParle(Boolean(e.detail));
+    window.addEventListener("kaizen-parle", ecoute);
+    return () => window.removeEventListener("kaizen-parle", ecoute);
+  }, []);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    if (parle) { v.play().catch(() => {}); } else { v.pause(); }
+  }, [parle]);
+  return (
+    <div className={`perso-anime ${parle ? "actif" : ""}`} aria-hidden="true">
+      <video ref={ref} src={perso.video} poster={perso.affiche} muted loop playsInline preload="auto" />
+    </div>
+  );
+}
+
 // Voix du personnage : synthèse vocale de l'appareil (iPad, téléphone, ordinateur), en français.
 function parler(texte, perso) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -719,11 +741,20 @@ function Narrateur({ jeu, etape, perso }) {
   const [voix, setVoix] = useState(false);
   const [parle, setParle] = useState(false);
   useEffect(() => { try { setVoix(localStorage.getItem("kaizen.voix") !== "0"); } catch { setVoix(true); } }, []);
+  // Prévient la scène : le personnage du décor s'anime pendant qu'il parle.
+  useEffect(() => { window.dispatchEvent(new CustomEvent("kaizen-parle", { detail: parle })); }, [parle]);
+  useEffect(() => {
+    if (voix || !texte) return undefined;
+    setParle(true);
+    const fin = setTimeout(() => setParle(false), Math.min(6000, texte.length * 55));
+    return () => clearTimeout(fin);
+  }, [texte, voix]);
   // Le personnage dit sa phrase à chaque nouvelle étape (si la voix est activée).
   useEffect(() => {
     if (!voix || !texte) return undefined;
     const t = setTimeout(() => { parler(texte, perso); setParle(true); }, 450);
     const fin = setTimeout(() => setParle(false), 450 + Math.min(9000, texte.length * 70));
+    // Sans voix (coupée) : le personnage s'anime quand même le temps de la bulle.
     return () => { clearTimeout(t); clearTimeout(fin); window.speechSynthesis?.cancel(); };
   }, [texte, voix]); // eslint-disable-line react-hooks/exhaustive-deps
   function basculer() {
