@@ -636,3 +636,13 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 
 /* Personnage détouré : pas de fondu, il se pose sur le sol de la vitrine */
 .vitrine-vivant img.detoure { -webkit-mask-image: none; mask-image: none; max-height: 100%; }
+
+/* Personnage animé (vidéo avec son propre fond néon) : remplit toute la vitrine */
+.vitrine-perso:has(.video-pleine) { inset: 0; z-index: 0; }
+.vitrine-perso:has(.video-pleine) .vitrine-vivant { animation: vitrine-entree .45s ease-out; transform: none; }
+.vitrine-vivant video.video-pleine { position: absolute; left: 0; right: 0; top: 92px; bottom: 26px; width: 100%; height: calc(100% - 118px); max-width: none; object-fit: contain; object-position: 50% 100%;
+  animation: none; rotate: none; filter: none;
+  -webkit-mask-image: radial-gradient(75% 85% at 50% 55%, #000 70%, transparent 100%); mask-image: radial-gradient(75% 85% at 50% 55%, #000 70%, transparent 100%); }
+.vitrine-perso:has(.video-pleine) .vitrine-vivant::after { display: none; }
+.vitrine:has(.video-pleine) .vitrine-sol, .vitrine:has(.video-pleine) .vitrine-particules { display: none; }
+.vitrine-banniere, .vitrine-lieu { z-index: 3; }
