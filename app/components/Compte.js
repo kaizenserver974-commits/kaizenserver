@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabaseNavigateur } from "../../lib/supabaseClient.js";
 
 // Lien d'en-tête : « Se connecter » ou « Mon espace » selon la session.
-export default function Compte() {
+export default function Compte({ libelle = "Mon espace", lien = "/espace" }) {
   const [connecte, setConnecte] = useState(false);
   useEffect(() => {
     const sb = supabaseNavigateur();
@@ -27,12 +27,13 @@ export default function Compte() {
     if (!window.confirm("Se déconnecter de KaizenServer ?")) return;
     const sb = supabaseNavigateur();
     await sb?.auth.signOut().catch(() => sb?.auth.signOut({ scope: "local" }));
+    try { localStorage.removeItem("kaizen.role"); sessionStorage.removeItem("kaizen.apercuClient"); } catch { /* stockage indisponible */ }
     window.location.href = "/";
   }
   if (!connecte) return <a href="/connexion" className="btn petit contour masque-mobile">Se connecter</a>;
   return (
     <span className="compte-entete">
-      <a href="/espace" className="btn petit contour masque-mobile">Mon espace</a>
+      <a href={lien} className="btn petit contour masque-mobile">{libelle}</a>
       <button type="button" className="btn petit secondaire bouton-deconnexion" onClick={deconnecter} title="Se déconnecter" aria-label="Se déconnecter">
         <span aria-hidden="true">⏻</span><span className="texte-deconnexion"> Se déconnecter</span>
       </button>

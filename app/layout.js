@@ -1,7 +1,7 @@
 import "./globals.css";
 import Logo from "./components/Logo.js";
 import Aide from "./components/Aide.js";
-import Compte from "./components/Compte.js";
+import { EnteteNav, NavBasse } from "./components/Navigation.js";
 
 export const metadata = {
   title: "KaizenServer — créez l'application de vos rêves",
@@ -25,16 +25,7 @@ export default function RootLayout({ children }) {
               <Logo />
               <span className="marque-texte"><strong>KAIZENSERVER</strong><small>Créez l'application de vos rêves</small></span>
             </a>
-            <nav className="entete-nav" aria-label="Navigation principale">
-              <a href="/">Accueil</a>
-              <a href="/nouveau">Commander</a>
-              <a href="/exemples">Exemples</a>
-              <a href="/ressources">Ressources</a>
-              <a href="/a-propos">À propos</a>
-              <a href="/projets">Mes projets</a>
-              <Compte />
-              <a href="/nouveau" className="btn petit btn-entete">Créer <span className="masque-mobile">mon projet</span></a>
-            </nav>
+            <EnteteNav />
           </div>
         </header>
         {children}
@@ -47,14 +38,7 @@ export default function RootLayout({ children }) {
           </nav>
         </footer>
         <Aide />
-        <nav className="nav-basse" aria-label="Navigation mobile">
-          <a href="/"><span>🏠</span>Accueil</a>
-          <a href="/nouveau" className="principal"><span>✨</span>Commander</a>
-          <a href="/projets"><span>📁</span>Projets</a>
-          <a href="/espace?onglet=messages"><span>✉️</span>Messages</a>
-          <a href="/espace?onglet=devis"><span>🧾</span>Devis</a>
-          <a href="/espace"><span>👤</span>Profil</a>
-        </nav>
+        <NavBasse />
       </body>
     </html>
   );

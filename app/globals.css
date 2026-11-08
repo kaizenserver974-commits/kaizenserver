@@ -828,3 +828,8 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .compte-entete .btn { white-space: nowrap; }
 .texte-deconnexion { display: none; }
 @media (min-width: 1440px) { .texte-deconnexion { display: inline; } }
+/* Menu de Server (maître du jeu) */
+.badge-server { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .04em; color: #1a1033; background: linear-gradient(135deg, #f5c542, #f59e0b); white-space: nowrap; }
+.nav-server a:not(.btn) { white-space: nowrap; }
+.apercu-retour { background: linear-gradient(135deg, #f5c542, #f59e0b); color: #1a1033; white-space: nowrap; }
+.entete-nav a, .entete-nav .btn { white-space: nowrap; }

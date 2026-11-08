@@ -15,6 +15,8 @@ export default function Admin() {
   const [erreur, setErreur] = useState("");
   const [choisie, setChoisie] = useState(null);
   const [filtre, setFiltre] = useState("actives");
+  // Menu « Tous les projets » : /admin?filtre=toutes
+  useEffect(() => { if (new URLSearchParams(window.location.search).get("filtre") === "toutes") setFiltre("toutes"); }, []);
 
   const charger = useCallback(async () => {
     try {
