@@ -137,6 +137,17 @@ function Parcours() {
     if (etapeCourante !== undefined) window.scrollTo({ top: 0, behavior: "smooth" });
   }, [etapeCourante]);
 
+  // Après la commande, la maquette (modifiée ou acceptée) est aussi envoyée dans l'Espace Server.
+  const genereLe = projet?.maquette?.genereLe;
+  const maquetteAcceptee = projet?.maquetteValidee === true;
+  useEffect(() => {
+    if (!projet?.commande?.cle || !projet.maquette?.html) return;
+    fetch("/api/commande/maquette", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ numero: projet.commande.numero, cle: projet.commande.cle, html: projet.maquette.html, source: projet.maquette.source, acceptee: maquetteAcceptee }),
+    }).catch(() => {});
+  }, [genereLe, maquetteAcceptee]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Retour de Mollie après un achat de pièces : on crédite une seule fois.
   const achatRetour = params.get("achat");
   useEffect(() => {
@@ -1218,7 +1229,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant, infoAchat }) {
       }
       portefeuille.fixerSolde(d.solde);
       maj({
-        commande: { numero: d.numero, date: d.date || new Date().toISOString(), formule, confirmationEnvoyee: d.confirmationEnvoyee, espaceClient: Boolean(d.espaceClient) },
+        commande: { numero: d.numero, cle: d.cleClient, date: d.date || new Date().toISOString(), formule, confirmationEnvoyee: d.confirmationEnvoyee, espaceClient: Boolean(d.espaceClient) },
         statut: ["idee", "cadrage", "maquette"].includes(projet.statut) ? "maquette" : projet.statut,
         journal: noter(projet, `Commande envoyée (n° ${d.numero}, −${COUT_COMMANDE} pièces)`),
       }, ["commande"]);

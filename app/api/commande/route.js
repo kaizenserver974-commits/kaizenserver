@@ -52,6 +52,8 @@ export async function POST(request) {
   }
 
   const numero = numeroCommande();
+  // Clé secrète remise au client : lui seul pourra ensuite mettre à jour la maquette de cette commande.
+  const cleClient = crypto.randomUUID();
   let enregistree = false;
   if (sb) {
     const { data: ligne, error } = await sb.from("kaizen_commandes").insert({
@@ -61,7 +63,7 @@ export async function POST(request) {
       telephone: commande.contact.telephone || null,
       entreprise: commande.contact.entreprise || null,
       formule: commande.formule,
-      projet: { ...commande.projet, message: commande.contact.message, pieces: commande.pieces.map((p) => p.nom) },
+      projet: { ...commande.projet, message: commande.contact.message, pieces: commande.pieces.map((p) => p.nom), cleClient, ...(commande.projet.maquetteValidee ? { maquetteAccepteeLe: new Date().toISOString() } : {}) },
       recap: commande.recap,
     }).select("id").single();
     if (error) console.error("Kaizen /commande Supabase :", error.message);
@@ -99,5 +101,5 @@ export async function POST(request) {
   const espace = sb ? `\n\nSuivez votre commande, vos devis et vos messages : ${urlSite(request)}/connexion (connectez-vous avec ${commande.contact.email}).` : "";
   const confirmationEnvoyee = await notifier({ a: commande.contact.email, sujet: commande.formule === "genie" ? `Votre demande de maquette au génie ${numero}` : `Votre commande KaizenServer ${numero}`, texte: c.texte + espace, html: c.html, repondreA: process.env.KAIZEN_EMAIL });
 
-  return NextResponse.json({ ok: true, numero, confirmationEnvoyee, espaceClient: enregistree, date: new Date().toISOString(), solde: soldeApres });
+  return NextResponse.json({ ok: true, numero, confirmationEnvoyee, espaceClient: enregistree, date: new Date().toISOString(), solde: soldeApres, ...(enregistree ? { cleClient } : {}) });
 }

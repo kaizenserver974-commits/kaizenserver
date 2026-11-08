@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PARCOURS_STATUTS, statut, montantEnLigne } from "../../lib/espace.js";
 
 export const euros = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(n);
@@ -140,7 +140,7 @@ function reduireImage(fichier) {
 
 // Maquette d'un projet, chargée à la demande et affichée dans une iframe isolée.
 // Côté Server (generer fourni) : consignes et images de référence pour l'IA.
-export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "", jeton }) {
+export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "", jeton, ouvrir = false, acceptee = false }) {
   const [copie, setCopie] = useState(false);
   const lien = jeton && typeof window !== "undefined" ? `${window.location.origin}/maquette/${jeton}` : "";
   const [html, setHtml] = useState("");
@@ -164,7 +164,10 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
     setErreur(""); setAttente("Chargement de la maquette…");
     try { setHtml(await lire()); } catch (e) { setErreur(e.message); } finally { setAttente(""); }
   }
+  // Espace Server : la maquette s'affiche directement, sans cliquer.
+  useEffect(() => { if (ouvrir && disponible) voir(); }, [ouvrir, disponible]); // eslint-disable-line react-hooks/exhaustive-deps
   async function creer() {
+    if (acceptee && !window.confirm("Le client a déjà accepté cette maquette. La remplacer par une nouvelle version ?")) return;
     setErreur(""); setAttente("L'IA dessine la maquette… (jusqu'à une minute)");
     try { await generer({ consignes, images }); setHtml(await lire()); } catch (e) { setErreur(e.message); } finally { setAttente(""); }
   }
@@ -175,9 +178,29 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
   }
   return (
     <div className="bloc-maquette">
-      {infos && <p className="note">{infos}</p>}
+      {infos && <p className={acceptee ? "succes" : "note"}>{infos}</p>}
+      <div className="actions">
+        {disponible && !html && <button className="btn petit secondaire" disabled={Boolean(attente)} onClick={voir}>🖼️ Voir la maquette</button>}
+        {disponible && lien && <a className="btn petit secondaire" href={lien} target="_blank" rel="noopener noreferrer">↗ Ouvrir en plein écran</a>}
+        {disponible && lien && <button className="btn petit secondaire" onClick={async () => { try { await navigator.clipboard.writeText(lien); setCopie(true); setTimeout(() => setCopie(false), 2000); } catch { window.prompt("Copiez ce lien :", lien); } }}>{copie ? "✅ Lien copié" : "🔗 Copier le lien"}</button>}
+        {generer && <button className="btn petit" disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Régénérer avec l'IA" : "Générer la maquette avec l'IA"}</button>}
+        {html && (
+          <>
+            <button className={`btn petit ${format === "bureau" ? "" : "secondaire"}`} onClick={() => setFormat("bureau")}>Ordinateur</button>
+            <button className={`btn petit ${format === "mobile" ? "" : "secondaire"}`} onClick={() => setFormat("mobile")}>Téléphone</button>
+            <button className="btn petit secondaire" onClick={telecharger}>Télécharger</button>
+          </>
+        )}
+      </div>
+      {attente && <div className="chargement"><span className="rond" /> {attente}</div>}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+      {html && (
+        <div className={`cadre-maquette ${format}`}>
+          <iframe title="Maquette" sandbox="allow-scripts allow-modals" srcDoc={html} />
+        </div>
+      )}
       {generer && (
-        <div className="consignes-ia">
+        <div className="consignes-ia" style={{ marginTop: 16 }}>
           <label className="champ" style={{ marginTop: 0 }}>
             <span>✍️ Consignes pour l'IA</span>
             <textarea rows={4} maxLength={2000} value={consignes} onChange={(e) => setConsignes(e.target.value)} placeholder="Décrivez l'application et ce que vous voulez voir : écrans, couleurs, ambiance, exemple : « Application de réservation de cours de yoga, tons verts apaisants, écran d'accueil avec les prochains cours… »" />
@@ -198,26 +221,6 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
             )}
           </div>
           <p className="note">Captures d'écran, croquis, applications que vous aimez : l'IA s'en inspire (mise en page, couleurs, ambiance). Les images servent seulement à la génération et ne sont pas enregistrées.</p>
-        </div>
-      )}
-      <div className="actions">
-        {disponible && !html && <button className="btn petit secondaire" disabled={Boolean(attente)} onClick={voir}>🖼️ Voir la maquette</button>}
-        {disponible && lien && <a className="btn petit secondaire" href={lien} target="_blank" rel="noopener noreferrer">↗ Ouvrir en plein écran</a>}
-        {disponible && lien && <button className="btn petit secondaire" onClick={async () => { try { await navigator.clipboard.writeText(lien); setCopie(true); setTimeout(() => setCopie(false), 2000); } catch { window.prompt("Copiez ce lien :", lien); } }}>{copie ? "✅ Lien copié" : "🔗 Copier le lien"}</button>}
-        {generer && <button className="btn petit" disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Régénérer avec l'IA" : "Générer la maquette avec l'IA"}</button>}
-        {html && (
-          <>
-            <button className={`btn petit ${format === "bureau" ? "" : "secondaire"}`} onClick={() => setFormat("bureau")}>Ordinateur</button>
-            <button className={`btn petit ${format === "mobile" ? "" : "secondaire"}`} onClick={() => setFormat("mobile")}>Téléphone</button>
-            <button className="btn petit secondaire" onClick={telecharger}>Télécharger</button>
-          </>
-        )}
-      </div>
-      {attente && <div className="chargement"><span className="rond" /> {attente}</div>}
-      {erreur && <p className="alerte erreur">{erreur}</p>}
-      {html && (
-        <div className={`cadre-maquette ${format}`}>
-          <iframe title="Maquette" sandbox="allow-scripts allow-modals" srcDoc={html} />
         </div>
       )}
     </div>
