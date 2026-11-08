@@ -117,12 +117,14 @@ export async function POST(request) {
       // Une description trop courte est remplacée par les consignes saisies par Server.
       const idee = ideeActuelle.length >= 10 ? ideeActuelle : consignes;
       const projet = nettoyerProjet({ ...(commande.projet || {}), idee, nom: commande.recap?.titre || commande.projet?.nom });
-      if (projet.idee.trim().length < 10) return refus("Décrivez le projet en une phrase au moins (zone « Consignes pour l'IA ») pour générer la maquette.", 400);
+      if (projet.idee.trim().length < 10) return refus("Décrivez le projet en une phrase au moins (zone « Vos améliorations visuelles ») pour générer la maquette.", 400);
       if (idee !== ideeActuelle) await sb.from("kaizen_commandes").update({ projet: { ...(commande.projet || {}), idee } }).eq("id", commande.id);
       // Récapitulatif instantané (moteur de règles) pour rester sous la limite de temps :
       // l'IA est réservée à la maquette, qui reçoit aussi les consignes et les images.
       const recap = commande.recap?.ecrans?.length ? commande.recap : recapitulatifSecours(projet, estimer(projet));
-      const { html, source, raison } = await genererMaquette(projet, recap, { consignes, images });
+      // Option : Server améliore la maquette actuelle du client au lieu de repartir de zéro.
+      const base = corps.partirDeLaMaquette ? (await lireMaquette(sb, commande.id))?.html || "" : "";
+      const { html, source, raison } = await genererMaquette(projet, recap, { consignes, images, auteur: "server", base });
       await enregistrerMaquette(sb, commande.id, html, source);
       if (recap !== commande.recap) await sb.from("kaizen_commandes").update({ recap: { ...recap, titre: commande.recap?.titre || recap.titre || projet.nom } }).eq("id", commande.id);
       return NextResponse.json({ ok: true, source, raison });

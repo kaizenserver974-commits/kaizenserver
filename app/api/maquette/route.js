@@ -43,16 +43,13 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Le paiement en pièces d'or est indisponible pour le moment." }, { status: 500 });
   }
 
-  // Même IA et mêmes possibilités que Server : consignes + images de référence.
+  // Tout le dossier du client est transmis par genererMaquette ; ici ses consignes et sa demande de modification.
   const consignes = [
-    consignesClient && `Consignes du client pour sa maquette : ${consignesClient}`,
-    projet.inspirations && `Inspirations citées par le client : ${projet.inspirations}`,
-    projet.precisions && `Précisions du client : ${projet.precisions}`,
-    projet.publicCible && `Public visé : ${projet.publicCible}`,
-    retour && `Le client demande ces modifications de la maquette précédente (prioritaire) : ${retour}`,
+    consignesClient,
+    retour && `Modifications demandées sur la maquette précédente (prioritaires) : ${retour}`,
   ].filter(Boolean).join("\n");
 
-  const resultat = await genererMaquette(projet, recap, { consignes, images });
+  const resultat = await genererMaquette(projet, recap, { consignes, images, auteur: "client" });
   // L'IA n'a pas répondu (maquette de secours) : le client est remboursé.
   if (resultat.source !== "ia") solde = await rembourser(sb, cleBourse, cout, motif).catch(() => solde);
   return NextResponse.json({ ...resultat, rembourse: resultat.source !== "ia", solde });

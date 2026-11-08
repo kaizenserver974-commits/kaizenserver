@@ -177,6 +177,7 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
   const [erreur, setErreur] = useState("");
   const [format, setFormat] = useState("bureau");
   const [consignes, setConsignes] = useState(consignesInitiales);
+  const [partir, setPartir] = useState(true);
   const [images, setImages] = useState([]);
   async function ajouterImages(liste) {
     setErreur("");
@@ -199,7 +200,7 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
     if (acceptee && !window.confirm("Le client a déjà accepté cette maquette. La remplacer par une nouvelle version ?")) return;
     setErreur(""); setAttente("L'IA dessine la maquette… (1 à 3 minutes, surtout avec des images)");
     try {
-      const r = await generer({ consignes, images });
+      const r = await generer({ consignes, images, partir: disponible && partir });
       setHtml(await lire());
       if (r?.source && r.source !== "ia") setErreur(`L'IA n'a pas abouti (${r.raison || "pas de réponse"}) : c'est le modèle simple qui s'affiche. Réessayez.`);
     } catch (e) { setErreur(e.message); } finally { setAttente(""); }
@@ -216,7 +217,7 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
         {disponible && !html && <button className="btn petit secondaire" disabled={Boolean(attente)} onClick={voir}>🖼️ Voir la maquette</button>}
         {disponible && lien && <a className="btn petit secondaire" href={lien} target="_blank" rel="noopener noreferrer">↗ Ouvrir en plein écran</a>}
         {disponible && lien && <button className="btn petit secondaire" onClick={async () => { try { await navigator.clipboard.writeText(lien); setCopie(true); setTimeout(() => setCopie(false), 2000); } catch { window.prompt("Copiez ce lien :", lien); } }}>{copie ? "✅ Lien copié" : "🔗 Copier le lien"}</button>}
-        {generer && <button className="btn petit" disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Régénérer avec l'IA" : "Générer la maquette avec l'IA"}</button>}
+        {generer && <button className="btn petit" disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Améliorer avec mes consignes" : "Générer la maquette"}</button>}
         {html && (
           <>
             <button className={`btn petit ${format === "bureau" ? "" : "secondaire"}`} onClick={() => setFormat("bureau")}>Ordinateur</button>
@@ -235,8 +236,8 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
       {generer && (
         <div className="consignes-ia" style={{ marginTop: 16 }}>
           <label className="champ" style={{ marginTop: 0 }}>
-            <span>✍️ Consignes pour l'IA</span>
-            <textarea rows={4} maxLength={2000} value={consignes} onChange={(e) => setConsignes(e.target.value)} placeholder="Décrivez l'application et ce que vous voulez voir : écrans, couleurs, ambiance, exemple : « Application de réservation de cours de yoga, tons verts apaisants, écran d'accueil avec les prochains cours… »" />
+            <span>✍️ Vos améliorations visuelles <small className="discret">(prioritaires sur tout le reste)</small></span>
+            <textarea rows={4} maxLength={2000} value={consignes} onChange={(e) => setConsignes(e.target.value)} placeholder="Votre côté visuel : couleurs, ambiance, mise en page, écrans à soigner… Ex. : « thème sombre premium, accents verts, grandes cartes arrondies, barre de menu en bas ». L'IA reprend déjà tout ce que le client a renseigné." />
           </label>
           <div className="images-ref">
             {images.map((src, i) => (
@@ -254,6 +255,12 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
             )}
           </div>
           <p className="note">Captures d'écran, croquis, applications que vous aimez : l'IA s'en inspire (mise en page, couleurs, ambiance). Les images servent seulement à la génération et ne sont pas enregistrées.</p>
+          {disponible && (
+            <label className="case" style={{ marginTop: 8 }}>
+              <input type="checkbox" checked={partir} onChange={(e) => setPartir(e.target.checked)} />
+              <span>Partir de la maquette actuelle (garder ses écrans et son contenu, appliquer mes améliorations)</span>
+            </label>
+          )}
         </div>
       )}
     </div>
