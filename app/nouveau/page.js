@@ -7,7 +7,7 @@ import {
   trouver, fonctionnalite,
 } from "../../lib/catalogue.js";
 import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
-import { solde, debiter, crediter, PACKS, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, prixTexte } from "../../lib/pieces.js";
+import { solde, debiter, crediter, PACKS, bonusPack, meilleurPack, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, prixTexte } from "../../lib/pieces.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
 import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
@@ -521,14 +521,15 @@ function FenetreRecharge({ projet, fermer }) {
           <h2>🪙 Acheter des pièces d'or</h2>
           <button className="btn petit secondaire" onClick={fermer} aria-label="Fermer">✕</button>
         </div>
-        <p className="discret">Vous avez <b>{solde(projet)}</b> pièces d'or.</p>
-        <ul className="tarifs-pieces">
-          <li>✨ Maquette instantanée par Kaizen : <b>{COUT_MAQUETTE}</b></li>
-          <li>🧞 Maquette sur mesure par le génie Server : <b>{COUT_GENIE}</b></li>
-          <li>✏️ Chaque modification de maquette : <b>{COUT_MODIFICATION}</b></li>
-          <li>📨 Envoi de la commande : <b>{COUT_COMMANDE}</b></li>
-        </ul>
+        <p className="discret">Vous avez <b>🪙 {solde(projet)}</b> pièces d'or.</p>
         <Recharge projet={projet} cout={0} monnaie="pièces d'or" />
+        <p className="petit-titre">À quoi servent les pièces d'or ?</p>
+        <ul className="tarifs-pieces">
+          <li>✨ Maquette instantanée <b>🪙 {COUT_MAQUETTE}</b></li>
+          <li>🧞 Maquette du génie Server <b>🪙 {COUT_GENIE}</b></li>
+          <li>✏️ Modification de maquette <b>🪙 {COUT_MODIFICATION}</b></li>
+          <li>📨 Envoi de la commande <b>🪙 {COUT_COMMANDE}</b></li>
+        </ul>
       </div>
     </div>
   );
@@ -1250,20 +1251,60 @@ function Recharge({ projet, cout, motif, monnaie }) {
     } catch (e) { setErreur(e.message); setAchat(""); }
   }
   const manque = Math.max(0, cout - solde(projet));
+  const meilleur = meilleurPack().id;
   return (
-    <div className="recharge">
-      {cout > 0 && <p><b>Plus assez de {monnaie} :</b> {motif} coûte {cout}. Il vous en manque {manque}. Rechargez pour continuer.</p>}
-      <div className="packs">
-        {PACKS.map((pk) => (
-          <button key={pk.id} className="pack" disabled={Boolean(achat)} onClick={() => acheter(pk.id)}>
-            <strong>🪙 {pk.pieces}</strong><span>{prixTexte(pk.prix)}</span>
-            {achat === pk.id && <small>Redirection…</small>}
-          </button>
-        ))}
+    <div className="boutique-or">
+      {cout > 0 && <p className="boutique-manque"><b>Plus assez de {monnaie} :</b> {motif} coûte {cout}. Il vous en manque {manque}.</p>}
+      <div className="boutique-panneau">
+        <div className="boutique-ruban"><span>Pièces d'or</span></div>
+        <div className="boutique-grille">
+          {PACKS.map((pk, i) => {
+            const bonus = bonusPack(pk);
+            return (
+              <button key={pk.id} className="offre-or" disabled={Boolean(achat)} onClick={() => acheter(pk.id)} aria-label={`${pk.pieces} pièces d'or pour ${prixTexte(pk.prix)}`}>
+                {bonus > 0 && <span className="offre-bonus">+{bonus} %</span>}
+                {pk.id === meilleur && <span className="offre-affaire">Bonne affaire !</span>}
+                <PileOr niveau={i} />
+                <span className="offre-quantite">🪙 {pk.pieces.toLocaleString("fr-FR")}</span>
+                <span className="offre-prix">{achat === pk.id ? "Redirection…" : prixTexte(pk.prix)}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
       <p className="note">🔒 Paiement sécurisé par Mollie. Les pièces sont ajoutées dès votre retour sur cette page.</p>
       {erreur && <p className="alerte erreur">{erreur}</p>}
     </div>
+  );
+}
+
+// Tas de pièces d'or dessiné : plus le pack est gros, plus le tas est haut.
+function PileOr({ niveau = 0 }) {
+  const rangs = niveau + 2; // 2 à 7 rangées
+  const r = Math.max(7, 15 - niveau * 1.4); // rayon des pièces
+  const pieces = [];
+  for (let rang = 0; rang < rangs; rang++) {
+    const n = rangs - rang;
+    const y = 74 - rang * r * 0.95;
+    for (let k = 0; k < n; k++) pieces.push({ x: 60 + (k - (n - 1) / 2) * r * 1.85, y, cle: `${rang}-${k}` });
+  }
+  return (
+    <svg className="pile-or" viewBox="0 0 120 90" aria-hidden="true">
+      <defs>
+        <linearGradient id="orFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff3a8" /><stop offset=".55" stopColor="#f7c43c" /><stop offset="1" stopColor="#d18a12" /></linearGradient>
+        <linearGradient id="orTranche" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#c27c0e" /><stop offset="1" stopColor="#8a5206" /></linearGradient>
+      </defs>
+      <ellipse cx="60" cy="82" rx={20 + niveau * 7} ry="5" fill="#000" opacity=".18" />
+      {pieces.map((p) => (
+        <g key={p.cle}>
+          <ellipse cx={p.x} cy={p.y + r * 0.32} rx={r} ry={r * 0.5} fill="url(#orTranche)" />
+          <ellipse cx={p.x} cy={p.y} rx={r} ry={r * 0.5} fill="url(#orFace)" stroke="#b9760c" strokeWidth=".8" />
+          <ellipse cx={p.x} cy={p.y} rx={r * 0.62} ry={r * 0.3} fill="none" stroke="#fff6c2" strokeWidth=".9" opacity=".8" />
+        </g>
+      ))}
+      {niveau >= 3 && <path d="M96 18 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#f7c43c" opacity=".95" />}
+      {niveau >= 5 && <path d="M22 30 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5 -4 -4 -1.5 4 -1.5z" fill="#f7c43c" opacity=".9" />}
+    </svg>
   );
 }
 

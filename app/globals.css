@@ -557,10 +557,6 @@ textarea { resize: vertical; margin-top: 10px; }
 .solde { font-weight: 800; color: #f5c542; background: rgba(245, 197, 66, 0.12); border-radius: 999px; padding: 4px 12px; box-shadow: inset 0 0 0 1px rgba(245, 197, 66, 0.4); }
 .recharge { padding: 12px; border-radius: 14px; background: rgba(245, 197, 66, 0.08); box-shadow: inset 0 0 0 1px rgba(245, 197, 66, 0.35); }
 .recharge p { margin: 0 0 8px; }
-.packs { display: flex; flex-wrap: wrap; gap: 10px; }
-.pack { display: grid; justify-items: center; gap: 2px; min-width: 110px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(245, 197, 66, 0.5); background: rgba(12, 13, 42, 0.8); color: #fff; }
-.pack strong { font-size: 20px; color: #f5c542; }
-.pack:hover:not(:disabled) { box-shadow: 0 0 18px rgba(245, 197, 66, 0.35); }
 .historique-retours ul, .retours-admin { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
 .historique-retours time { color: var(--discret); margin-right: 6px; }
 
@@ -766,10 +762,14 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 
 /* Fenêtre d'achat de pièces */
 .fenetre-fond { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(4, 4, 18, 0.7); backdrop-filter: blur(6px); }
-.fenetre { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
+.fenetre { width: min(720px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
 .fenetre h2 { margin: 0; }
-.tarifs-pieces { list-style: none; padding: 0; margin: 10px 0 16px; display: grid; gap: 6px; font-size: 14px; }
-.tarifs-pieces li { padding: 8px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--ligne); }
+.tarifs-pieces { list-style: none; padding: 0; margin: 6px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; font-size: 13px; }
+.tarifs-pieces li { display: flex; justify-content: space-between; gap: 6px; padding: 7px 10px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--ligne); }
+.tarifs-pieces b { white-space: nowrap; color: #fde68a; }
+.fenetre .titre-ligne { flex-wrap: nowrap; align-items: center; }
+.fenetre .titre-ligne h2 { font-size: clamp(18px, 5vw, 26px); }
+@media (max-width: 480px) { .tarifs-pieces { grid-template-columns: 1fr; } .fenetre { padding: 16px 12px; } }
 
 /* Choix de la maquette : instantanée ou génie */
 .choix-maquette { margin: 24px 0 8px; padding-top: 18px; border-top: 1px solid var(--ligne); }
@@ -789,3 +789,26 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .formulaire-genie { display: grid; gap: 4px; }
 .formulaire-genie .actions { margin-top: 10px; justify-content: flex-end; }
 @media (max-width: 700px) { .options-maquette { grid-template-columns: 1fr; } }
+
+/* Boutique de pièces d'or, style jeu mobile */
+.boutique-or { margin-top: 6px; }
+.boutique-manque { margin: 0 0 10px; }
+.boutique-panneau { position: relative; padding: 34px 14px 16px; margin-top: 18px; border-radius: 22px; background: #fdf3df; box-shadow: inset 0 0 0 3px #e9d3a8, 0 10px 30px rgba(0, 0, 0, 0.35); }
+.boutique-ruban { position: absolute; left: 0; right: 0; top: -16px; display: flex; justify-content: center; }
+.boutique-ruban span { padding: 8px 40px; border-radius: 14px; background: linear-gradient(180deg, #7fc2ff, #3d8fe6); color: #fff; font-family: var(--titre); font-weight: 800; font-size: 20px; letter-spacing: .02em; text-shadow: 0 2px 0 #2a6cb8; box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.25); }
+.boutique-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.offre-or { position: relative; display: grid; justify-items: center; gap: 6px; padding: 10px 8px 10px; border: 0; border-radius: 18px; background: linear-gradient(180deg, #ffffff, #f6efe4); box-shadow: inset 0 0 0 3px #a9cdf3, 0 4px 0 #8fb6df; cursor: pointer; color: #3a2a10; transition: transform .12s; }
+.offre-or:hover:not(:disabled) { transform: translateY(-2px); }
+.offre-or:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 0 3px #a9cdf3, 0 1px 0 #8fb6df; }
+.offre-or:disabled { opacity: .7; cursor: wait; }
+.pile-or { width: 100%; max-width: 130px; height: auto; }
+.offre-quantite { width: 100%; padding: 3px 6px; border-radius: 10px; background: #dcdcdc; color: #3b3b4a; font-weight: 800; font-size: 16px; text-align: center; }
+.offre-prix { width: 100%; padding: 8px 4px; border-radius: 12px; background: linear-gradient(180deg, #5fdc5a, #2fae2c); color: #fff; font-family: var(--titre); font-weight: 800; font-size: 19px; text-align: center; text-shadow: 0 2px 0 #1f7d1d; box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18), 0 3px 0 #1f7d1d; }
+.offre-bonus { position: absolute; top: -8px; right: -6px; z-index: 1; padding: 4px 8px; border-radius: 999px; background: linear-gradient(180deg, #ff8fb0, #e8457a); color: #fff; font-weight: 800; font-size: 12px; box-shadow: 0 0 0 3px #fff, 0 3px 6px rgba(0, 0, 0, 0.25); }
+.offre-affaire { position: absolute; top: 4px; left: -8px; z-index: 1; padding: 4px 8px; border-radius: 12px; background: #f6c9f0; color: #7a1f72; font-weight: 800; font-size: 11px; transform: rotate(-14deg); box-shadow: 0 0 0 2px #fff, 0 3px 6px rgba(0, 0, 0, 0.2); }
+@media (max-width: 480px) {
+  .boutique-panneau { padding: 30px 8px 12px; }
+  .boutique-grille { gap: 8px; }
+  .offre-quantite { font-size: 13px; }
+  .offre-prix { font-size: 15px; padding: 6px 2px; }
+}
