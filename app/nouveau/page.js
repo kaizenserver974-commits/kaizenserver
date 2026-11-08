@@ -256,14 +256,10 @@ function Parcours() {
       style={enJeu ? { "--jeu": univers.couleur, "--jeu-clair": univers.clair } : undefined}
     >
       {persoMonde?.monde && (
-        <div className="fond-monde" aria-hidden="true" style={{ backgroundImage: `url(${persoMonde.monde})` }} />
+        // Le monde du personnage en grand : version large sur ordinateur, portrait sur téléphone.
+        <div className="fond-monde" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.monde})` }} />
       )}
-      {persoJoueur?.monde && (
-        <aside className="perso-monde" aria-hidden="true">
-          <img src={persoJoueur.monde} alt="" />
-          <span className="perso-monde-lieu">{univers.icone} {univers.niveaux[etape]}</span>
-        </aside>
-      )}
+      {persoJoueur?.monde && <div className="place-perso" aria-hidden="true" />}
       {enJeu
         ? <TableauJoueur jeu={projet.jeu} pieces={solde(projet)} changer={() => setChoixPerso(true)} />
         : <p className="mode-classique">Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></p>}

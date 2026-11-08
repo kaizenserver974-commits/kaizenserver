@@ -729,18 +729,21 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .monde-gagne { pointer-events: auto; gap: 6px; }
 .monde-gagne .btn { margin-top: 6px; }
 
-/* Décor du monde du personnage pendant tout le parcours */
-.fond-monde { position: fixed; inset: -40px; z-index: -1; pointer-events: none; background-size: cover; background-position: center 30%; filter: blur(7px) saturate(1.15) brightness(0.72); transform: scale(1.04); }
-.fond-monde::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(6, 6, 26, 0.55), rgba(6, 6, 26, 0.25) 60%, rgba(6, 6, 26, 0.1)); }
-.avec-monde .carte, .avec-monde .joueur, .avec-monde .carte-monde button { background: rgba(14, 16, 50, 0.72); backdrop-filter: blur(12px); }
-.avec-monde .carte { box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 35%, transparent), 0 20px 60px rgba(0, 0, 0, 0.35); }
-.avec-monde .bulle { background: rgba(14, 16, 50, 0.8); }
-.perso-monde { display: none; }
+/* Décor du monde du personnage pendant tout le parcours : l'univers en grand, sans cadre */
+.fond-monde { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: var(--fond-portrait); background-size: cover; background-position: center top; filter: brightness(0.6) saturate(1.1); }
+.fond-monde::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6, 6, 26, 0.35), rgba(6, 6, 26, 0.15) 40%, rgba(6, 6, 26, 0.45)); }
+.avec-monde .carte, .avec-monde .joueur, .avec-monde .carte-monde button { background: rgba(12, 14, 46, 0.62); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.avec-monde .carte { box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 45%, transparent), 0 20px 60px rgba(0, 0, 0, 0.3); }
+.avec-monde .bulle { background: rgba(12, 14, 46, 0.72); backdrop-filter: blur(10px); }
+.avec-monde .carte-monde .verrouille button { opacity: 0.7; }
+.place-perso { display: none; }
+@media (min-width: 900px) {
+  .fond-monde { top: 70px; background-image: var(--fond-large); background-size: auto 100%; background-position: right bottom; background-repeat: no-repeat; background-color: #0b0c2a; filter: saturate(1.1); }
+  .fond-monde::after { background: linear-gradient(90deg, rgba(6, 6, 26, 0.5), rgba(6, 6, 26, 0.2) 55%, transparent 75%), linear-gradient(180deg, rgba(6, 6, 26, 0.45), transparent 18%); }
+}
 @media (min-width: 1180px) {
-  .page.avec-perso { width: min(1480px, calc(100% - 48px)); display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 28px; align-items: start; }
+  /* Une place libre à droite : le personnage reste visible dans son monde. */
+  .page.avec-perso { width: min(1480px, calc(100% - 48px)); display: grid; grid-template-columns: minmax(0, 1fr) 380px; column-gap: 28px; align-items: start; }
   .page.avec-perso > * { grid-column: 1; }
-  .page.avec-perso > .fond-monde { grid-column: auto; }
-  .page.avec-perso > .perso-monde { display: block; grid-column: 2; grid-row: 1 / span 30; position: sticky; top: 92px; border-radius: 26px; overflow: hidden; box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 55%, transparent), 0 0 50px color-mix(in srgb, var(--jeu) 30%, transparent); }
-  .perso-monde img { display: block; width: 100%; height: auto; max-height: calc(100vh - 120px); object-fit: cover; object-position: top center; }
-  .perso-monde-lieu { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 8px 12px; border-radius: 999px; text-align: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(6, 6, 26, 0.72); backdrop-filter: blur(8px); box-shadow: 0 0 0 1px color-mix(in srgb, var(--jeu) 50%, transparent); }
+  .page.avec-perso > .place-perso { display: block; grid-column: 2; grid-row: 1; }
 }
