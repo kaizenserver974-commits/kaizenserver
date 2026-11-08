@@ -1,0 +1,336 @@
+PHRASES DES PERSONNAGES — KAIZENSERVER
+═══════════════════════════════════════════════════════════
+
+À FAIRE : 9 vidéos par personnage (une par étape) → 90 vidéos.
+
+CONSEILS POUR LES VIDÉOS
+• Le personnage face caméra, en entier ou à mi-corps, qui DIT la phrase (la bouche bouge).
+• Le même décor que l'image de son monde (pour que la vidéo se fonde dans le fond).
+• Format vertical (portrait), comme les vidéos actuelles (576 × 876 ou 1080 × 1640).
+• Avec le son (la voix du personnage) : il remplacera la voix automatique de l'appareil.
+• Durée : la phrase + 1 seconde de silence à la fin (environ 4 à 9 secondes).
+• Nom de fichier : <personnage>-<numéro de l'étape>.mp4  (ex. axel-1.mp4 … axel-9.mp4)
+
+Les phrases ci-dessous ne contiennent pas le prénom du joueur (il peut le changer) :
+la vidéo reste valable pour tout le monde.
+
+══════════════════════════════════════
+KAI — 🌃 Néo-Kaizen City
+══════════════════════════════════════
+
+kai-1.mp4 · Étape 1 (Idée) — lieu : Le toit de la tour
+« Bienvenue sur le toit de la tour ! D'ici, on voit toute la ville. Quelle idée veux-tu y faire briller ? »
+
+kai-2.mp4 · Étape 2 (Type) — lieu : Le carrefour néon
+« Te voilà au carrefour néon. Quelle direction va prendre ton application ? »
+
+kai-3.mp4 · Étape 3 (Fonctionnalités) — lieu : L'armurerie tech
+« L'armurerie tech est ouverte : équipe ton application avec les fonctions dont elle a besoin. »
+
+kai-4.mp4 · Étape 4 (Style) — lieu : L'atelier holo
+« À l'atelier holo, on donne à ton projet son nom et ses couleurs néon. »
+
+kai-5.mp4 · Étape 5 (Budget & délai) — lieu : La banque centrale
+« Direction la banque centrale : quel budget et quel délai pour ton projet ? »
+
+kai-6.mp4 · Étape 6 (Récapitulatif) — lieu : Les archives de la ville
+« Les archives de la ville ont enregistré tout ton projet. Vérifie le dossier. »
+
+kai-7.mp4 · Étape 7 (Maquette) — lieu : Le labo de prototypes
+« Le labo de prototypes a assemblé ta maquette. Essaie-la ! »
+
+kai-8.mp4 · Étape 8 (Commander) — lieu : La tour de contrôle
+« Tour de contrôle : passe ta commande. Server, le maître du jeu, te donnera le tarif, le délai et ses conseils. »
+
+kai-9.mp4 · Étape 9 (Suivi) — lieu : La ville illuminée
+« La ville s'illumine pour ton projet. Server te guide depuis ton espace jusqu'au lancement. »
+
+
+══════════════════════════════════════
+MIA — 🏝️ Lagon des lucioles
+══════════════════════════════════════
+
+mia-1.mp4 · Étape 1 (Idée) — lieu : La plage
+« Bienvenue sur la plage du lagon ! Les vagues apportent les idées : raconte-moi la tienne. »
+
+mia-2.mp4 · Étape 2 (Type) — lieu : Le récif
+« Au récif, plusieurs passages s'ouvrent. Quel type d'application veux-tu créer ? »
+
+mia-3.mp4 · Étape 3 (Fonctionnalités) — lieu : Le marché des coquillages
+« Au marché des coquillages, choisis les fonctions à emporter. Pas trop lourd pour la pirogue ! »
+
+mia-4.mp4 · Étape 4 (Style) — lieu : L'atelier des couleurs
+« L'atelier des couleurs t'attend : donne un nom et une ambiance à ton projet. »
+
+mia-5.mp4 · Étape 5 (Budget & délai) — lieu : Le coffre aux perles
+« Ouvrons le coffre aux perles : quel budget et quel délai pour ce voyage ? »
+
+mia-6.mp4 · Étape 6 (Récapitulatif) — lieu : Le carnet de bord
+« Le carnet de bord est prêt : tout ton projet y est écrit. Relis-le bien. »
+
+mia-7.mp4 · Étape 7 (Maquette) — lieu : La pirogue prototype
+« Voici la pirogue prototype : ta maquette ! Monte à bord pour l'essayer. »
+
+mia-8.mp4 · Étape 8 (Commander) — lieu : Le phare
+« Le phare guide ta commande. Server, le maître du jeu, te dira le tarif, le délai et te conseillera. »
+
+mia-9.mp4 · Étape 9 (Suivi) — lieu : L'île lumineuse
+« Cap sur l'île lumineuse ! Server suit ton projet depuis ton espace. »
+
+
+══════════════════════════════════════
+LÉO — 🌀 Portail des mondes
+══════════════════════════════════════
+
+leo-1.mp4 · Étape 1 (Idée) — lieu : Le seuil du portail
+« Le portail s'ouvre. De l'autre côté, ton idée peut devenir réelle. Laquelle ? »
+
+leo-2.mp4 · Étape 2 (Type) — lieu : Les mondes possibles
+« Derrière le portail, plusieurs mondes sont possibles. Lequel sera ton application ? »
+
+leo-3.mp4 · Étape 3 (Fonctionnalités) — lieu : L'arsenal stellaire
+« L'arsenal stellaire contient toutes les fonctions. Choisis les plus utiles. »
+
+leo-4.mp4 · Étape 4 (Style) — lieu : La forge des emblèmes
+« À la forge des emblèmes, on grave le nom et les couleurs de ton monde. »
+
+leo-5.mp4 · Étape 5 (Budget & délai) — lieu : La réserve d'énergie
+« La réserve d'énergie : combien de budget et de temps pour ouvrir ce monde ? »
+
+leo-6.mp4 · Étape 6 (Récapitulatif) — lieu : Le grimoire cosmique
+« Le grimoire cosmique a consigné tout ton projet. Lis-le attentivement. »
+
+leo-7.mp4 · Étape 7 (Maquette) — lieu : La matérialisation
+« Matérialisation en cours… voici ta maquette ! Explore-la. »
+
+leo-8.mp4 · Étape 8 (Commander) — lieu : Le conseil des portails
+« Le conseil des portails reçoit ta commande. Server, le maître du jeu, fixera le tarif, le délai et te conseillera. »
+
+leo-9.mp4 · Étape 9 (Suivi) — lieu : Le nouveau monde
+« Ton nouveau monde prend forme. Server t'accompagne depuis ton espace. »
+
+
+══════════════════════════════════════
+MALIK — 🎧 Tournée Studio
+══════════════════════════════════════
+
+malik-1.mp4 · Étape 1 (Idée) — lieu : La cabine d'écoute
+« Bienvenue au studio ! Chaque tube commence par une idée. Fais-moi écouter la tienne. »
+
+malik-2.mp4 · Étape 2 (Type) — lieu : Le choix du style
+« Quel style pour ton projet ? Choisis le type d'application, comme un genre musical. »
+
+malik-3.mp4 · Étape 3 (Fonctionnalités) — lieu : La table de mixage
+« À la table de mixage, on règle les fonctions de ton application, piste par piste. »
+
+malik-4.mp4 · Étape 4 (Style) — lieu : La pochette de l'album
+« C'est l'heure de la pochette : nom, couleurs et ambiance de ton projet. »
+
+malik-5.mp4 · Étape 5 (Budget & délai) — lieu : Le contrat
+« Parlons contrat : quel budget et quel délai pour la production ? »
+
+malik-6.mp4 · Étape 6 (Récapitulatif) — lieu : La partition
+« La partition est écrite : voici tout ton projet. Vérifie chaque note. »
+
+malik-7.mp4 · Étape 7 (Maquette) — lieu : La maquette sonore
+« Écoute la maquette sonore… pardon, la maquette de ton application ! »
+
+malik-8.mp4 · Étape 8 (Commander) — lieu : La maison de disques
+« La maison de disques attend ta commande. Server, le maître du jeu, te donnera le tarif, le délai et ses conseils. »
+
+malik-9.mp4 · Étape 9 (Suivi) — lieu : La tournée
+« En route pour la tournée ! Server suit ton projet depuis ton espace. »
+
+
+══════════════════════════════════════
+TÉO — 🛹 Skatepark Légende
+══════════════════════════════════════
+
+teo-1.mp4 · Étape 1 (Idée) — lieu : L'entrée du park
+« Yo bienvenue au skatepark ! Balance ton idée, on va en faire un super trick. »
+
+teo-2.mp4 · Étape 2 (Type) — lieu : Le choix des rampes
+« Quelle rampe tu prends ? Choisis le type de ton application. »
+
+teo-3.mp4 · Étape 3 (Fonctionnalités) — lieu : Le shop de matos
+« Au shop de matos, prends les fonctions dont ton application a besoin. »
+
+teo-4.mp4 · Étape 4 (Style) — lieu : Le graffiti
+« Le mur de graffiti est à toi : nom, couleurs et style de ton projet. »
+
+teo-5.mp4 · Étape 5 (Budget & délai) — lieu : La cagnotte du crew
+« La cagnotte du crew : quel budget et quel délai pour ton projet ? »
+
+teo-6.mp4 · Étape 6 (Récapitulatif) — lieu : Le carnet de tricks
+« Le carnet de tricks est rempli : voilà tout ton projet. Check-le. »
+
+teo-7.mp4 · Étape 7 (Maquette) — lieu : Le premier ride
+« Premier ride sur ta maquette ! Teste-la à fond. »
+
+teo-8.mp4 · Étape 8 (Commander) — lieu : Le grand contest
+« C'est le grand contest : passe ta commande. Server, le maître du jeu, te donnera le tarif, le délai et ses conseils. »
+
+teo-9.mp4 · Étape 9 (Suivi) — lieu : La légende du park
+« Tu deviens une légende du park ! Server suit ton projet depuis ton espace. »
+
+
+══════════════════════════════════════
+AXEL — 🔧 Labo d'Axel
+══════════════════════════════════════
+
+axel-1.mp4 · Étape 1 (Idée) — lieu : Le bureau d'idées
+« Bienvenue au labo ! Toute invention commence par une idée. Quelle est la tienne ? »
+
+axel-2.mp4 · Étape 2 (Type) — lieu : Le plan de l'invention
+« Dessinons le plan : quel type d'invention veux-tu créer ? »
+
+axel-3.mp4 · Étape 3 (Fonctionnalités) — lieu : La caisse à outils
+« La caisse à outils est ouverte : choisis les fonctions de ton application. »
+
+axel-4.mp4 · Étape 4 (Style) — lieu : Le design
+« Place au design : nom, couleurs et ambiance de ton invention. »
+
+axel-5.mp4 · Étape 5 (Budget & délai) — lieu : Le budget de recherche
+« Le budget de recherche : combien et en combien de temps ? »
+
+axel-6.mp4 · Étape 6 (Récapitulatif) — lieu : Le cahier de labo
+« Le cahier de labo contient tout ton projet. Relis tes notes. »
+
+axel-7.mp4 · Étape 7 (Maquette) — lieu : Le prototype
+« Le prototype est prêt ! Teste ta maquette. »
+
+axel-8.mp4 · Étape 8 (Commander) — lieu : Le dépôt de l'invention
+« Il est temps de déposer ton invention. Server, le maître du jeu, te donnera le tarif, le délai et ses conseils. »
+
+axel-9.mp4 · Étape 9 (Suivi) — lieu : La grande démonstration
+« Prépare la grande démonstration ! Server suit ton projet depuis ton espace. »
+
+
+══════════════════════════════════════
+JADE — 🌸 Jardins suspendus
+══════════════════════════════════════
+
+jade-1.mp4 · Étape 1 (Idée) — lieu : L'entrée des jardins
+« Bienvenue dans les jardins suspendus ! Plante ici la graine de ton idée. »
+
+jade-2.mp4 · Étape 2 (Type) — lieu : Les allées
+« Quelle allée veux-tu suivre ? Choisis le type de ton application. »
+
+jade-3.mp4 · Étape 3 (Fonctionnalités) — lieu : La serre aux outils
+« Dans la serre, prends les outils, c'est-à-dire les fonctions, dont ton projet a besoin. »
+
+jade-4.mp4 · Étape 4 (Style) — lieu : Les massifs de fleurs
+« Compose tes massifs : nom, couleurs et ambiance de ton projet. »
+
+jade-5.mp4 · Étape 5 (Budget & délai) — lieu : La fontaine aux souhaits
+« Fais un vœu à la fontaine : quel budget et quel délai ? »
+
+jade-6.mp4 · Étape 6 (Récapitulatif) — lieu : Le carnet botanique
+« Le carnet botanique décrit tout ton projet. Vérifie chaque page. »
+
+jade-7.mp4 · Étape 7 (Maquette) — lieu : La terrasse modèle
+« Voici la terrasse modèle : ta maquette ! Promène-toi dedans. »
+
+jade-8.mp4 · Étape 8 (Commander) — lieu : Le pavillon du jardinier
+« Le pavillon du jardinier reçoit ta commande. Server, le maître du jeu, te donnera le tarif, le délai et ses conseils. »
+
+jade-9.mp4 · Étape 9 (Suivi) — lieu : Le jardin en fleurs
+« Ton jardin fleurit ! Server en prend soin avec toi depuis ton espace. »
+
+
+══════════════════════════════════════
+NALA — 🎤 Scène Lumière
+══════════════════════════════════════
+
+nala-1.mp4 · Étape 1 (Idée) — lieu : Les coulisses
+« Bienvenue dans les coulisses ! Avant le show, raconte-moi ton idée. »
+
+nala-2.mp4 · Étape 2 (Type) — lieu : La playlist
+« Composons la playlist : quel type d'application veux-tu créer ? »
+
+nala-3.mp4 · Étape 3 (Fonctionnalités) — lieu : Le vestiaire de scène
+« Au vestiaire de scène, choisis les fonctions qui feront briller ton projet. »
+
+nala-4.mp4 · Étape 4 (Style) — lieu : Les lumières
+« Réglons les lumières : nom, couleurs et ambiance de ton projet. »
+
+nala-5.mp4 · Étape 5 (Budget & délai) — lieu : La billetterie
+« À la billetterie : quel budget et quel délai pour ton show ? »
+
+nala-6.mp4 · Étape 6 (Récapitulatif) — lieu : Le programme du show
+« Le programme du show est imprimé : c'est tout ton projet. Relis-le. »
+
+nala-7.mp4 · Étape 7 (Maquette) — lieu : La répétition
+« Répétition générale : voici ta maquette ! Essaie-la. »
+
+nala-8.mp4 · Étape 8 (Commander) — lieu : La régie
+« La régie attend ta commande. Server, le maître du jeu, te donnera le tarif, le délai et ses conseils. »
+
+nala-9.mp4 · Étape 9 (Suivi) — lieu : Le grand show
+« Le grand show approche ! Server suit ton projet depuis ton espace. »
+
+
+══════════════════════════════════════
+LOU — 🔭 Observatoire des étoiles
+══════════════════════════════════════
+
+lou-1.mp4 · Étape 1 (Idée) — lieu : La coupole
+« Bienvenue sous la coupole ! Quelle idée veux-tu voir briller dans le ciel ? »
+
+lou-2.mp4 · Étape 2 (Type) — lieu : La carte du ciel
+« Déplions la carte du ciel : quel type d'application veux-tu créer ? »
+
+lou-3.mp4 · Étape 3 (Fonctionnalités) — lieu : Les instruments
+« Choisis les instruments, c'est-à-dire les fonctions, dont ton projet a besoin. »
+
+lou-4.mp4 · Étape 4 (Style) — lieu : Les constellations
+« Dessine ta constellation : nom, couleurs et ambiance de ton projet. »
+
+lou-5.mp4 · Étape 5 (Budget & délai) — lieu : La réserve d'énergie
+« La réserve d'énergie : quel budget et quel délai pour ton projet ? »
+
+lou-6.mp4 · Étape 6 (Récapitulatif) — lieu : Le journal d'observation
+« Le journal d'observation contient tout ton projet. Vérifie-le. »
+
+lou-7.mp4 · Étape 7 (Maquette) — lieu : La lunette prototype
+« Regarde dans la lunette prototype : voici ta maquette ! »
+
+lou-8.mp4 · Étape 8 (Commander) — lieu : La salle de contrôle
+« La salle de contrôle reçoit ta commande. Server, le maître du jeu, te donnera le tarif, le délai et ses conseils. »
+
+lou-9.mp4 · Étape 9 (Suivi) — lieu : La nouvelle étoile
+« Une nouvelle étoile est née ! Server suit ton projet depuis ton espace. »
+
+
+══════════════════════════════════════
+YUNA — 🏮 Village des lanternes
+══════════════════════════════════════
+
+yuna-1.mp4 · Étape 1 (Idée) — lieu : La place du village
+« Bienvenue sur la place du village ! Les villageois veulent connaître ton idée. »
+
+yuna-2.mp4 · Étape 2 (Type) — lieu : Les ruelles
+« Quelle ruelle prends-tu ? Choisis le type de ton application. »
+
+yuna-3.mp4 · Étape 3 (Fonctionnalités) — lieu : La boutique d'artisan
+« À la boutique d'artisan, choisis les fonctions de ton application. »
+
+yuna-4.mp4 · Étape 4 (Style) — lieu : Les lanternes
+« Peins tes lanternes : nom, couleurs et ambiance de ton projet. »
+
+yuna-5.mp4 · Étape 5 (Budget & délai) — lieu : La tirelire du village
+« La tirelire du village : quel budget et quel délai pour ton projet ? »
+
+yuna-6.mp4 · Étape 6 (Récapitulatif) — lieu : Le livre du village
+« Le livre du village raconte tout ton projet. Lis-le bien. »
+
+yuna-7.mp4 · Étape 7 (Maquette) — lieu : La maison modèle
+« Visite la maison modèle : c'est ta maquette ! »
+
+yuna-8.mp4 · Étape 8 (Commander) — lieu : La maison du chef
+« La maison du chef reçoit ta commande. Server, le maître du jeu, te donnera le tarif, le délai et ses conseils. »
+
+yuna-9.mp4 · Étape 9 (Suivi) — lieu : La fête des lanternes
+« C'est la fête des lanternes ! Server suit ton projet depuis ton espace. »
+
+
