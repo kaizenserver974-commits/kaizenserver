@@ -268,6 +268,24 @@ function Parcours() {
       )}
 
       {enJeu && <Narrateur jeu={projet.jeu} etape={etape} />}
+      {(() => {
+        // Bouton « Retour » en haut de chaque étape : on peut toujours revenir en arrière pour changer d'avis.
+        const prec = etape === 0 ? null : etape === 7 ? (projet.maquette ? 6 : 5) : etape - 1;
+        if (prec === null) {
+          return enJeu ? (
+            <div className="barre-retour">
+              <button className="bouton-retour" disabled={Boolean(chargement)} onClick={() => setChoixPerso(true)}>← Retour au choix du personnage</button>
+            </div>
+          ) : null;
+        }
+        return (
+          <div className="barre-retour">
+            <button className="bouton-retour" disabled={Boolean(chargement)} onClick={() => allerA(prec)}>
+              ← Retour : {enJeu ? `${univers.niveaux[prec]} (${ETAPES[prec]})` : ETAPES[prec]}
+            </button>
+          </div>
+        );
+      })()}
       {erreur && <p className="alerte erreur">{erreur}</p>}
       {chargement && <div className="chargement"><span className="rond" /> {chargement}</div>}
 

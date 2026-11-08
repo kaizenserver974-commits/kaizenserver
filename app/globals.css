@@ -739,3 +739,8 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
   .page.avec-perso > * { grid-column: 1; }
   .page.avec-perso > .place-perso { display: block; grid-column: 2; grid-row: 1; }
 }
+
+/* Bouton « Retour » en haut de chaque étape */
+.barre-retour { margin: 0 0 12px; }
+.bouton-retour { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--ligne-forte); background: rgba(12, 14, 46, 0.7); backdrop-filter: blur(10px); color: var(--texte); font-size: 14px; font-weight: 600; cursor: pointer; }
+.bouton-retour:hover:not(:disabled) { border-color: var(--jeu, var(--cyan)); box-shadow: 0 0 16px color-mix(in srgb, var(--jeu, var(--cyan)) 35%, transparent); }
