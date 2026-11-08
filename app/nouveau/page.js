@@ -64,28 +64,13 @@ function Parcours() {
   const [gain, setGain] = useState(null);
   const [lieuDebloque, setLieuDebloque] = useState(null);
   const [rechargeOuverte, setRechargeOuverte] = useState(false);
-  const [depense, setDepense] = useState(null);
   const portefeuille = usePortefeuille();
-  // Quand le solde de pièces baisse (maquette, génie, modification, commande), on l'affiche.
-  const soldeActuel = portefeuille.solde;
-  const soldePrecedent = useRef(null);
-  useEffect(() => {
-    if (soldeActuel === null) return;
-    const avant = soldePrecedent.current;
-    soldePrecedent.current = soldeActuel;
-    if (avant !== null && soldeActuel < avant) setDepense({ montant: avant - soldeActuel, reste: soldeActuel, cle: Date.now() });
-  }, [soldeActuel]);
 
   // Récompenses déjà gagnées dans ce projet : créditées sur le compte (une seule fois par compte).
   const recompensesProjet = projet?.jeu?.actif ? (projet.jeu.recompenses || []).join(",") : "";
   useEffect(() => {
     if (portefeuille.connecte && recompensesProjet) portefeuille.recompenses(recompensesProjet.split(","));
   }, [portefeuille.connecte, recompensesProjet]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!depense) return undefined;
-    const t = setTimeout(() => setDepense(null), 3500);
-    return () => clearTimeout(t);
-  }, [depense]);
   const [choixPerso, setChoixPerso] = useState(false);
   const [infoAchat, setInfoAchat] = useState("");
 
@@ -181,8 +166,7 @@ function Parcours() {
   const gagner = (cles) => {
     const { jeu, gains } = recompenser(projet.jeu, cles);
     if (gains) setGain({ ...gains, cle: Date.now() });
-    // Les pièces d'or des récompenses sont créditées par le serveur, une fois par compte.
-    if (gains?.pieces > 0 && portefeuille.connecte) portefeuille.recompenses(cles);
+    // Les pièces sont créditées par le serveur via l'effet « récompenses du projet » (une seule demande).
     return jeu;
   };
   const maj = (champs, cles = []) => {
@@ -249,7 +233,7 @@ function Parcours() {
     }
     try {
       const r = await appeler("/api/maquette", corps);
-      portefeuille.fixerSolde(r.solde);
+      portefeuille.fixerSolde(r.solde, r.rembourse ? 0 : (corps.retour ? COUT_MODIFICATION : COUT_MAQUETTE));
       // L'IA n'a pas abouti : le serveur a remboursé ; on n'affiche pas le modèle de secours.
       if (r.rembourse) throw new Error(`La maquette n'a pas pu être créée (${r.raison || "l'IA n'a pas répondu"}). Vos pièces d'or ont été remboursées : réessayez dans un instant.`);
       return r;
@@ -387,10 +371,10 @@ function Parcours() {
         {etape === 8 && <EtapeSuivi projet={projet} maj={maj} noter={noter} actualiser={preparerRecap} />}
       </div>
 
-      {depense && (
-        <div key={depense.cle} className="depense-or" role="status" aria-live="polite">
-          <strong>−{depense.montant} 🪙</strong>
-          <span>Il vous reste {depense.reste} pièces d'or</span>
+      {portefeuille.depense && (
+        <div key={portefeuille.depense.cle} className="depense-or" role="status" aria-live="polite">
+          <strong>−{portefeuille.depense.montant} 🪙</strong>
+          <span>Il vous reste {portefeuille.depense.reste} pièces d'or</span>
         </div>
       )}
       {gain && enJeu && <Recompense key={gain.cle} gain={gain} univers={univers} />}
@@ -1207,7 +1191,7 @@ function FormulaireGenie({ projet, maj, noter, recharger, annuler, animer = () =
         if (d.connexion) { window.location.href = lienConnexion(); return; }
         throw new Error(d.erreur || "La demande n'a pas pu être envoyée.");
       }
-      portefeuille.fixerSolde(d.solde);
+      portefeuille.fixerSolde(d.solde, COUT_GENIE);
       // Laisse le temps aux nuages de remplir l'écran avant d'exaucer le vœu.
       await new Promise((ok) => setTimeout(ok, Math.max(0, 1800 - (Date.now() - debut))));
       animer("exauce");
@@ -1330,7 +1314,7 @@ function EtapeCommande({ projet, maj, noter, precedent, suivant, infoAchat }) {
         if (d.connexion) portefeuille.charger();
         throw new Error(d.erreur || "L'envoi a échoué. Réessayez.");
       }
-      portefeuille.fixerSolde(d.solde);
+      portefeuille.fixerSolde(d.solde, COUT_COMMANDE);
       maj({
         commande: { numero: d.numero, cle: d.cleClient, date: d.date || new Date().toISOString(), formule, confirmationEnvoyee: d.confirmationEnvoyee, espaceClient: Boolean(d.espaceClient) },
         statut: ["idee", "cadrage", "maquette"].includes(projet.statut) ? "maquette" : projet.statut,
