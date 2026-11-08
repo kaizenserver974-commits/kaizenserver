@@ -855,3 +855,17 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 @media (max-width: 620px) { .suivi-etapes small { display: none; } }
 .bourse-erreur { background: rgba(248, 113, 113, 0.12); box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.5); color: #fecaca; }
 .bourse-detail { flex-basis: 100%; color: var(--discret); font-size: 12px; }
+
+/* Téléphone à l'horizontale (écran très bas) : l'en-tête défile avec la page,
+   le menu du bas devient une fine barre d'icônes, l'image du monde reste raisonnable. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .entete { position: relative; }
+  .nav-basse { padding: 3px 8px; bottom: 6px; }
+  .nav-basse a { grid-auto-flow: column; gap: 6px; padding: 4px 10px; font-size: 11px; }
+  .nav-basse a span { font-size: 16px; }
+  .page { padding-bottom: 64px; }
+  .scene-mobile { height: 62vh; background-position: 79% 18%; }
+  .aide { bottom: 56px; }
+  .vitrine { max-height: 80vh; }
+  .fenetre { max-height: calc(100vh - 16px); }
+}
