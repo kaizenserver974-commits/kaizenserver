@@ -527,16 +527,16 @@ export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre =
 .voir{margin-top:12px;border:0;border-radius:999px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px;padding:7px 18px;cursor:pointer}
 .infos{display:flex;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid #222;border-bottom:1px solid #222;max-width:900px;margin:0 auto;text-align:center}
 .infos div{flex:1}.infos small{display:block;font-size:10px;letter-spacing:.06em;color:#8e8e96;text-transform:uppercase}.infos b{display:block;font-size:20px;color:#c9c9d1;margin-top:4px}
-.carrousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:18px;max-width:100%;-webkit-overflow-scrolling:touch}
+.carrousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:18px 8%;scroll-padding:0 8%;max-width:100%;-webkit-overflow-scrolling:touch}
 .carte{flex:0 0 74%;max-width:300px;scroll-snap-align:center;border-radius:24px;overflow:hidden;background:linear-gradient(165deg,var(--c) 0%,#2a0a4a 55%,#12031f 100%);padding:22px 16px 0;display:flex;flex-direction:column;align-items:center;cursor:zoom-in;aspect-ratio:9/17}
 .carte h2{font-size:18px;line-height:1.25;text-align:center;font-weight:600;min-height:2.5em}
 .tel{margin-top:16px;width:82%;flex:1;min-height:0;border:6px solid #0d0d10;border-bottom:0;border-radius:30px 30px 0 0;overflow:hidden;background:#111;box-shadow:0 14px 34px rgba(0,0,0,.55)}
 .tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}
-.carte.seule{flex:0 0 auto;max-width:none;aspect-ratio:auto;background:none;padding:0;gap:10px}
+/*seule-v2*/.carte.seule{flex:0 0 84%;max-width:400px;aspect-ratio:auto;background:none;padding:0;gap:10px;cursor:zoom-in}
 .carte.seule h2{min-height:0;font-size:16px}
-.carte.seule .tel{flex:none;margin:0;width:auto;height:min(58vh,620px);border:0;border-radius:18px;background:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
-.carte.seule .tel img{width:auto;height:100%;max-width:86vw;object-fit:contain}
-.carte.seule .tel .decoupe{height:100%;width:auto}
+.carte.seule .tel{flex:none;margin:0;width:100%;height:auto;aspect-ratio:9/19.5;max-height:72vh;border:0;border-radius:34px;background:#111;box-shadow:0 12px 34px rgba(0,0,0,.6);overflow:hidden}
+.carte.seule .tel img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.carte.seule .tel .decoupe{width:100%;height:100%}
 .texte{max-width:900px;margin:0 auto;padding:4px 18px 30px;color:#d0d0d8;font-size:15px;line-height:1.5}
 .visionneuse{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center}
 .visionneuse.ouverte{display:flex}.visionneuse .vue{max-width:94vw;max-height:88vh;display:flex}
@@ -560,15 +560,17 @@ if(ev.target.closest('.fermer')||ev.target===v)v.classList.remove('ouverte');if(
 }
 
 // Vitrines déjà enregistrées : l'image remplit maintenant tout l'écran du téléphone.
-const CSS_SEULE = `.carte.seule{flex:0 0 auto;max-width:none;aspect-ratio:auto;background:none;padding:0;gap:10px}
+const CSS_SEULE = `/*seule-v2*/.carte.seule{flex:0 0 84%;max-width:400px;aspect-ratio:auto;background:none;padding:0;gap:10px;cursor:zoom-in}
 .carte.seule h2{min-height:0;font-size:16px}
-.carte.seule .tel{flex:none;margin:0;width:auto;height:min(58vh,620px);border:0;border-radius:18px;background:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
-.carte.seule .tel img{width:auto;height:100%;max-width:86vw;object-fit:contain}
-.carte.seule .tel .decoupe{height:100%;width:auto}
+.carte.seule .tel{flex:none;margin:0;width:100%;height:auto;aspect-ratio:9/19.5;max-height:72vh;border:0;border-radius:34px;background:#111;box-shadow:0 12px 34px rgba(0,0,0,.6);overflow:hidden}
+.carte.seule .tel img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.carte.seule .tel .decoupe{width:100%;height:100%}
 `;
 export function majVitrine(html) {
   let h = String(html || "").replace(".tel img{display:block;width:100%;height:auto}.tel .decoupe{width:100%;background-repeat:no-repeat}", ".tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}");
   // Anciennes vitrines (fond coloré + téléphone) : l'image seule, en entier, sans titre « Écran N ».
+  // Vitrines « image seule » de la première version : nouveau style (grandes cartes, image bord à bord).
+  if (h.includes(".carte.seule{") && !h.includes("/*seule-v2*/")) h = h.replace(/\.carte\.seule[^{]*\{[^}]*\}\n?/g, "").replace(".texte{max-width:900px;", CSS_SEULE + ".texte{max-width:900px;");
   if (/data-maquette-vitrine/.test(h) && !h.includes(".carte.seule{")) {
     h = h.replace(".texte{max-width:900px;", CSS_SEULE + ".texte{max-width:900px;")
       .replace(/class="carte" data-ouvrir/g, 'class="carte seule" data-ouvrir')
