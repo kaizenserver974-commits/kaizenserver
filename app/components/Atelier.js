@@ -237,7 +237,7 @@ nav button{background:none;border:0;color:#7d86bd;font-size:12px;display:grid;ju
 }
 
 // Éditeur : l'aperçu est modifiable directement (textes), et des outils agissent sur le bloc sélectionné.
-export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
+export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages }) {
   const cadre = useRef(null);
   const enAttente = useRef({});
   const [source, setSource] = useState(htmlInitial); // ce qui est chargé dans l'aperçu
@@ -390,6 +390,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
           <aside className="panneau-atelier">
             {panneau === "images" && (
               <>
+                {versImages && <button type="button" className="btn petit bouton-toute-maquette" onClick={versImages}>🖼️ Remplacer TOUTE la maquette par mes images</button>}
                 <p className="note">{sel?.image ? <b>🔁 Cliquez sur « Remplacer » sous une image de votre galerie : elle prend la place de l'image sélectionnée dans la maquette.</b> : sel ? <>Choisissez une image pour le bloc sélectionné (<b>&lt;{sel.tag}&gt;</b>).</> : "Pour remplacer une image de la maquette : cliquez dessus dans l'aperçu, puis sur « Remplacer » sous l'image de votre choix. « Ajouter » place une nouvelle image dans l'écran affiché."}</p>
                 {sel && !sel.image && <p className="note">« Fond du bloc » met l'image en fond du bloc ; les petites vignettes en dessous l'ajoutent juste sous le bloc.</p>}
                 <GalerieImages choisir={choisirImage} libelleChoisir={!sel ? "Ajouter" : sel.image ? "Remplacer" : "Fond du bloc"} />
@@ -457,22 +458,38 @@ export function maquetteImages(ecrans, titre = "Mon application") {
 .bandeau{font-size:11px;text-align:center;padding:4px;background:#1b2040;color:#a5abd6}
 .ecran{display:none}.ecran.actif{display:block}
 .ecran img{display:block;width:100%;height:auto;max-width:900px;margin:0 auto;${plusieurs ? "cursor:pointer;" : ""}}
+.ecran .decoupe{display:block;width:100%;max-width:520px;margin:0 auto;background-repeat:no-repeat;${plusieurs ? "cursor:pointer;" : ""}}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:4px;padding:10px 6px 14px;background:rgba(10,12,30,.94);border-top:1px solid #222a52;overflow-x:auto}
 nav button{background:none;border:0;color:#8b93c9;font-size:13px;font-weight:600;padding:6px 10px;border-radius:10px;white-space:nowrap}
 nav button.actif{color:#fff;background:#7b5cff}
 </style></head><body>
 <div class="bandeau">Maquette Kaizen — aperçu non fonctionnel</div>
-${ecrans.map((e, i) => `<section class="ecran${i === 0 ? " actif" : ""}" data-ecran="e${i}"><img src="${echapper(e.url)}" alt="${echapper(e.nom)}"></section>`).join("\n")}
+${ecrans.map((e, i) => `<section class="ecran${i === 0 ? " actif" : ""}" data-ecran="e${i}">${e.decoupe ? styleDecoupe(e, echapper) : `<img src="${echapper(e.url)}" alt="${echapper(e.nom)}">`}</section>`).join("\n")}
 ${plusieurs ? `<nav>${ecrans.map((e, i) => `<button${i === 0 ? ' class="actif"' : ""} data-vers="e${i}">${echapper(e.nom)}</button>`).join("")}</nav>` : ""}
 <script>(function(){var b=[].slice.call(document.querySelectorAll('nav button'));function aller(id){document.querySelectorAll('.ecran').forEach(function(e){e.classList.toggle('actif',e.dataset.ecran===id)});b.forEach(function(x){x.classList.toggle('actif',x.dataset.vers===id)});window.scrollTo(0,0);}
 b.forEach(function(x){x.addEventListener('click',function(){aller(x.dataset.vers)})});
-document.querySelectorAll('.ecran img').forEach(function(im,i,l){im.addEventListener('click',function(e){if(e.target.closest('[data-lien-ecran]')||l.length<2)return;aller('e'+((i+1)%l.length));});});})();</script>
+document.querySelectorAll('.ecran > img, .ecran > .decoupe').forEach(function(im,i,l){im.addEventListener('click',function(e){if(e.target.closest('[data-lien-ecran]')||l.length<2)return;aller('e'+((i+1)%l.length));});});})();</script>
 </body></html>`;
 }
+
+// Une partie d'une image qui contient plusieurs écrans côte à côte (ex. 2 captures de téléphone).
+function styleDecoupe(e, echapper) {
+  const { k, n, l, h } = e.decoupe;
+  return `<div class="decoupe" role="img" aria-label="${echapper(e.nom)}" style="background-image:url('${echapper(e.url)}');background-size:${n * 100}% auto;background-position:${n === 1 ? 0 : (k / (n - 1)) * 100}% 0;aspect-ratio:${Math.round(l / n)} / ${h}"></div>`;
+}
+const dimensions = (url) => new Promise((ok) => { const i = new Image(); i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => ok(null); i.src = url; });
 
 // Choix des images qui deviennent les écrans de la maquette.
 export function ChoixEcransImages({ valider, annuler }) {
   const [ecrans, setEcrans] = useState([]);
+  // Une image avec plusieurs écrans côte à côte devient plusieurs écrans.
+  async function couper(i, n) {
+    const e = ecrans[i];
+    const dim = await dimensions(e.url);
+    if (!dim) return;
+    const parts = Array.from({ length: n }, (_, k) => ({ ...e, nom: k === 0 ? e.nom : `Écran ${i + k + 1}`, decoupe: { k, n, ...dim } }));
+    setEcrans((l) => [...l.slice(0, i), ...parts, ...l.slice(i + 1)].slice(0, 8));
+  }
   const deplacer = (i, d) => setEcrans((l) => { const n = [...l]; const j = i + d; if (j < 0 || j >= n.length) return l; [n[i], n[j]] = [n[j], n[i]]; return n; });
   return (
     <div className="choix-ecrans">
@@ -482,10 +499,14 @@ export function ChoixEcransImages({ valider, annuler }) {
         <ol className="liste-ecrans">
           {ecrans.map((e, i) => (
             <li key={`${e.id}-${i}`}>
-              <img src={e.url} alt="" />
+              {e.decoupe
+                ? <span className="vignette-decoupe" style={{ backgroundImage: `url(${e.url})`, backgroundSize: `${e.decoupe.n * 100}% auto`, backgroundPosition: `${e.decoupe.n === 1 ? 0 : (e.decoupe.k / (e.decoupe.n - 1)) * 100}% 0` }} />
+                : <img src={e.url} alt="" />}
               <input value={e.nom} maxLength={24} onChange={(ev) => setEcrans((l) => l.map((x, j) => (j === i ? { ...x, nom: ev.target.value } : x)))} aria-label={`Nom de l'écran ${i + 1}`} />
               <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, -1)} aria-label="Monter">↑</button>
               <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, 1)} aria-label="Descendre">↓</button>
+              {!e.decoupe && <button type="button" className="btn petit secondaire" title="L'image contient plusieurs écrans côte à côte : la couper" onClick={() => couper(i, 2)}>✂️ 2 écrans</button>}
+              {!e.decoupe && <button type="button" className="btn petit secondaire" title="L'image contient 3 écrans côte à côte" onClick={() => couper(i, 3)}>✂️ 3</button>}
               <button type="button" className="btn petit secondaire" onClick={() => setEcrans((l) => l.filter((_, j) => j !== i))} aria-label="Retirer">×</button>
             </li>
           ))}
