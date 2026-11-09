@@ -8,7 +8,7 @@ import {
   trouver, fonctionnalite,
 } from "../../lib/catalogue.js";
 import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
-import { PACKS, bonusPack, meilleurPack, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, prixTexte } from "../../lib/pieces.js";
+import { PACKS, bonusPack, meilleurPack, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, MAQUETTE_IA_CLIENT, prixTexte } from "../../lib/pieces.js";
 import { PortefeuilleProvider, usePortefeuille, lienConnexion } from "../../lib/portefeuille.js";
 import { jeton } from "../../lib/supabaseClient.js";
 import { videoPartagee, installerDeverrouillage } from "../../lib/videoPartagee.js";
@@ -1304,9 +1304,12 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
   return (
     <div className="choix-maquette sans-impression" id="choix-maquette">
       {voeu && <NuageGenie etat={voeu} fermer={() => setVoeu(null)} />}
-      <h2>Créer ma maquette</h2>
-      <p className="discret">Vous avez <b>🪙 {dispo}</b> pièces d'or. Chaque modification de maquette coûte ensuite <b>{COUT_MODIFICATION}</b> pièces d'or.</p>
-      <div className="options-maquette">
+      <h2>{MAQUETTE_IA_CLIENT ? "Créer ma maquette" : "Ma maquette par Server"}</h2>
+      <p className="discret">{MAQUETTE_IA_CLIENT
+        ? <>Vous avez <b>🪙 {dispo}</b> pièces d'or. Chaque modification de maquette coûte ensuite <b>{COUT_MODIFICATION}</b> pièces d'or.</>
+        : <>Server, le maître du jeu, dessine lui-même la maquette de votre application à partir de tout ce que vous avez renseigné, et la soigne jusqu'à la meilleure version. Vous avez <b>🪙 {dispo}</b> pièces d'or.</>}</p>
+      <div className={`options-maquette ${MAQUETTE_IA_CLIENT ? "" : "genie-seul"}`}>
+        {MAQUETTE_IA_CLIENT && (
         <div className="option-maquette">
           <span className="option-icone" aria-hidden="true">✨</span>
           <h3>Maquette instantanée</h3>
@@ -1334,6 +1337,7 @@ function ChoixMaquette({ projet, voirMaquette, genererMaquette, maj, noter, rech
               ? <button className="btn" onClick={() => genererMaquette(consignes.trim())}>Créer ma maquette ({COUT_MAQUETTE} 🪙)</button>
               : <button className="btn secondaire" onClick={recharger}>Il vous manque {COUT_MAQUETTE - dispo} 🪙 · Acheter des pièces</button>}
         </div>
+        )}
 
         <div className={`option-maquette option-genie ${genieOuvert ? "ouverte" : ""}`}>
           <button className="genie-bouton" onClick={() => { if (projet.demandeGenie) return; if (!connecte) { window.location.href = lienConnexion(); return; } setGenieOuvert(true); }} aria-label="Demander une maquette au génie Server" disabled={Boolean(projet.demandeGenie)}>
@@ -1861,6 +1865,8 @@ function AvisMaquette({ projet, modifier, valider, infoAchat, maj }) {
       ) : (
         <button className="btn" onClick={valider}>✅ J'accepte la maquette</button>
       )}
+      {MAQUETTE_IA_CLIENT ? (
+        <>
       <ConseilsBip />
       <PhotosMaquette projet={projet} maj={maj} />
       <label className="champ">
@@ -1879,6 +1885,13 @@ function AvisMaquette({ projet, modifier, valider, infoAchat, maj }) {
       </div>
       {connecte === false && <BoutonConnexion />}
       {connecte && !assez && <Recharge projet={projet} cout={COUT_MODIFICATION} motif="une modification" monnaie={monnaie} />}
+        </>
+      ) : (
+        <div className="modif-server">
+          <p><b>Une modification ?</b> C'est Server qui retouche votre maquette : écrivez-lui ce que vous voulez changer (couleurs, écrans, textes, photos…).</p>
+          <a className="btn secondaire" href="/espace?onglet=messages">✉️ Écrire à Server</a>
+        </div>
+      )}
       {projet.retours?.length > 0 && (
         <div className="historique-retours">
           <p className="petit-titre">Vos demandes de modification</p>

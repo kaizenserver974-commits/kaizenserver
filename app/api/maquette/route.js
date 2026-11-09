@@ -3,7 +3,7 @@ import { nettoyerProjet } from "../../../lib/moteur.js";
 import { genererMaquette, validerImagesReference, validerPhotos, preparerBase } from "../../../lib/serveur/generation.js";
 import { supabaseAdmin, utilisateur } from "../../../lib/serveur/supabase.js";
 import { debiter, rembourser, SoldeInsuffisant, bourse } from "../../../lib/serveur/portefeuille.js";
-import { COUT_MAQUETTE, COUT_MODIFICATION } from "../../../lib/pieces.js";
+import { COUT_MAQUETTE, COUT_MODIFICATION, MAQUETTE_IA_CLIENT } from "../../../lib/pieces.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +29,8 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Requête invalide." }, { status: 400 });
   }
 
+  // Seul Server crée les maquettes (réglage MAQUETTE_IA_CLIENT dans lib/pieces.js).
+  if (!MAQUETTE_IA_CLIENT) return NextResponse.json({ erreur: "La maquette est réalisée par Server : demandez-la au génie." }, { status: 403 });
   const sb = supabaseAdmin();
   if (!sb) return NextResponse.json({ erreur: "Les pièces d'or ne sont pas encore activées sur ce site." }, { status: 503 });
   const u = await utilisateur(request);
