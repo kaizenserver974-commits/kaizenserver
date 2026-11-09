@@ -1028,3 +1028,23 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 @media (orientation: portrait) and (max-width: 899px) { .intro-ecran .video-intro { aspect-ratio: 4 / 5; } }
 .intro-muet { position: absolute; right: 14px; top: 14px; width: 46px; height: 46px; border-radius: 50%; border: 0; font-size: 20px; color: #fff; background: rgba(6, 6, 26, 0.65); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3); cursor: pointer; }
 .intro-bourse { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, 0.3); color: #fde68a; }
+
+/* Page vidéo d'étape : la vidéo d'origine en plein écran, sans cadre */
+.intro-page { padding: 0 !important; max-width: none !important; width: 100% !important; }
+.intro-video-page { position: fixed; left: 0; right: 0; top: 70px; bottom: 0; z-index: 20; max-width: none; margin: 0; padding: 0 !important; gap: 0; display: block; background: #05050f; }
+.intro-video-page .intro-ecran { position: absolute; inset: 0; border-radius: 0; box-shadow: none; background: #05050f; }
+.intro-ecran .video-intro { width: 100%; height: 100%; max-height: none !important; aspect-ratio: auto !important; object-fit: contain; object-position: center; }
+.intro-video-page .intro-lieu { position: absolute; z-index: 2; top: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.intro-video-page .intro-sous-titre { position: absolute; z-index: 2; left: 50%; transform: translateX(-50%); bottom: 74px; width: min(860px, calc(100% - 32px)); background: rgba(255, 255, 255, 0.92); }
+.intro-video-page .intro-actions { position: absolute; z-index: 2; left: 0; right: 0; bottom: 20px; }
+.intro-video-page .intro-muet { top: 64px; }
+.intro-video-page .intro-son { bottom: auto; top: 64px; }
+/* Écran en hauteur (téléphone, iPad droit) : la vidéo remplit l'écran, centrée sur le personnage */
+@media (orientation: portrait) { .intro-ecran .video-intro { object-fit: cover; object-position: 72% 40%; } }
+@media (max-width: 1080px) {
+  .intro-video-page { bottom: 0; z-index: 45; }
+  .intro-video-page .intro-sous-titre { bottom: 72px; font-size: 14px; }
+  .intro-video-page .intro-actions { bottom: 18px; }
+}
+@media (orientation: landscape) and (max-height: 520px) { .intro-video-page { top: 0; } .intro-video-page .intro-sous-titre { bottom: 58px; padding: 8px 12px; } }
+.intro-video-page .intro-son { left: 50%; right: auto; transform: translateX(-50%); max-width: calc(100% - 32px); white-space: normal; text-align: center; animation: none; }
