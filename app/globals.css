@@ -1048,3 +1048,13 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 }
 @media (orientation: landscape) and (max-height: 520px) { .intro-video-page { top: 0; } .intro-video-page .intro-sous-titre { bottom: 58px; padding: 8px 12px; } }
 .intro-video-page .intro-son { left: 50%; right: auto; transform: translateX(-50%); max-width: calc(100% - 32px); white-space: normal; text-align: center; animation: none; }
+/* Pendant la vidéo : annonces de pièces et de badges loin du visage du personnage */
+.gain-intro { z-index: 60; top: 130px; left: 24px; transform: none; max-width: 300px; padding: 10px 16px; animation: intro-formulaire 0.5s ease-out both; }
+.gain-intro strong { font-size: 20px; }
+.recompense-intro .recompense { z-index: 60; top: 230px; bottom: auto; left: 24px; transform: none; max-width: 300px; padding: 10px 16px; animation: intro-formulaire 0.5s ease-out both; }
+.recompense-intro .recompense strong { font-size: 18px; }
+/* Écran en hauteur : le visage est en haut → annonces en bas, au-dessus de la phrase */
+@media (orientation: portrait) {
+  .gain-intro { top: auto; bottom: 200px; left: 16px; right: 16px; max-width: none; }
+  .recompense-intro .recompense { top: auto; bottom: 272px; left: 16px; right: 16px; max-width: none; }
+}

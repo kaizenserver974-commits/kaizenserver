@@ -321,13 +321,13 @@ function Parcours() {
           bourse={portefeuille.connecte ? portefeuille.solde : null} />
         {/* Les pièces gagnées à l'étape validée s'annoncent aussi pendant la vidéo. */}
         {portefeuille.gain && (
-          <div key={portefeuille.gain.cle} className="gain-or" role="status" aria-live="polite">
+          <div key={portefeuille.gain.cle} className="gain-or gain-intro" role="status" aria-live="polite">
             {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 gratuites</strong>}
             {portefeuille.gain.montant > 0 && <span>Vous avez {portefeuille.solde} pièces d'or pour ce projet</span>}
             {portefeuille.gain.plafond && <span className="gain-plafond">Limite de pièces gratuites du jour atteinte : revenez demain, ou achetez des pièces.</span>}
           </div>
         )}
-        {gain && <Recompense key={gain.cle} gain={gain} univers={univers} />}
+        {gain && <div className="recompense-intro"><Recompense key={gain.cle} gain={gain} univers={univers} /></div>}
       </main>
     );
   }
