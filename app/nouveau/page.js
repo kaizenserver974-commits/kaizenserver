@@ -318,7 +318,8 @@ function Parcours() {
         {/* Derrière la vidéo : le monde sans le personnage (sinon on le verrait deux fois). */}
         {persoMonde?.monde && <div className="fond-monde fond-intro" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fondVide || persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.fondVide || persoMonde.monde})` }} />}
         <IntroVideo key={cleIntro} src={videoEtape} nom={projet.jeu.pseudo || persoJoueur.nom} lieu={`${univers.icone} ${univers.niveaux[etape]}`} texte={recit(projet.jeu, etape)} finir={() => setIntroVue(cleIntro)}
-          bourse={portefeuille.connecte ? portefeuille.solde : null} />
+          bourse={null} />
+        <CompteurFlottant />
         {/* Les pièces gagnées à l'étape validée s'annoncent aussi pendant la vidéo. */}
         {portefeuille.gain && (
           <div key={portefeuille.gain.cle} className="gain-or gain-intro" role="status" aria-live="polite">
@@ -415,6 +416,7 @@ function Parcours() {
           {portefeuille.gain.plafond && <span className="gain-plafond">Limite de pièces gratuites du jour atteinte : revenez demain, ou achetez des pièces.</span>}
         </div>
       )}
+      <CompteurFlottant />
       {portefeuille.depense && (
         <div key={portefeuille.depense.cle} className="depense-or" role="status" aria-live="polite">
           <strong>−{portefeuille.depense.montant} 🪙</strong>
@@ -598,6 +600,41 @@ function CarteMonde({ univers, etape, debloque, aller, occupe }) {
 function AvatarJoueur({ jeu, taille, classe }) {
   if (jeu?.avatar && typeof jeu.avatar === "object") return <Avatar config={jeu.avatar} taille={taille} titre={jeu.pseudo} />;
   return <span className={classe} aria-hidden="true">{trouverAvatar(jeu?.avatar).emoji}</span>;
+}
+
+// Compteur de pièces qui flotte toujours à l'écran : quand une étape est validée, on le voit se charger
+// (le chiffre monte, « +60 » s'envole) sans avoir à remonter en haut de la page.
+function CompteurFlottant() {
+  const { connecte, solde, gain, depense } = usePortefeuille();
+  const [anim, setAnim] = useState(null); // { de, vers, delta, cle }
+  const [affiche, setAffiche] = useState(null);
+  const animer = (de, vers, delta, cle) => setAnim({ de: Math.max(0, de), vers, delta, cle });
+  useEffect(() => { if (gain?.montant > 0 && typeof solde === "number") animer(solde - gain.montant, solde, gain.montant, gain.cle); }, [gain?.cle]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (depense) animer(depense.reste + depense.montant, depense.reste, -depense.montant, depense.cle); }, [depense?.cle]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!anim) return undefined;
+    const debut = performance.now();
+    const duree = 1500;
+    let raf;
+    const pas = (t) => {
+      const k = Math.min(1, (t - debut) / duree);
+      setAffiche(Math.round(anim.de + (anim.vers - anim.de) * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(pas);
+    };
+    setAffiche(anim.de);
+    raf = requestAnimationFrame(pas);
+    const fin = setTimeout(() => { setAnim(null); setAffiche(null); }, 3000);
+    return () => { cancelAnimationFrame(raf); clearTimeout(fin); };
+  }, [anim]);
+  if (!connecte || typeof solde !== "number") return null;
+  const sens = anim ? (anim.delta > 0 ? "charge" : "baisse") : "";
+  return (
+    <div className={`compteur-flottant ${sens}`} title="Vos pièces d'or pour ce projet">
+      <span className="compteur-piece" aria-hidden="true">🪙</span>
+      <b aria-live="polite">{affiche ?? solde}</b>
+      {anim && <span key={anim.cle} className="compteur-delta" aria-hidden="true">{anim.delta > 0 ? `+${anim.delta}` : anim.delta}</span>}
+    </div>
+  );
 }
 
 // Bourse de pièces d'or, toujours visible en haut, avec le bouton pour en acheter.
