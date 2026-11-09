@@ -158,7 +158,7 @@ function bloc(x){while(x&&x.parentElement&&x.parentElement!==document.body&&/^in
 var dessin=null,ignorerClic=false;
 function majZone(e){var d=dessin,r=d.c.getBoundingClientRect();var x1=Math.max(0,Math.min(d.x,e.clientX)-r.left),x2=Math.min(r.width,Math.max(d.x,e.clientX)-r.left),y1=Math.max(0,Math.min(d.y,e.clientY)-r.top),y2=Math.min(r.height,Math.max(d.y,e.clientY)-r.top);
 d.z.style.left=(x1/r.width*100).toFixed(2)+'%';d.z.style.top=(y1/r.height*100).toFixed(2)+'%';d.z.style.width=((x2-x1)/r.width*100).toFixed(2)+'%';d.z.style.height=((y2-y1)/r.height*100).toFixed(2)+'%';d.l=x2-x1;d.h=y2-y1;}
-document.addEventListener('pointerdown',function(e){if(mode!=='zone')return;e.preventDefault();e.stopPropagation();var c=e.target.closest('section')||e.target.parentElement||document.body;
+document.addEventListener('pointerdown',function(e){if(mode!=='zone')return;e.preventDefault();e.stopPropagation();var c=e.target.closest('.toile')||e.target.closest('section')||e.target.parentElement||document.body;
 if(c.classList&&c.classList.contains('zone-clic'))c=c.parentElement;if(getComputedStyle(c).position==='static')c.style.position='relative';
 var z=document.createElement('a');z.className='zone-clic';z.setAttribute('aria-label','Zone cliquable');z.style.cssText='position:absolute;display:block;z-index:5;cursor:pointer';c.appendChild(z);
 dessin={z:z,c:c,x:e.clientX,y:e.clientY,l:0,h:0};majZone(e);},true);
@@ -193,7 +193,7 @@ if(d.type==='supprimer'){var s=sel;choisir(null);s.remove();dire({type:'modif'})
 if(d.type==='dupliquer'){var c=sel.cloneNode(true);c.removeAttribute('data-kz-sel');sel.parentNode.insertBefore(c,sel.nextSibling);choisir(c);dire({type:'modif'});}
 if(d.type==='parent'&&sel.parentElement&&sel.parentElement!==document.documentElement)choisir(sel.parentElement);
 });
-changerMode('texte');dire({type:'pret'});
+changerMode('selection');dire({type:'pret'});
 })();<\/script>`;
 
 // Éléments qui servent à naviguer (onglets, menus, boutons) : cibles possibles d'un lien.
@@ -269,7 +269,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages })
   const [source, setSource] = useState(htmlInitial); // ce qui est chargé dans l'aperçu
   const [version, setVersion] = useState(0); // force le rechargement de l'aperçu
   const [historique, setHistorique] = useState([]);
-  const [mode, setMode] = useState("texte");
+  const [mode, setMode] = useState(() => (/data-maquette-images|<section class="ecran[^>]*>\s*<img/.test(htmlInitial) ? "selection" : "texte"));
   const [sel, setSel] = useState(null);
   const [panneau, setPanneau] = useState(""); // "", "images", "couleurs", "code"
   const [code, setCode] = useState("");
@@ -479,25 +479,30 @@ function GalerieAjout({ ajouter }) {
 export function maquetteImages(ecrans, titre = "Mon application", { onglets = true } = {}) {
   const echapper = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const plusieurs = ecrans.length > 1;
+  const barre = plusieurs && onglets;
+  // Chaque écran tient en entier dans la fenêtre (pas besoin de faire défiler), quelle que soit sa taille.
+  const reste = 30 + (barre ? 62 : 0);
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${echapper(titre)}</title>
 <style>
-*{box-sizing:border-box;margin:0}body{background:#05060f;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;${plusieurs && onglets ? "padding-bottom:70px;" : ""}}
-.bandeau{font-size:11px;text-align:center;padding:4px;background:#1b2040;color:#a5abd6}
-.ecran{display:none}.ecran.actif{display:block}
-.ecran img{display:block;width:100%;height:auto;max-width:900px;margin:0 auto;${plusieurs ? "cursor:pointer;" : ""}}
-.ecran .decoupe{display:block;width:100%;max-width:520px;margin:0 auto;background-repeat:no-repeat;${plusieurs ? "cursor:pointer;" : ""}}
-nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:4px;padding:10px 6px 14px;background:rgba(10,12,30,.94);border-top:1px solid #222a52;overflow-x:auto}
+*{box-sizing:border-box;margin:0}html,body{height:100%}
+body{background:#05060f;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+.bandeau{flex:none;font-size:11px;text-align:center;padding:4px;background:#1b2040;color:#a5abd6}
+.ecran{display:none;flex:1;min-height:0;align-items:center;justify-content:center;padding:4px}.ecran.actif{display:flex}
+.toile{position:relative;display:flex;max-width:100%;max-height:100%}
+.toile img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100vh - ${reste}px);max-height:calc(100dvh - ${reste}px);object-fit:contain;${plusieurs ? "cursor:pointer;" : ""}}
+.toile .decoupe{display:block;height:calc(100vh - ${reste}px);height:calc(100dvh - ${reste}px);max-width:100%;background-repeat:no-repeat;${plusieurs ? "cursor:pointer;" : ""}}
+nav{flex:none;display:flex;justify-content:space-around;gap:4px;padding:10px 6px 14px;background:rgba(10,12,30,.94);border-top:1px solid #222a52;overflow-x:auto}
 nav button{background:none;border:0;color:#8b93c9;font-size:13px;font-weight:600;padding:6px 10px;border-radius:10px;white-space:nowrap}
 nav button.actif{color:#fff;background:#7b5cff}
-</style></head><body>
+</style></head><body data-maquette-images="1">
 <div class="bandeau">Maquette Kaizen — aperçu non fonctionnel</div>
-${ecrans.map((e, i) => `<section class="ecran${i === 0 ? " actif" : ""}" data-ecran="e${i}">${e.decoupe ? styleDecoupe(e, echapper) : `<img src="${echapper(e.url)}" alt="${echapper(e.nom)}">`}</section>`).join("\n")}
+${ecrans.map((e, i) => `<section class="ecran${i === 0 ? " actif" : ""}" data-ecran="e${i}"><div class="toile">${e.decoupe ? styleDecoupe(e, echapper) : `<img src="${echapper(e.url)}" alt="${echapper(e.nom)}">`}</div></section>`).join("\n")}
 ${plusieurs ? `<nav${onglets ? "" : ' style="display:none"'}>${ecrans.map((e, i) => `<button${i === 0 ? ' class="actif"' : ""} data-vers="e${i}">${echapper(e.nom)}</button>`).join("")}</nav>` : ""}
-<script>(function(){var b=[].slice.call(document.querySelectorAll('nav button'));function aller(id){document.querySelectorAll('.ecran').forEach(function(e){e.classList.toggle('actif',e.dataset.ecran===id)});b.forEach(function(x){x.classList.toggle('actif',x.dataset.vers===id)});window.scrollTo(0,0);}
+<script>(function(){var b=[].slice.call(document.querySelectorAll('nav button'));function aller(id){document.querySelectorAll('.ecran').forEach(function(e){e.classList.toggle('actif',e.dataset.ecran===id)});b.forEach(function(x){x.classList.toggle('actif',x.dataset.vers===id)});}
 b.forEach(function(x){x.addEventListener('click',function(){aller(x.dataset.vers)})});
-document.querySelectorAll('.ecran > img, .ecran > .decoupe').forEach(function(im,i,l){im.addEventListener('click',function(e){if(e.target.closest('[data-lien-ecran]')||l.length<2)return;aller('e'+((i+1)%l.length));});});})();</script>
+document.querySelectorAll('.ecran img, .ecran .decoupe').forEach(function(im,i,l){im.addEventListener('click',function(e){if(e.target.closest('[data-lien-ecran]')||l.length<2)return;aller('e'+((i+1)%l.length));});});})();</script>
 </body></html>`;
 }
 
