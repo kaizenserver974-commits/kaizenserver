@@ -532,11 +532,13 @@ export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre =
 .carte h2{font-size:18px;line-height:1.25;text-align:center;font-weight:600;min-height:2.5em}
 .tel{margin-top:16px;width:82%;flex:1;min-height:0;border:6px solid #0d0d10;border-bottom:0;border-radius:30px 30px 0 0;overflow:hidden;background:#111;box-shadow:0 14px 34px rgba(0,0,0,.55)}
 .tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}
-/*seule-v2*/.carte.seule{flex:0 0 84%;max-width:400px;aspect-ratio:auto;background:none;padding:0;gap:10px;cursor:zoom-in}
-.carte.seule h2{min-height:0;font-size:16px}
-.carte.seule .tel{flex:none;margin:0;width:100%;height:auto;aspect-ratio:9/19.5;max-height:72vh;border:0;border-radius:34px;background:#111;box-shadow:0 12px 34px rgba(0,0,0,.6);overflow:hidden}
+/*seule-v3*/.carrousel:has(.carte.seule){gap:0;padding:18px 0;scroll-padding:0}
+.carte.seule{flex:0 0 100%;max-width:none;aspect-ratio:auto;background:none;padding:0 0 4px;gap:10px;scroll-snap-align:center;scroll-snap-stop:always;cursor:zoom-in}
+.carte.seule h2{min-height:0;font-size:16px;padding:0 16px}
+.carte.seule .tel{flex:none;margin:0;width:min(84%,400px);height:auto;aspect-ratio:9/19.5;max-height:72vh;border:0;border-radius:34px;background:#111;box-shadow:0 12px 34px rgba(0,0,0,.6);overflow:hidden}
 .carte.seule .tel img{width:100%;height:100%;object-fit:cover;object-position:top center}
 .carte.seule .tel .decoupe{width:100%;height:100%}
+.points{display:flex;justify-content:center;gap:7px;padding:2px 0 18px}.points i{width:7px;height:7px;border-radius:50%;background:#555}.points i.actif{background:#fff}
 .texte{max-width:900px;margin:0 auto;padding:4px 18px 30px;color:#d0d0d8;font-size:15px;line-height:1.5}
 .visionneuse{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center}
 .visionneuse.ouverte{display:flex}.visionneuse .vue{max-width:94vw;max-height:88vh;display:flex}
@@ -550,27 +552,31 @@ export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre =
 <div class="carrousel">
 ${ecrans.map((x, i) => `<div class="carte${telephone ? "" : " seule"}" data-ouvrir="${i}">${x.legende ? `<h2>${e(x.legende)}</h2>` : ""}<div class="tel">${ecranHtml(x)}</div></div>`).join("\n")}
 </div>
+${!telephone && ecrans.length > 1 ? `<div class="points" aria-hidden="true">${ecrans.map((_, i) => `<i${i === 0 ? ' class="actif"' : ""}></i>`).join("")}</div>` : ""}
 ${resume ? `<p class="texte">${e(resume)}</p>` : ""}
 <div class="visionneuse" aria-hidden="true"><div class="vue"></div><button class="fermer" aria-label="Fermer">✕</button><button class="prec" aria-label="Précédent">‹</button><button class="suiv" aria-label="Suivant">›</button></div>
 <script>(function(){var cartes=[].slice.call(document.querySelectorAll('.carte')),v=document.querySelector('.visionneuse'),vue=v.querySelector('.vue'),n=0;
 function montrer(i){n=(i+cartes.length)%cartes.length;var t=cartes[n].querySelector('.tel').firstElementChild.cloneNode(true);vue.innerHTML='';vue.appendChild(t);v.classList.add('ouverte');}
 document.addEventListener('click',function(ev){if(document.designMode==='on')return;var o=ev.target.closest('[data-ouvrir]');if(o&&!ev.target.closest('[data-lien-ecran]')){montrer(+o.getAttribute('data-ouvrir'));return;}
-if(ev.target.closest('.fermer')||ev.target===v)v.classList.remove('ouverte');if(ev.target.closest('.prec'))montrer(n-1);if(ev.target.closest('.suiv'))montrer(n+1);});})();</script>
+if(ev.target.closest('.fermer')||ev.target===v)v.classList.remove('ouverte');if(ev.target.closest('.prec'))montrer(n-1);if(ev.target.closest('.suiv'))montrer(n+1);});
+var car=document.querySelector('.carrousel'),pts=[].slice.call(document.querySelectorAll('.points i'));if(car&&pts.length)car.addEventListener('scroll',function(){var k=Math.round(car.scrollLeft/car.clientWidth);pts.forEach(function(p,j){p.classList.toggle('actif',j===k);});},{passive:true});})();</script>
 </body></html>`;
 }
 
 // Vitrines déjà enregistrées : l'image remplit maintenant tout l'écran du téléphone.
-const CSS_SEULE = `/*seule-v2*/.carte.seule{flex:0 0 84%;max-width:400px;aspect-ratio:auto;background:none;padding:0;gap:10px;cursor:zoom-in}
-.carte.seule h2{min-height:0;font-size:16px}
-.carte.seule .tel{flex:none;margin:0;width:100%;height:auto;aspect-ratio:9/19.5;max-height:72vh;border:0;border-radius:34px;background:#111;box-shadow:0 12px 34px rgba(0,0,0,.6);overflow:hidden}
+const CSS_SEULE = `/*seule-v3*/.carrousel:has(.carte.seule){gap:0;padding:18px 0;scroll-padding:0}
+.carte.seule{flex:0 0 100%;max-width:none;aspect-ratio:auto;background:none;padding:0 0 4px;gap:10px;scroll-snap-align:center;scroll-snap-stop:always;cursor:zoom-in}
+.carte.seule h2{min-height:0;font-size:16px;padding:0 16px}
+.carte.seule .tel{flex:none;margin:0;width:min(84%,400px);height:auto;aspect-ratio:9/19.5;max-height:72vh;border:0;border-radius:34px;background:#111;box-shadow:0 12px 34px rgba(0,0,0,.6);overflow:hidden}
 .carte.seule .tel img{width:100%;height:100%;object-fit:cover;object-position:top center}
 .carte.seule .tel .decoupe{width:100%;height:100%}
+.points{display:flex;justify-content:center;gap:7px;padding:2px 0 18px}.points i{width:7px;height:7px;border-radius:50%;background:#555}.points i.actif{background:#fff}
 `;
 export function majVitrine(html) {
   let h = String(html || "").replace(".tel img{display:block;width:100%;height:auto}.tel .decoupe{width:100%;background-repeat:no-repeat}", ".tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}");
   // Anciennes vitrines (fond coloré + téléphone) : l'image seule, en entier, sans titre « Écran N ».
   // Vitrines « image seule » de la première version : nouveau style (grandes cartes, image bord à bord).
-  if (h.includes(".carte.seule{") && !h.includes("/*seule-v2*/")) h = h.replace(/\.carte\.seule[^{]*\{[^}]*\}\n?/g, "").replace(".texte{max-width:900px;", CSS_SEULE + ".texte{max-width:900px;");
+  if (h.includes(".carte.seule{") && !h.includes("/*seule-v3*/")) h = h.replace(/^.*carte\.seule.*\n?/gm, "").replace(/^\.points\{.*\n?/gm, "").replace(".texte{max-width:900px;", CSS_SEULE + ".texte{max-width:900px;");
   if (/data-maquette-vitrine/.test(h) && !h.includes(".carte.seule{")) {
     h = h.replace(".texte{max-width:900px;", CSS_SEULE + ".texte{max-width:900px;")
       .replace(/class="carte" data-ouvrir/g, 'class="carte seule" data-ouvrir')
