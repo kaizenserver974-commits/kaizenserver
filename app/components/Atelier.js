@@ -531,15 +531,35 @@ function Decoupe({ couper }) {
 export function ChoixEcransImages({ valider, annuler, initial = null }) {
   const [ecrans, setEcrans] = useState(initial ? [{ ...initial, nom: "Accueil" }] : []);
   const [onglets, setOnglets] = useState(true);
-  // Une planche avec plusieurs écrans (ex. 6 par ligne sur 2 lignes) devient autant d'écrans, lus ligne par ligne.
+  // Une planche avec plusieurs écrans (ex. 6 par ligne sur 2 lignes) est VRAIMENT découpée :
+  // chaque écran devient sa propre image (ajoutée à la galerie), lue ligne par ligne.
+  const [decoupe, setDecoupe] = useState("");
+  const [erreur, setErreur] = useState("");
   async function couper(i, n, m) {
     const e = ecrans[i];
-    const dim = await dimensions(e.url);
-    if (!dim) return;
-    const parts = [];
-    for (let r = 0; r < m; r++) for (let k = 0; k < n; k++) parts.push({ ...e, nom: parts.length === 0 ? e.nom : `Écran ${i + parts.length + 1}`, decoupe: { k, n, r, m, ...dim } });
-    setEcrans((l) => [...l.slice(0, i), ...parts, ...l.slice(i + 1)].slice(0, MAX_ECRANS));
-    if (n * m > 6) setOnglets(false); // l'image a souvent sa propre barre de menu : on la rend cliquable avec « ▭ Zone cliquable »
+    setErreur(""); setDecoupe("Découpe de l'image…");
+    try {
+      const img = await new Promise((ok, ko) => { const x = new Image(); x.onload = () => ok(x); x.onerror = () => ko(new Error("Image illisible")); x.src = e.url; });
+      const lc = img.naturalWidth / n, hc = img.naturalHeight / m;
+      const toile = document.createElement("canvas");
+      toile.width = Math.round(lc); toile.height = Math.round(hc);
+      const ctx = toile.getContext("2d");
+      const parts = [];
+      for (let r = 0; r < m; r++) {
+        for (let k = 0; k < n; k++) {
+          const numero = parts.length + 1;
+          setDecoupe(`Découpe : écran ${numero} sur ${n * m}…`);
+          ctx.fillStyle = "#000"; ctx.fillRect(0, 0, toile.width, toile.height);
+          ctx.drawImage(img, k * lc, r * hc, lc, hc, 0, 0, toile.width, toile.height);
+          const rep = await api({ action: "image_ajouter", image: toile.toDataURL("image/jpeg", 0.9), description: `${e.nom || "Planche"} — écran ${numero}` });
+          parts.push({ id: rep.image.id, url: urlImage(rep.image.id), nom: numero === 1 ? e.nom : `Écran ${i + numero}` });
+        }
+      }
+      setEcrans((l) => [...l.slice(0, i), ...parts, ...l.slice(i + 1)].slice(0, MAX_ECRANS));
+      if (n * m > 6) setOnglets(false); // l'image a souvent sa propre barre de menu : on la rend cliquable avec « ▭ Zone cliquable »
+    } catch (err) {
+      setErreur(`La découpe n'a pas abouti (${err.message}). Réessayez.`);
+    } finally { setDecoupe(""); }
   }
   const deplacer = (i, d) => setEcrans((l) => { const n = [...l]; const j = i + d; if (j < 0 || j >= n.length) return l; [n[i], n[j]] = [n[j], n[i]]; return n; });
   return (
@@ -558,13 +578,15 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
                 <input value={e.nom} maxLength={24} onChange={(ev) => setEcrans((l) => l.map((x, j) => (j === i ? { ...x, nom: ev.target.value } : x)))} aria-label={`Nom de l'écran ${i + 1}`} />
                 <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, -1)} aria-label="Monter">↑</button>
                 <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, 1)} aria-label="Descendre">↓</button>
-                {!e.decoupe && <Decoupe couper={(n, m) => couper(i, n, m)} />}
+                {!e.decoupe && !decoupe && <Decoupe couper={(n, m) => couper(i, n, m)} />}
                 <button type="button" className="btn petit secondaire" onClick={() => setEcrans((l) => l.filter((_, j) => j !== i))} aria-label="Retirer">×</button>
               </li>
             );
           })}
         </ol>
       )}
+      {decoupe && <div className="chargement"><span className="rond" /> {decoupe}</div>}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
       {ecrans.length > 1 && (
         <label className="case">
           <input type="checkbox" checked={onglets} onChange={(e) => setOnglets(e.target.checked)} />
@@ -572,7 +594,7 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
         </label>
       )}
       <div className="actions">
-        <button className="btn" disabled={!ecrans.length} onClick={() => valider(ecrans, { onglets })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
+        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={() => valider(ecrans, { onglets })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
         <button className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
       <GalerieImages libelleChoisir="+ Écran" choisir={(id, url) => setEcrans((l) => (l.length >= MAX_ECRANS ? l : [...l, { id, url, nom: l.length === 0 ? "Accueil" : `Écran ${l.length + 1}` }]))} />
