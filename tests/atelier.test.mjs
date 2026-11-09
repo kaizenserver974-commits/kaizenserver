@@ -14,7 +14,7 @@ test("atelier : seules les images JPG, PNG ou WebP raisonnables sont importées"
   assert.deepEqual(validerImageImportee("data:image/png;base64,QUJD"), { type: "image/png", contenu: "QUJD" });
   assert.equal(validerImageImportee("data:image/svg+xml;base64,QUJD"), null);
   assert.equal(validerImageImportee("https://exemple.fr/a.png"), null);
-  assert.equal(validerImageImportee("data:image/jpeg;base64," + "A".repeat(1_700_000)), null);
+  assert.equal(validerImageImportee("data:image/jpeg;base64," + "A".repeat(4_100_000)), null);
 });
 
 test("atelier : trois formats d'image", () => {

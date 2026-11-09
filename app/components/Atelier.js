@@ -9,7 +9,8 @@ const api = (corps) => appelAuthentifie("/api/admin", { method: "POST", body: JS
 export const urlImage = (id) => `${typeof window === "undefined" ? "" : window.location.origin}/api/images/${id}`;
 
 // Réduit une image importée (ou récupérée) en data URL JPEG.
-export function versDataUrl(blob, cote = 1600) {
+// max : taille maximale du résultat (caractères) ; qualite : qualité JPEG de départ.
+export function versDataUrl(blob, cote = 1600, { qualite = 0.85, max = 1_300_000 } = {}) {
   return new Promise((ok, ko) => {
     const lecteur = new FileReader();
     lecteur.onerror = () => ko(new Error("Image illisible"));
@@ -17,12 +18,19 @@ export function versDataUrl(blob, cote = 1600) {
       const img = new Image();
       img.onerror = () => ko(new Error("Image illisible"));
       img.onload = () => {
-        const r = Math.min(1, cote / Math.max(img.width, img.height));
         const c = document.createElement("canvas");
-        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        let url = c.toDataURL("image/jpeg", 0.85);
-        if (url.length > 1_300_000) url = c.toDataURL("image/jpeg", 0.65);
+        const x = c.getContext("2d");
+        let url = "";
+        // On garde le plus de qualité possible, en réduisant seulement si l'image est trop lourde.
+        for (const [facteur, q] of [[1, qualite], [1, qualite - 0.1], [0.8, qualite - 0.1], [0.6, 0.75], [0.45, 0.7]]) {
+          const r = Math.min(1, (cote * facteur) / Math.max(img.width, img.height));
+          c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+          x.imageSmoothingQuality = "high";
+          x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
+          x.drawImage(img, 0, 0, c.width, c.height);
+          url = c.toDataURL("image/jpeg", q);
+          if (url.length <= max) break;
+        }
         ok(url);
       };
       img.src = lecteur.result;
@@ -61,7 +69,7 @@ export function GalerieImages({ choisir, libelleChoisir = "Insérer", enPlus = n
       if (!/^image\//.test(f.type)) { setErreur("Images uniquement."); continue; }
       setAttente(`Import de ${f.name}…`);
       try {
-        const r = await api({ action: "image_ajouter", image: await versDataUrl(f), description: f.name });
+        const r = await api({ action: "image_ajouter", image: await versDataUrl(f, 4096, { qualite: 0.93, max: 3_800_000 }), description: f.name });
         setImages((x) => [r.image, ...(x || [])]);
       } catch (e) { setErreur(e.message); }
     }
@@ -507,6 +515,21 @@ function styleDecoupe(e, echapper) {
   const f = fond(e.decoupe);
   return `<div class="decoupe" role="img" aria-label="${echapper(e.nom)}" style="background-image:url('${echapper(e.url)}');background-size:${f.taille};background-position:${f.position};aspect-ratio:${f.ratio}"></div>`;
 }
+// Accentue légèrement les contours (filtre de netteté) après un agrandissement.
+function nettete(ctx, l, h, force) {
+  const src = ctx.getImageData(0, 0, l, h);
+  const d = src.data, out = new Uint8ClampedArray(d);
+  const c = 1 + 4 * force;
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < l - 1; x++) {
+      const i = (y * l + x) * 4;
+      for (let k = 0; k < 3; k++) {
+        out[i + k] = c * d[i + k] - force * (d[i + k - 4] + d[i + k + 4] + d[i + k - l * 4] + d[i + k + l * 4]);
+      }
+    }
+  }
+  ctx.putImageData(new ImageData(out, l, h), 0, 0);
+}
 const dimensions = (url) => new Promise((ok) => { const i = new Image(); i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => ok(null); i.src = url; });
 
 // Découpe d'une image : nombre d'écrans par ligne et nombre de lignes.
@@ -545,9 +568,13 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
     try {
       const img = await new Promise((ok, ko) => { const x = new Image(); x.onload = () => ok(x); x.onerror = () => ko(new Error("Image illisible")); x.src = e.url; });
       const lc = img.naturalWidth / n, hc = img.naturalHeight / m;
+      // Petits écrans (planche en basse définition) : agrandis jusqu'à 2× avec un lissage de qualité,
+      // puis rendus plus nets, pour un aperçu moins flou.
+      const agrandir = Math.max(1, Math.min(2, 720 / lc));
       const toile = document.createElement("canvas");
-      toile.width = Math.round(lc); toile.height = Math.round(hc);
-      const ctx = toile.getContext("2d");
+      toile.width = Math.round(lc * agrandir); toile.height = Math.round(hc * agrandir);
+      const ctx = toile.getContext("2d", { willReadFrequently: true });
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
       const parts = [];
       for (let r = 0; r < m; r++) {
         for (let k = 0; k < n; k++) {
@@ -555,7 +582,10 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
           setDecoupe(`Découpe : écran ${numero} sur ${n * m}…`);
           ctx.fillStyle = "#000"; ctx.fillRect(0, 0, toile.width, toile.height);
           ctx.drawImage(img, k * lc, r * hc, lc, hc, 0, 0, toile.width, toile.height);
-          const rep = await api({ action: "image_ajouter", image: toile.toDataURL("image/jpeg", 0.9), description: `${e.nom || "Planche"} — écran ${numero}` });
+          if (agrandir > 1.05) nettete(ctx, toile.width, toile.height, 0.35);
+          let donnees = toile.toDataURL("image/jpeg", 0.94);
+          if (donnees.length > 3_800_000) donnees = toile.toDataURL("image/jpeg", 0.85);
+          const rep = await api({ action: "image_ajouter", image: donnees, description: `${e.nom || "Planche"} — écran ${numero}` });
           parts.push({ id: rep.image.id, url: urlImage(rep.image.id), nom: numero === 1 ? e.nom : `Écran ${i + numero}` });
         }
       }
