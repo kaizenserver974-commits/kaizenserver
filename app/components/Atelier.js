@@ -123,10 +123,18 @@ export function GalerieImages({ choisir, libelleChoisir = "Insérer", enPlus = n
 const SCRIPT_EDITEUR = `<script data-kz>(function(){
 var mode='texte',sel=null;
 var st=document.createElement('style');st.setAttribute('data-kz','');
-st.textContent='[data-kz-sel]{outline:3px solid #f5c542!important;outline-offset:2px!important}[data-kz-survol]{outline:2px dashed #a78bfa!important;outline-offset:2px!important}';
+st.textContent='.zone-clic{outline:2px dashed #f5c542;background:rgba(245,197,66,.18)}[data-kz-sel]{outline:3px solid #f5c542!important;outline-offset:2px!important}[data-kz-survol]{outline:2px dashed #a78bfa!important;outline-offset:2px!important}';
 (document.head||document.documentElement).appendChild(st);
 function dire(m){m.kz=true;parent.postMessage(m,'*');}
+var ACTIF=/^(actif|active|is-active|selected|current|show|visible|open|on)$/;
+[].slice.call(document.querySelectorAll('*')).forEach(function(x){if(typeof x.className==='string'){x.__kzCl=x.className;x.__kzDisp=x.style.display;}});
 function code(){var c=document.documentElement.cloneNode(true);
+var o=document.documentElement.querySelectorAll('*'),k=c.querySelectorAll('*');
+for(var i=0;i<o.length&&i<k.length;i++){if(o[i].__kzCl===undefined||typeof k[i].className!=='string')continue;
+var avant=o[i].__kzCl.split(/\\s+/).filter(function(t){return ACTIF.test(t);});
+k[i].className.split(/\\s+/).forEach(function(t){if(ACTIF.test(t)&&avant.indexOf(t)<0)k[i].classList.remove(t);});
+avant.forEach(function(t){k[i].classList.add(t);});if(!k[i].className)k[i].removeAttribute('class');
+if(k[i].style&&k[i].style.display!==o[i].__kzDisp)k[i].style.display=o[i].__kzDisp;if(k[i].getAttribute('style')==='')k[i].removeAttribute('style');}
 c.querySelectorAll('[data-kz]').forEach(function(e){e.remove();});
 c.querySelectorAll('[data-kz-sel]').forEach(function(e){e.removeAttribute('data-kz-sel');});
 c.querySelectorAll('[data-kz-survol]').forEach(function(e){e.removeAttribute('data-kz-survol');});
@@ -139,12 +147,21 @@ function choisir(e){if(sel)sel.removeAttribute('data-kz-sel');sel=e||null;
 if(sel){sel.setAttribute('data-kz-sel','');
 dire({type:'sel',tag:sel.tagName.toLowerCase(),image:imageSous(sel)===sel,texte:(sel.innerText||'').trim().slice(0,50),lien:sel.getAttribute('data-lien-ecran')||''});}else dire({type:'sel',tag:''});}
 function bloc(x){while(x&&x.parentElement&&x.parentElement!==document.body&&/^inline/.test(getComputedStyle(x).display))x=x.parentElement;return x;}
-document.addEventListener('click',function(e){if(mode==='texte'){var im=imageSous(e.target);if(im&&(im===e.target||im.contains(e.target)&&(im.tagName==='IMG'||im.tagName.toLowerCase()==='svg'))){e.preventDefault();choisir(im);}else if(sel)choisir(null);return;}
+var dessin=null,ignorerClic=false;
+function majZone(e){var d=dessin,r=d.c.getBoundingClientRect();var x1=Math.max(0,Math.min(d.x,e.clientX)-r.left),x2=Math.min(r.width,Math.max(d.x,e.clientX)-r.left),y1=Math.max(0,Math.min(d.y,e.clientY)-r.top),y2=Math.min(r.height,Math.max(d.y,e.clientY)-r.top);
+d.z.style.left=(x1/r.width*100).toFixed(2)+'%';d.z.style.top=(y1/r.height*100).toFixed(2)+'%';d.z.style.width=((x2-x1)/r.width*100).toFixed(2)+'%';d.z.style.height=((y2-y1)/r.height*100).toFixed(2)+'%';d.l=x2-x1;d.h=y2-y1;}
+document.addEventListener('pointerdown',function(e){if(mode!=='zone')return;e.preventDefault();e.stopPropagation();var c=e.target.closest('section')||e.target.parentElement||document.body;
+if(c.classList&&c.classList.contains('zone-clic'))c=c.parentElement;if(getComputedStyle(c).position==='static')c.style.position='relative';
+var z=document.createElement('a');z.className='zone-clic';z.setAttribute('aria-label','Zone cliquable');z.style.cssText='position:absolute;display:block;z-index:5;cursor:pointer';c.appendChild(z);
+dessin={z:z,c:c,x:e.clientX,y:e.clientY,l:0,h:0};majZone(e);},true);
+document.addEventListener('pointermove',function(e){if(dessin){e.preventDefault();majZone(e);}},true);
+document.addEventListener('pointerup',function(e){if(!dessin)return;var d=dessin;dessin=null;if(d.l<10||d.h<10){d.z.remove();return;}ignorerClic=true;setTimeout(function(){ignorerClic=false;},400);mode='selection';document.body.style.touchAction='';choisir(d.z);dire({type:'zone-faite'});dire({type:'modif'});},true);
+document.addEventListener('click',function(e){if(ignorerClic){ignorerClic=false;e.preventDefault();e.stopPropagation();return;}if(mode==='zone'){e.preventDefault();e.stopPropagation();return;}if(mode==='texte'){var im=imageSous(e.target);if(im&&(im===e.target||im.contains(e.target)&&(im.tagName==='IMG'||im.tagName.toLowerCase()==='svg'))){e.preventDefault();choisir(im);}else if(sel)choisir(null);return;}
 if(mode!=='selection')return;e.preventDefault();e.stopPropagation();var t=e.target,im2=imageSous(t);choisir(im2&&(im2===t||im2.tagName.toLowerCase()==='svg')?im2:t);},true);
 document.addEventListener('mouseover',function(e){if(mode==='selection'&&e.target.setAttribute)e.target.setAttribute('data-kz-survol','');},true);
 document.addEventListener('mouseout',function(e){if(e.target.removeAttribute)e.target.removeAttribute('data-kz-survol');},true);
 document.addEventListener('input',function(){dire({type:'modif'});});
-function changerMode(m){mode=m;try{document.designMode=m==='texte'?'on':'off';}catch(x){}if(m!=='selection')choisir(null);}
+function changerMode(m){mode=m;try{document.designMode=m==='texte'?'on':'off';}catch(x){}document.body.style.touchAction=m==='zone'?'none':'';if(m!=='selection')choisir(null);}
 window.addEventListener('message',function(e){var d=e.data||{};if(!d.kz)return;
 if(d.type==='mode')changerMode(d.mode);
 if(d.type==='lire')dire({type:'code',id:d.id,html:code()});
@@ -175,7 +192,7 @@ changerMode('texte');dire({type:'pret'});
 const SELECTEUR_CIBLES = "nav button,nav a,[role=tab],[data-tab],[data-vers],[data-target],[data-screen],[onclick],button,a";
 // Petit script enregistré DANS la maquette : un bloc ou une image « lien » clique sur l'onglet choisi.
 const CODE_LIENS = `(function(){var S=${JSON.stringify(SELECTEUR_CIBLES)};function n(x){return (x.innerText||x.textContent||"").replace(/\\s+/g," ").trim();}
-document.addEventListener("click",function(e){if(document.designMode==="on")return;var s=e.target.closest&&e.target.closest("[data-lien-ecran]");if(!s)return;var t=s.getAttribute("data-lien-ecran");
+document.addEventListener("click",function(e){if(document.designMode==="on")return;var s=e.target.closest&&e.target.closest("[data-lien-ecran]");if(!s)return;var t=s.getAttribute("data-lien-ecran");if(!t)return;
 var c=[].slice.call(document.querySelectorAll(S)).find(function(x){return !x.closest("[data-lien-ecran]")&&n(x)===t;});if(c){e.preventDefault();c.click();window.scrollTo(0,0);}});})();`;
 
 const injecter = (html) => (/<\/body>/i.test(html) ? html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${SCRIPT_EDITEUR}</body>`) : html + SCRIPT_EDITEUR);
@@ -260,6 +277,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages })
       const d = e.data;
       if (d.type === "pret") cadre.current.contentWindow.postMessage({ kz: true, type: "mode", mode }, "*");
       if (d.type === "sel") { setSel(d.tag ? d : null); if (d.tag && d.image) setPanneau("images"); }
+      if (d.type === "zone-faite") { setMode("selection"); setMessage({ type: "succes", texte: "▭ Zone créée : choisissez ci-dessus dans « 🔗 Au clic, aller vers » l'écran qu'elle ouvre." }); }
       if (d.type === "modif") setModifie(true);
       if ((d.type === "code" || d.type === "cibles") && enAttente.current[d.id]) { enAttente.current[d.id](d.type === "code" ? d.html : d.liste); delete enAttente.current[d.id]; }
     };
@@ -348,6 +366,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages })
       <div className="barre-outils" role="toolbar" aria-label="Outils de l'atelier">
         <button className={`btn petit ${mode === "texte" ? "" : "secondaire"}`} onClick={() => changerMode("texte")} title="Cliquez sur un texte de l'aperçu pour l'écrire">✏️ Textes</button>
         <button className={`btn petit ${mode === "selection" ? "" : "secondaire"}`} onClick={() => changerMode("selection")} title="Cliquez sur un bloc ou une image pour le sélectionner">👆 Sélectionner</button>
+        <button className={`btn petit ${mode === "zone" ? "" : "secondaire"}`} onClick={() => changerMode("zone")} title="Dessinez un rectangle sur un bouton de l'image pour le rendre cliquable">▭ Zone cliquable</button>
         <button className={`btn petit ${mode === "test" ? "" : "secondaire"}`} onClick={() => changerMode("test")} title="Cliquez dans la maquette comme le client : onglets, boutons, liens">▶ Tester</button>
         <span className="separateur" />
         <button className={`btn petit ${panneau === "images" ? "" : "secondaire"}`} onClick={() => ouvrirPanneau("images")}>🖼️ Images</button>
@@ -362,7 +381,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages })
       </div>
 
       <p className="aide-outil">
-        {mode === "texte" && sel?.image ? "🖼️ Image sélectionnée : choisissez dans la galerie à droite l'image qui la remplace." : mode === "texte" ? "✏️ Cliquez sur un texte pour l'écrire, ou sur une image pour la remplacer." : mode === "test" ? "▶ Mode test : cliquez dans la maquette comme le client (onglets, boutons, images cliquables)." : sel ? <>Sélection : <b>&lt;{sel.tag}&gt;</b> {sel.texte ? `« ${sel.texte} »` : ""}</> : "👆 Cliquez sur un bloc ou une image de l'aperçu pour le sélectionner."}
+        {mode === "zone" ? "▭ Avec le doigt ou la souris, dessinez un rectangle sur le bouton de l'image (ex. « Entretien »), puis choisissez l'écran qu'il ouvre." : mode === "texte" && sel?.image ? "🖼️ Image sélectionnée : choisissez dans la galerie à droite l'image qui la remplace." : mode === "texte" ? "✏️ Cliquez sur un texte pour l'écrire, ou sur une image pour la remplacer." : mode === "test" ? "▶ Mode test : cliquez dans la maquette comme le client (onglets, boutons, images cliquables)." : sel ? <>Sélection : <b>&lt;{sel.tag}&gt;</b> {sel.texte ? `« ${sel.texte} »` : ""}</> : "👆 Cliquez sur un bloc ou une image de l'aperçu pour le sélectionner."}
       </p>
       {mode === "selection" && sel && (
         <div className="actions outils-selection">
@@ -395,7 +414,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages })
                 <p className="note">{sel?.image ? <b>🔁 Cliquez sur « Remplacer » sous une image de votre galerie : elle prend la place de l'image sélectionnée dans la maquette.</b> : sel ? <>Choisissez une image pour le bloc sélectionné (<b>&lt;{sel.tag}&gt;</b>).</> : "Pour remplacer une image de la maquette : cliquez dessus dans l'aperçu, puis sur « Remplacer » sous l'image de votre choix. « Ajouter » place une nouvelle image dans l'écran affiché."}</p>
                 {sel && !sel.image && <p className="note">« Fond du bloc » met l'image en fond du bloc ; les petites vignettes en dessous l'ajoutent juste sous le bloc.</p>}
                 <GalerieImages choisir={choisirImage} libelleChoisir={!sel ? "Ajouter" : sel.image ? "Remplacer" : "Fond du bloc"}
-                  enPlus={versImages ? { libelle: "🖼️ Remplacer toute la maquette", faire: (id, url) => versImages({ id, url }) } : null} />
+                  enPlus={versImages && !sel?.image ? { libelle: "🖼️ Remplacer toute la maquette", faire: (id, url) => versImages({ id, url }) } : null} />
                 {sel && !sel.image && <GalerieAjout ajouter={ajouterImage} />}
               </>
             )}
