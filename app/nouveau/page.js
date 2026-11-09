@@ -8,7 +8,7 @@ import {
   trouver, fonctionnalite,
 } from "../../lib/catalogue.js";
 import { chargerProjet, enregistrerProjet, nouveauProjet } from "../../lib/stockage.js";
-import { PACKS, bonusPack, meilleurPack, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, MAQUETTE_IA_CLIENT, prixTexte } from "../../lib/pieces.js";
+import { PACKS, bonusPack, meilleurPack, COUT_MODIFICATION, COUT_COMMANDE, COUT_MAQUETTE, COUT_GENIE, MAQUETTE_IA_CLIENT, COUT_MODIF_SERVER, prixTexte } from "../../lib/pieces.js";
 import { PortefeuilleProvider, usePortefeuille, lienConnexion } from "../../lib/portefeuille.js";
 import { jeton } from "../../lib/supabaseClient.js";
 import { videoPartagee, installerDeverrouillage } from "../../lib/videoPartagee.js";
@@ -1888,8 +1888,8 @@ function AvisMaquette({ projet, modifier, valider, infoAchat, maj }) {
         </>
       ) : (
         <div className="modif-server">
-          <p><b>Une modification ?</b> C'est Server qui retouche votre maquette : écrivez-lui ce que vous voulez changer (couleurs, écrans, textes, photos…).</p>
-          <a className="btn secondaire" href="/espace?onglet=messages">✉️ Écrire à Server</a>
+          <p><b>Une modification ?</b> C'est Server qui retouche votre maquette. Dans votre espace client, sous la maquette, demandez-lui ce que vous voulez changer (couleurs, écrans, textes, photos…) : <b>{COUT_MODIF_SERVER} pièces d'or</b> par demande.</p>
+          <a className="btn secondaire" href="/espace">✏️ Demander une modification</a>
         </div>
       )}
       {projet.retours?.length > 0 && (

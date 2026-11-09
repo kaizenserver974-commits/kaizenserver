@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
 import { statut } from "../../lib/espace.js";
 import MotDePasse from "../components/MotDePasse.js";
+import { COUT_MODIF_SERVER } from "../../lib/pieces.js";
 import { SuiviCommande, FilMessages, CarteDevis, BlocMaquette, date } from "../components/Espace.js";
 
 const ONGLETS = [
@@ -115,6 +116,7 @@ function Espace() {
               lire={async () => (await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
             />
           )}
+          {c.maquette && <DemandeModification c={c} recharger={charger} />}
           {c.liens?.length > 0 && (
             <div className="liens-client">
               <h3>🔗 Vos liens</h3>
@@ -185,5 +187,41 @@ function Message({ titre, texte, lien, bouton }) {
         <a className="btn" href={lien}>{bouton}</a>
       </section>
     </main>
+  );
+}
+
+// Demander à Server une modification de la maquette : 30 pièces d'or (bourse du projet).
+function DemandeModification({ c, recharger }) {
+  const [texte, setTexte] = useState("");
+  const [etat, setEtat] = useState("");
+  const [solde, setSolde] = useState(null);
+  const projet = c.projet?.projetLocal;
+  useEffect(() => {
+    if (!projet) return;
+    appelAuthentifie("/api/pieces/solde", { method: "POST", body: JSON.stringify({ projet }) }).then((d) => setSolde(d.solde)).catch(() => {});
+  }, [projet]);
+  async function envoyer() {
+    setEtat("envoi");
+    try {
+      const d = await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "modification", commandeId: c.id, contenu: texte.trim() }) });
+      setSolde(d.solde); setTexte(""); setEtat("ok"); recharger?.();
+    } catch (e) { setEtat(e.message); }
+  }
+  const assez = solde === null || solde >= COUT_MODIF_SERVER;
+  return (
+    <div className="demande-modif">
+      <div className="titre-ligne">
+        <h3>✏️ Demander une modification à Server</h3>
+        {projet && solde !== null && <span className="solde">🪙 {solde} pièces d'or</span>}
+      </div>
+      <p className="discret">Dites précisément ce que vous voulez changer, un point par ligne (couleurs, écrans, textes, photos…). Server retouche votre maquette et vous prévient. Chaque demande coûte <b>{COUT_MODIF_SERVER} pièces d'or</b>.</p>
+      <textarea rows={3} maxLength={3000} value={texte} onChange={(e) => setTexte(e.target.value)} placeholder={"Ex. :\nAccueil : mettre la photo de ma moto en arrière-plan\nAjouter un écran « Historique d'entretien »"} />
+      {etat === "ok" && <p className="succes">✅ Demande envoyée à Server (−{COUT_MODIF_SERVER} 🪙). Il vous répond dans vos messages.</p>}
+      {etat && etat !== "ok" && etat !== "envoi" && <p className="alerte erreur">{etat}</p>}
+      {!assez && <p className="alerte">Il vous manque {COUT_MODIF_SERVER - solde} pièces d'or : rechargez-les depuis votre projet (« Mes projets »).</p>}
+      <div className="actions">
+        <button className="btn" disabled={texte.trim().length < 5 || etat === "envoi" || !assez} onClick={envoyer}>{etat === "envoi" ? "Envoi…" : `Envoyer la demande (−${COUT_MODIF_SERVER} 🪙)`}</button>
+      </div>
+    </div>
   );
 }

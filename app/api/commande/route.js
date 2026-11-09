@@ -65,7 +65,7 @@ export async function POST(request) {
       telephone: commande.contact.telephone || null,
       entreprise: commande.contact.entreprise || null,
       formule: commande.formule,
-      projet: { ...commande.projet, message: commande.contact.message, pieces: commande.pieces.map((p) => p.nom), cleClient, ...(commande.projet.maquetteValidee ? { maquetteAccepteeLe: new Date().toISOString() } : {}) },
+      projet: { ...commande.projet, message: commande.contact.message, pieces: commande.pieces.map((p) => p.nom), cleClient, projetLocal: /^[\w-]{6,80}$/.test(String(corps?.projet?.id || "")) ? String(corps.projet.id) : null, ...(commande.projet.maquetteValidee ? { maquetteAccepteeLe: new Date().toISOString() } : {}) },
       recap: commande.recap,
     }).select("id").single();
     if (error) console.error("Kaizen /commande Supabase :", error.message);

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { bourse, debiter, SoldeInsuffisant } from "../../../lib/serveur/portefeuille.js";
+import { COUT_MODIF_SERVER } from "../../../lib/pieces.js";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette } from "../../../lib/serveur/supabase.js";
 import { validerMessage, nonLus, statut, liensPourClient } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
@@ -38,6 +40,28 @@ export async function POST(request) {
   const sb = supabaseAdmin();
   const [commande] = await chargerCommandes(sb, { id: String(corps.commandeId || ""), email: u.email }).catch(() => []);
   if (!commande) return refus("Commande introuvable.", 404);
+
+  // Demande de modification de la maquette à Server : 30 pièces d'or prises dans la bourse du projet.
+  if (corps.action === "modification") {
+    const { contenu, erreur } = validerMessage(corps.contenu);
+    if (erreur) return refus(erreur, 400);
+    const cleBourse = bourse(u.email, commande.projet?.projetLocal);
+    if (!cleBourse) return refus("Ouvrez ce projet depuis « Mes projets » sur cet appareil pour utiliser ses pièces d'or, ou écrivez à Server dans les messages.", 400);
+    let solde;
+    try { solde = await debiter(sb, cleBourse, COUT_MODIF_SERVER, `Modification de maquette demandée à Server (${commande.numero})`); }
+    catch (e) {
+      if (e instanceof SoldeInsuffisant) return NextResponse.json({ erreur: e.message, solde: e.solde, manque: true }, { status: 402 });
+      return refus("Le paiement en pièces d'or est indisponible pour le moment.", 500);
+    }
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "client", contenu: `✏️ Demande de modification de la maquette (−${COUT_MODIF_SERVER} 🪙) :\n${contenu}` });
+    await notifier({
+      a: process.env.KAIZEN_EMAIL,
+      sujet: `✏️ Modification de maquette demandée — ${commande.numero} (${commande.nom || commande.email})`,
+      texte: `${commande.nom || commande.email} demande une modification de sa maquette :\n\n${contenu}\n\nEspace Server : ${urlSite(request)}/admin`,
+      repondreA: commande.email,
+    }).catch(() => {});
+    return NextResponse.json({ ok: true, solde });
+  }
 
   if (corps.action === "message") {
     const { contenu, erreur } = validerMessage(corps.contenu);
