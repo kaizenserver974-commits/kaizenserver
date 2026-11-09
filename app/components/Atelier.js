@@ -134,7 +134,7 @@ var st=document.createElement('style');st.setAttribute('data-kz','');
 st.textContent='.zone-clic{outline:2px dashed #f5c542;background:rgba(245,197,66,.18)}[data-kz-sel]{outline:3px solid #f5c542!important;outline-offset:2px!important}[data-kz-survol]{outline:2px dashed #a78bfa!important;outline-offset:2px!important}';
 (document.head||document.documentElement).appendChild(st);
 function dire(m){m.kz=true;parent.postMessage(m,'*');}
-var ACTIF=/^(actif|active|is-active|selected|current|show|visible|open|on)$/;
+var ACTIF=/^(actif|active|is-active|selected|current|show|visible|open|on|ouverte)$/;
 [].slice.call(document.querySelectorAll('*')).forEach(function(x){if(typeof x.className==='string'){x.__kzCl=x.className;x.__kzDisp=x.style.display;}});
 function code(){var c=document.documentElement.cloneNode(true);
 var o=document.documentElement.querySelectorAll('*'),k=c.querySelectorAll('*');
@@ -476,7 +476,9 @@ function GalerieAjout({ ajouter }) {
 
 // Maquette faite uniquement de vos images (un écran par image) : onglets en bas,
 // et un clic sur l'image passe à l'écran suivant. Modifiable ensuite dans l'atelier.
-export function maquetteImages(ecrans, titre = "Mon application", { onglets = true } = {}) {
+export function maquetteImages(ecrans, titre = "Mon application", options = {}) {
+  if (options.style === "vitrine") return maquetteVitrine(ecrans, titre, options);
+  const { onglets = true } = options;
   const echapper = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const plusieurs = ecrans.length > 1;
   const barre = plusieurs && onglets;
@@ -503,6 +505,52 @@ ${plusieurs ? `<nav${onglets ? "" : ' style="display:none"'}>${ecrans.map((e, i)
 <script>(function(){var b=[].slice.call(document.querySelectorAll('nav button'));function aller(id){document.querySelectorAll('.ecran').forEach(function(e){e.classList.toggle('actif',e.dataset.ecran===id)});b.forEach(function(x){x.classList.toggle('actif',x.dataset.vers===id)});}
 b.forEach(function(x){x.addEventListener('click',function(){aller(x.dataset.vers)})});
 document.querySelectorAll('.ecran img, .ecran .decoupe').forEach(function(im,i,l){im.addEventListener('click',function(e){if(e.target.closest('[data-lien-ecran]')||l.length<2)return;aller('e'+((i+1)%l.length));});});})();</script>
+</body></html>`;
+}
+
+// Présentation « vitrine » (inspirée des fiches d'applications) : en-tête avec l'icône et le nom,
+// puis les écrans en carrousel, chacun dans un téléphone sur fond coloré avec une phrase.
+// Un clic sur un écran l'ouvre en grand. C'est une présentation de maquette, pas une vraie fiche de magasin.
+export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre = "", couleur = "#7b2cbf", resume = "" } = {}) {
+  const e = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const initiale = (String(titre).trim()[0] || "K").toUpperCase();
+  const ecranHtml = (x) => (x.decoupe ? styleDecoupe(x, e) : `<img src="${e(x.url)}" alt="${e(x.nom)}">`);
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${e(titre)}</title>
+<style>
+*{box-sizing:border-box;margin:0}body{background:#000;color:#fff;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;--c:${e(couleur)}}
+.bandeau{font-size:11px;text-align:center;padding:4px;background:#1b2040;color:#a5abd6}
+.app{display:flex;gap:16px;align-items:center;padding:20px 18px 12px;max-width:900px;margin:0 auto}
+.icone{flex:none;width:104px;height:104px;border-radius:24px;display:grid;place-items:center;font-size:62px;font-weight:900;background:linear-gradient(135deg,var(--c),#1a0533);box-shadow:0 8px 24px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.12)}
+.app h1{font-size:22px;line-height:1.15}.app p{color:#9a9aa5;font-size:14px;margin-top:4px}
+.voir{margin-top:12px;border:0;border-radius:999px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px;padding:7px 18px;cursor:pointer}
+.infos{display:flex;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid #222;border-bottom:1px solid #222;max-width:900px;margin:0 auto;text-align:center}
+.infos div{flex:1}.infos small{display:block;font-size:10px;letter-spacing:.06em;color:#8e8e96;text-transform:uppercase}.infos b{display:block;font-size:20px;color:#c9c9d1;margin-top:4px}
+.carrousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:18px;max-width:100%;-webkit-overflow-scrolling:touch}
+.carte{flex:0 0 74%;max-width:300px;scroll-snap-align:center;border-radius:24px;overflow:hidden;background:linear-gradient(165deg,var(--c) 0%,#2a0a4a 55%,#12031f 100%);padding:22px 16px 0;display:flex;flex-direction:column;align-items:center;cursor:zoom-in;aspect-ratio:9/17}
+.carte h2{font-size:18px;line-height:1.25;text-align:center;font-weight:600;min-height:2.5em}
+.tel{margin-top:16px;width:82%;flex:1;min-height:0;border:6px solid #0d0d10;border-bottom:0;border-radius:30px 30px 0 0;overflow:hidden;background:#111;box-shadow:0 14px 34px rgba(0,0,0,.55)}
+.tel img{display:block;width:100%;height:auto}.tel .decoupe{width:100%;background-repeat:no-repeat}
+.texte{max-width:900px;margin:0 auto;padding:4px 18px 30px;color:#d0d0d8;font-size:15px;line-height:1.5}
+.visionneuse{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center}
+.visionneuse.ouverte{display:flex}.visionneuse .vue{max-width:94vw;max-height:88vh;display:flex}
+.visionneuse img{max-width:94vw;max-height:88vh;width:auto;height:auto;border-radius:18px}.visionneuse .decoupe{height:88vh;max-width:94vw}
+.visionneuse button{position:absolute;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:22px;width:46px;height:46px;border-radius:50%;cursor:pointer}
+.fermer{top:12px;right:12px}.prec{left:10px;top:50%}.suiv{right:10px;top:50%}
+</style></head><body data-maquette-vitrine="1">
+<div class="bandeau">Maquette Kaizen — aperçu non fonctionnel</div>
+<header class="app"><div class="icone">${e(initiale)}</div><div><h1>${e(titre)}</h1><p>${e(sousTitre || "Votre application, en avant-première")}</p><button class="voir" data-ouvrir="0">Voir la maquette</button></div></header>
+<div class="infos"><div><small>Maquette</small><b>V1</b></div><div><small>Écrans</small><b>${ecrans.length}</b></div><div><small>Statut</small><b>✨</b></div><div><small>Création</small><b>Kaizen</b></div></div>
+<div class="carrousel">
+${ecrans.map((x, i) => `<div class="carte" data-ouvrir="${i}"><h2>${e(x.legende || x.nom)}</h2><div class="tel">${ecranHtml(x)}</div></div>`).join("\n")}
+</div>
+${resume ? `<p class="texte">${e(resume)}</p>` : ""}
+<div class="visionneuse" aria-hidden="true"><div class="vue"></div><button class="fermer" aria-label="Fermer">✕</button><button class="prec" aria-label="Précédent">‹</button><button class="suiv" aria-label="Suivant">›</button></div>
+<script>(function(){var cartes=[].slice.call(document.querySelectorAll('.carte')),v=document.querySelector('.visionneuse'),vue=v.querySelector('.vue'),n=0;
+function montrer(i){n=(i+cartes.length)%cartes.length;var t=cartes[n].querySelector('.tel').firstElementChild.cloneNode(true);vue.innerHTML='';vue.appendChild(t);v.classList.add('ouverte');}
+document.addEventListener('click',function(ev){if(document.designMode==='on')return;var o=ev.target.closest('[data-ouvrir]');if(o&&!ev.target.closest('[data-lien-ecran]')){montrer(+o.getAttribute('data-ouvrir'));return;}
+if(ev.target.closest('.fermer')||ev.target===v)v.classList.remove('ouverte');if(ev.target.closest('.prec'))montrer(n-1);if(ev.target.closest('.suiv'))montrer(n+1);});})();</script>
 </body></html>`;
 }
 
@@ -563,6 +611,9 @@ function Decoupe({ couper }) {
 export function ChoixEcransImages({ valider, annuler, initial = null }) {
   const [ecrans, setEcrans] = useState(initial ? [{ ...initial, nom: "Accueil" }] : []);
   const [onglets, setOnglets] = useState(true);
+  const [style, setStyle] = useState("ecrans");
+  const [sousTitre, setSousTitre] = useState("");
+  const [couleur, setCouleur] = useState("#7b2cbf");
   // Une planche avec plusieurs écrans (ex. 6 par ligne sur 2 lignes) est VRAIMENT découpée :
   // chaque écran devient sa propre image (ajoutée à la galerie), lue ligne par ligne.
   const [decoupe, setDecoupe] = useState("");
@@ -615,6 +666,7 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
                   ? <span className="vignette-decoupe" style={{ backgroundImage: `url(${e.url})`, backgroundSize: f.taille, backgroundPosition: f.position }} />
                   : <img src={e.url} alt="" />}
                 <input value={e.nom} maxLength={24} onChange={(ev) => setEcrans((l) => l.map((x, j) => (j === i ? { ...x, nom: ev.target.value } : x)))} aria-label={`Nom de l'écran ${i + 1}`} />
+                {style === "vitrine" && <input className="legende" value={e.legende ?? ""} maxLength={80} placeholder="Phrase au-dessus de l'écran (ex. Suivez l'entretien de votre moto)" onChange={(ev) => setEcrans((l) => l.map((x, j) => (j === i ? { ...x, legende: ev.target.value } : x)))} aria-label={`Phrase de l'écran ${i + 1}`} />}
                 <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, -1)} aria-label="Monter">↑</button>
                 <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, 1)} aria-label="Descendre">↓</button>
                 {!e.decoupe && !decoupe && <Decoupe couper={(n, m) => couper(i, n, m)} />}
@@ -626,14 +678,30 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
       )}
       {decoupe && <div className="chargement"><span className="rond" /> {decoupe}</div>}
       {erreur && <p className="alerte erreur">{erreur}</p>}
-      {ecrans.length > 1 && (
+      {ecrans.length > 0 && (
+        <div className="style-presentation">
+          <span>Présentation :</span>
+          <button type="button" className={`btn petit ${style === "ecrans" ? "" : "secondaire"}`} onClick={() => setStyle("ecrans")}>📱 Écran par écran</button>
+          <button type="button" className={`btn petit ${style === "vitrine" ? "" : "secondaire"}`} onClick={() => setStyle("vitrine")}>🛍️ Vitrine (comme une fiche d'application)</button>
+        </div>
+      )}
+      {style === "vitrine" && ecrans.length > 0 && (
+        <div className="options-vitrine">
+          <label className="champ" style={{ marginTop: 0 }}><span>Phrase sous le nom de l'application</span>
+            <input value={sousTitre} maxLength={70} onChange={(e) => setSousTitre(e.target.value)} placeholder="Ex. : Votre moto connectée et suivie au quotidien" />
+          </label>
+          <label className="ligne-couleur"><input type="color" value={couleur} onChange={(e) => setCouleur(e.target.value)} /> <span>Couleur des fonds</span></label>
+          <p className="note">Écrivez une phrase pour chaque écran (au-dessus du téléphone). Le client fait défiler les écrans et les ouvre en grand d'un clic.</p>
+        </div>
+      )}
+      {ecrans.length > 1 && style === "ecrans" && (
         <label className="case">
           <input type="checkbox" checked={onglets} onChange={(e) => setOnglets(e.target.checked)} />
           <span>Ajouter une barre d'onglets en bas (décochez si vos images ont déjà leur menu : rendez-le cliquable avec « ▭ Zone cliquable »)</span>
         </label>
       )}
       <div className="actions">
-        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={() => valider(ecrans, { onglets })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
+        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={() => valider(ecrans, { onglets, style, sousTitre, couleur })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
         <button className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
       <GalerieImages libelleChoisir="+ Écran" choisir={(id, url) => setEcrans((l) => (l.length >= MAX_ECRANS ? l : [...l, { id, url, nom: l.length === 0 ? "Accueil" : `Écran ${l.length + 1}` }]))} />

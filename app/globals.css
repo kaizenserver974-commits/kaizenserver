@@ -1158,3 +1158,7 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .decoupe-choix label small { font-size: 11px; color: var(--texte-doux, #c7c9f0); }
 .envoi-maquette { margin-top: 18px; padding: 16px; border-radius: 16px; background: linear-gradient(135deg, rgba(123, 92, 255, 0.16), rgba(16, 185, 129, 0.12)); border: 1px solid rgba(123, 92, 255, 0.4); display: grid; gap: 8px; }
 .envoi-maquette h3 { margin: 0; }
+.style-presentation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.options-vitrine { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.options-vitrine input:not([type=color]), .liste-ecrans input.legende { background: var(--surface); color: var(--texte); border: 1px solid var(--ligne); border-radius: 10px; padding: 8px 10px; }
+.liste-ecrans input.legende { flex-basis: 100%; }
