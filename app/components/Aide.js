@@ -1,10 +1,18 @@
 "use client";
+import { usePathname } from "next/navigation";
 
 import { useEffect, useRef, useState } from "react";
 import { QUESTIONS_AIDE } from "../../lib/aide.js";
 
 // Bulle « Besoin d'aide ? » avec le robot Bip.
+// Pas de bulle d'aide sur les pages autonomes (formulaire partagé sur les réseaux).
 export default function Aide() {
+  const chemin = usePathname();
+  if (chemin === "/bientot" || chemin?.startsWith("/bientot/")) return null;
+  return <AideBulle />;
+}
+
+function AideBulle() {
   const [ouvert, setOuvert] = useState(false);
   const [fil, setFil] = useState([{ de: "bip", texte: "Bonjour ! Je suis Bip 🤖 Une question sur votre projet ou la commande ? Je suis là." }]);
   const [question, setQuestion] = useState("");

@@ -31,7 +31,6 @@ export default function Formulaire() {
         <img src="/personnages/server.webp" alt="" width="80" height="80" />
         <h2>Merci, votre projet est bien reçu ! 🎉</h2>
         <p>Server, le maître du jeu, l'étudie et vous recontacte très vite avec ses conseils et une proposition à prix doux. Un e-mail de confirmation vient de vous être envoyé.</p>
-        <a className="btn" href="/">Découvrir KaizenServer</a>
       </section>
     );
   }

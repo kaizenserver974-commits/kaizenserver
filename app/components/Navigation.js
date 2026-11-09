@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { supabaseNavigateur, jeton } from "../../lib/supabaseClient.js";
 import Compte from "./Compte.js";
 
@@ -44,8 +45,13 @@ function quitterApercu() {
   window.location.href = "/admin";
 }
 
+// Pages autonomes (ex. : formulaire partagé sur les réseaux) : aucun menu.
+const SANS_MENU = ["/bientot"];
+const sansMenu = (chemin) => SANS_MENU.some((c) => chemin === c || chemin?.startsWith(`${c}/`));
+
 export function EnteteNav() {
   const { role, apercu } = useRole();
+  if (sansMenu(usePathname())) return null;
   if (role === "server" && !apercu) {
     return (
       <nav className="entete-nav nav-server" aria-label="Navigation de Server">
@@ -75,6 +81,7 @@ export function EnteteNav() {
 
 export function NavBasse() {
   const { role, apercu } = useRole();
+  if (sansMenu(usePathname())) return null;
   if (role === "server" && !apercu) {
     return (
       <nav className="nav-basse" aria-label="Navigation mobile de Server">
