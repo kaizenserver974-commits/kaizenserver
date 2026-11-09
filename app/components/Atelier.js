@@ -35,7 +35,7 @@ const FORMATS = [["carre", "Carré"], ["portrait", "Portrait (écran de téléph
 const IDEES = ["Photo réaliste d'une moto sportive dans un garage moderne, lumière néon bleue", "Illustration 3D d'un personnage souriant qui tient un téléphone, style application", "Fond abstrait sombre avec dégradé violet et bleu, formes douces", "Icône d'application : une clé à molette dorée sur fond bleu nuit"];
 
 // Galerie : générer une image avec l'IA, importer une image, et choisir une image (choisir(id, url)).
-export function GalerieImages({ choisir, libelleChoisir = "Insérer" }) {
+export function GalerieImages({ choisir, libelleChoisir = "Insérer", enPlus = null }) {
   const [images, setImages] = useState(null);
   const [description, setDescription] = useState("");
   const [format, setFormat] = useState("carre");
@@ -106,6 +106,7 @@ export function GalerieImages({ choisir, libelleChoisir = "Insérer" }) {
               <figcaption title={i.description}>{i.origine === "ia" ? "🎨 " : "📥 "}{i.description}</figcaption>
               <div className="image-actions">
                 {choisir && <button className="btn petit" onClick={() => choisir(i.id, urlImage(i.id))}>{libelleChoisir}</button>}
+                {enPlus && <button className="btn petit btn-toute" onClick={() => enPlus.faire(i.id, urlImage(i.id))}>{enPlus.libelle}</button>}
                 <button className="btn petit secondaire" onClick={() => copier(i.id)} title="Copier l'adresse">{copie === i.id ? "✅" : "🔗"}</button>
                 <a className="btn petit secondaire" href={urlImage(i.id)} download target="_blank" rel="noopener noreferrer" title="Télécharger">⬇</a>
                 <button className="btn petit secondaire" onClick={() => supprimer(i.id)} title="Supprimer">🗑</button>
@@ -390,10 +391,11 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages })
           <aside className="panneau-atelier">
             {panneau === "images" && (
               <>
-                {versImages && <button type="button" className="btn petit bouton-toute-maquette" onClick={versImages}>🖼️ Remplacer TOUTE la maquette par mes images</button>}
+                {versImages && <button type="button" className="btn petit bouton-toute-maquette" onClick={() => versImages()}>🖼️ Remplacer TOUTE la maquette par mes images</button>}
                 <p className="note">{sel?.image ? <b>🔁 Cliquez sur « Remplacer » sous une image de votre galerie : elle prend la place de l'image sélectionnée dans la maquette.</b> : sel ? <>Choisissez une image pour le bloc sélectionné (<b>&lt;{sel.tag}&gt;</b>).</> : "Pour remplacer une image de la maquette : cliquez dessus dans l'aperçu, puis sur « Remplacer » sous l'image de votre choix. « Ajouter » place une nouvelle image dans l'écran affiché."}</p>
                 {sel && !sel.image && <p className="note">« Fond du bloc » met l'image en fond du bloc ; les petites vignettes en dessous l'ajoutent juste sous le bloc.</p>}
-                <GalerieImages choisir={choisirImage} libelleChoisir={!sel ? "Ajouter" : sel.image ? "Remplacer" : "Fond du bloc"} />
+                <GalerieImages choisir={choisirImage} libelleChoisir={!sel ? "Ajouter" : sel.image ? "Remplacer" : "Fond du bloc"}
+                  enPlus={versImages ? { libelle: "🖼️ Remplacer toute la maquette", faire: (id, url) => versImages({ id, url }) } : null} />
                 {sel && !sel.image && <GalerieAjout ajouter={ajouterImage} />}
               </>
             )}
@@ -480,8 +482,8 @@ function styleDecoupe(e, echapper) {
 const dimensions = (url) => new Promise((ok) => { const i = new Image(); i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => ok(null); i.src = url; });
 
 // Choix des images qui deviennent les écrans de la maquette.
-export function ChoixEcransImages({ valider, annuler }) {
-  const [ecrans, setEcrans] = useState([]);
+export function ChoixEcransImages({ valider, annuler, initial = null }) {
+  const [ecrans, setEcrans] = useState(initial ? [{ ...initial, nom: "Accueil" }] : []);
   // Une image avec plusieurs écrans côte à côte devient plusieurs écrans.
   async function couper(i, n) {
     const e = ecrans[i];

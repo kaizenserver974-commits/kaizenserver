@@ -93,13 +93,13 @@ export default function Atelier() {
           {maquette?.images && !avecImages && <p className="alerte succes">🖼️ Votre maquette est prête avec vos images. Vérifiez avec ▶ Tester, puis cliquez sur <b>💾 Enregistrer</b> : elle remplacera la maquette proposée.</p>}
           {maquette?.vierge && <p className="note">Ce projet n'a pas encore de maquette : voici une page de départ à 4 écrans. Modifiez les textes, mettez vos images, changez les couleurs, puis enregistrez.</p>}
           {avecImages && c ? (
-            <ChoixEcransImages annuler={() => setAvecImages(false)} valider={(ecrans) => {
+            <ChoixEcransImages initial={avecImages?.url ? avecImages : null} annuler={() => setAvecImages(false)} valider={(ecrans) => {
               setMaquette({ html: maquetteImages(ecrans, titre), cle: `${c.id}-images-${Date.now()}`, images: true });
               setAvecImages(false);
             }} />
           ) : !c ? <p className="discret">Aucun projet pour le moment.</p> : !maquette ? <p className="discret">Chargement de la maquette…</p> : (
             <EditeurMaquette key={maquette.cle} htmlInitial={maquette.html} titre={titre}
-              versImages={() => { setAvecImages(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              versImages={(image) => { setAvecImages(image?.url ? image : true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               enregistrer={async (html) => { await api({ action: "maquette_enregistrer", commandeId: c.id, html }); setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, maquette: { ...(x.maquette || {}), source: "server", updated_at: new Date().toISOString() } } : x))); }} />
           )}
         </section>
