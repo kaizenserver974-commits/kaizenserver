@@ -3,7 +3,7 @@
 // Atelier de Server : créer ou retoucher soi-même la maquette d'un projet, et générer ses images.
 import { useCallback, useEffect, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../../lib/supabaseClient.js";
-import { EditeurMaquette, GalerieImages, maquetteVierge, maquetteImages, ChoixEcransImages, EnvoiMaquette, VitrineExpress } from "../../components/Atelier.js";
+import { EditeurMaquette, GalerieImages, maquetteVierge, maquetteImages, ChoixEcransImages, EnvoiMaquette, VitrineExpress, majVitrine } from "../../components/Atelier.js";
 
 const api = (corps) => appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify(corps) });
 
@@ -44,7 +44,7 @@ export default function Atelier() {
     setMaquette(null);
     if (!c.maquette) { setMaquette({ html: maquetteVierge(titre), cle: `${c.id}-vierge`, vierge: true }); return; }
     api({ action: "maquette_lire", commandeId: c.id })
-      .then((r) => setMaquette({ html: r.html, cle: `${c.id}-${Date.now()}` }))
+      .then((r) => setMaquette({ html: majVitrine(r.html), cle: `${c.id}-${Date.now()}` }))
       .catch(() => setMaquette({ html: maquetteVierge(titre), cle: `${c.id}-vierge`, vierge: true }));
   }, [c?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

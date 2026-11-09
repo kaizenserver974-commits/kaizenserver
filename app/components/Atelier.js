@@ -531,7 +531,7 @@ export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre =
 .carte{flex:0 0 74%;max-width:300px;scroll-snap-align:center;border-radius:24px;overflow:hidden;background:linear-gradient(165deg,var(--c) 0%,#2a0a4a 55%,#12031f 100%);padding:22px 16px 0;display:flex;flex-direction:column;align-items:center;cursor:zoom-in;aspect-ratio:9/17}
 .carte h2{font-size:18px;line-height:1.25;text-align:center;font-weight:600;min-height:2.5em}
 .tel{margin-top:16px;width:82%;flex:1;min-height:0;border:6px solid #0d0d10;border-bottom:0;border-radius:30px 30px 0 0;overflow:hidden;background:#111;box-shadow:0 14px 34px rgba(0,0,0,.55)}
-.tel img{display:block;width:100%;height:auto}.tel .decoupe{width:100%;background-repeat:no-repeat}
+.tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}
 .texte{max-width:900px;margin:0 auto;padding:4px 18px 30px;color:#d0d0d8;font-size:15px;line-height:1.5}
 .visionneuse{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center}
 .visionneuse.ouverte{display:flex}.visionneuse .vue{max-width:94vw;max-height:88vh;display:flex}
@@ -553,6 +553,9 @@ document.addEventListener('click',function(ev){if(document.designMode==='on')ret
 if(ev.target.closest('.fermer')||ev.target===v)v.classList.remove('ouverte');if(ev.target.closest('.prec'))montrer(n-1);if(ev.target.closest('.suiv'))montrer(n+1);});})();</script>
 </body></html>`;
 }
+
+// Vitrines déjà enregistrées : l'image remplit maintenant tout l'écran du téléphone.
+export const majVitrine = (html) => String(html || "").replace('.tel img{display:block;width:100%;height:auto}.tel .decoupe{width:100%;background-repeat:no-repeat}', '.tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}');
 
 // Une partie d'une image qui contient plusieurs écrans (côte à côte et/ou sur plusieurs lignes).
 const MAX_ECRANS = 40;
