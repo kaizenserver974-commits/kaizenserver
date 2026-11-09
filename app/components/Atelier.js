@@ -494,7 +494,7 @@ document.querySelectorAll('.ecran > img, .ecran > .decoupe').forEach(function(im
 }
 
 // Une partie d'une image qui contient plusieurs écrans (côte à côte et/ou sur plusieurs lignes).
-const MAX_ECRANS = 24;
+const MAX_ECRANS = 40;
 function fond(d) {
   const n = d.n || 1, m = d.m || 1, k = d.k || 0, r = d.r || 0;
   return {
@@ -515,14 +515,18 @@ function Decoupe({ couper }) {
   const [m, setM] = useState(1);
   return (
     <span className="decoupe-choix">
-      <span>✂️</span>
-      <select value={n} onChange={(e) => setN(Number(e.target.value))} aria-label="Écrans par ligne">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((x) => <option key={x} value={x}>{x} par ligne</option>)}
-      </select>
-      <select value={m} onChange={(e) => setM(Number(e.target.value))} aria-label="Nombre de lignes">
-        {[1, 2, 3, 4].map((x) => <option key={x} value={x}>{x} ligne{x > 1 ? "s" : ""}</option>)}
-      </select>
-      <button type="button" className="btn petit" disabled={n * m < 2} onClick={() => couper(n, m)}>Couper en {n * m}</button>
+      <span aria-hidden="true">✂️</span>
+      <label><small>Écrans côte à côte (de gauche à droite)</small>
+        <select value={n} onChange={(e) => setN(Number(e.target.value))}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((x) => <option key={x} value={x}>{x} écran{x > 1 ? "s" : ""} par ligne</option>)}
+        </select>
+      </label>
+      <label><small>Lignes (de haut en bas)</small>
+        <select value={m} onChange={(e) => setM(Number(e.target.value))}>
+          {[1, 2, 3, 4, 5, 6].map((x) => <option key={x} value={x}>{x} ligne{x > 1 ? "s" : ""}</option>)}
+        </select>
+      </label>
+      <button type="button" className="btn petit" disabled={n * m < 2} onClick={() => couper(n, m)}>Couper en {n * m} écrans</button>
     </span>
   );
 }
