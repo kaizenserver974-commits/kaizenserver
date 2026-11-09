@@ -4,6 +4,8 @@ import Aide from "./components/Aide.js";
 import { EnteteNav, NavBasse } from "./components/Navigation.js";
 
 export const metadata = {
+  icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "KaizenServer", statusBarStyle: "black-translucent" },
   title: "KaizenServer — créez l'application de vos rêves",
   description: "Décrivez votre idée : KaizenServer vous guide, comme dans un jeu, jusqu'à la commande de votre application. Server, le maître du jeu, vous donne tarif, délai et conseils.",
 };

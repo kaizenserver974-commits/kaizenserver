@@ -247,6 +247,40 @@ function PublicationFacebook() {
   );
 }
 
+// Envoie au client le lien du site + comment installer le signet sur son écran d'accueil.
+function EnvoiSignet({ c, action }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [mot, setMot] = useState("");
+  const [page, setPage] = useState(c.formule === "preinscription" ? "accueil" : "espace");
+  const [etat, setEtat] = useState("");
+  async function envoyer() {
+    setEtat("envoi");
+    try { await action({ action: "signet", commandeId: c.id, mot, page }); setEtat("ok"); setMot(""); }
+    catch (e) { setEtat(e.message); }
+  }
+  if (!ouvert) return <button className="btn petit" onClick={() => { setOuvert(true); setEtat(""); }}>📲 Envoyer le lien + le signet</button>;
+  return (
+    <div className="envoi-signet">
+      <p className="petit-titre" style={{ marginTop: 0 }}>📲 E-mail à {c.nom || c.email} : lien du site + installation du signet</p>
+      <label className="champ" style={{ marginTop: 0 }}><span>Lien envoyé</span>
+        <select value={page} onChange={(e) => setPage(e.target.value)}>
+          <option value="accueil">Accueil du site</option>
+          <option value="nouveau">Créer son projet (parcours)</option>
+          <option value="espace">Son espace client</option>
+        </select>
+      </label>
+      <label className="champ"><span>Votre mot (facultatif)</span><textarea rows={3} maxLength={1500} value={mot} onChange={(e) => setMot(e.target.value)} placeholder="Ex. : Merci pour votre projet ! Le monde Kaizen est ouvert : voici votre accès." /></label>
+      <p className="note">L'e-mail contient le bouton « Ouvrir KaizenServer » et les 3 gestes pour iPhone/iPad, Android et ordinateur.</p>
+      {etat === "ok" && <p className="succes">✅ E-mail envoyé. Il apparaît aussi dans les messages du projet.</p>}
+      {etat && etat !== "ok" && etat !== "envoi" && <p className="alerte erreur">{etat}</p>}
+      <div className="actions">
+        <button className="btn petit secondaire" onClick={() => setOuvert(false)}>Fermer</button>
+        <button className="btn petit" disabled={etat === "envoi"} onClick={envoyer}>{etat === "envoi" ? "Envoi…" : "Envoyer l'e-mail"}</button>
+      </div>
+    </div>
+  );
+}
+
 // Création d'un projet à la main (client venu par téléphone, bouche-à-oreille…).
 function NouveauProjet({ creer }) {
   const vide = { titre: "", nom: "", email: "", telephone: "", idee: "" };
@@ -396,7 +430,10 @@ function InfosProjet({ c, action }) {
         <p><b>Maquette :</b> {c.projet?.maquetteValidee ? "✅ acceptée par le client" : "pas encore acceptée"}{c.projet?.retours?.length ? ` · ${c.projet.retours.length} demande(s) de modification` : ""}</p>
         {c.projet?.retours?.length > 0 && <ul className="retours-admin">{c.projet.retours.map((r, i) => <li key={i}>💬 {r}</li>)}</ul>}
         {c.projet?.pieces?.length > 0 && <p><b>Pièces jointes (reçues par e-mail) :</b> {c.projet.pieces.join(", ")}</p>}
-        <button className="btn petit secondaire" onClick={() => setEdition(true)}>✏️ Modifier les coordonnées et le projet</button>
+        <div className="actions">
+          <button className="btn petit secondaire" onClick={() => setEdition(true)}>✏️ Modifier les coordonnées et le projet</button>
+          <EnvoiSignet c={c} action={action} />
+        </div>
       </div>
     );
   }

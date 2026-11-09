@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { texteSignet, htmlSignet } from "../../../lib/signet.js";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette, enregistrerMaquette, lirePiecesJointes } from "../../../lib/serveur/supabase.js";
 import { genererMaquette, validerImagesReference } from "../../../lib/serveur/generation.js";
 import { nettoyerProjet, estimer, recapitulatifSecours } from "../../../lib/moteur.js";
@@ -161,6 +162,24 @@ export async function POST(request) {
   if (corps.action === "lien_supprimer") {
     const { error } = await sb.from("kaizen_liens").delete().eq("id", String(corps.lienId || "")).eq("commande_id", commande.id);
     if (error) return refus("Le lien n'a pas pu être supprimé.", 500);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Envoie au client le lien du site et comment installer le signet (icône sur l'écran d'accueil).
+  if (corps.action === "signet") {
+    const site = urlSite(request);
+    const lien = ["accueil", "nouveau", "espace"].includes(corps.page) ? `${site}${corps.page === "accueil" ? "/" : `/${corps.page}`}` : `${site}/`;
+    const mot = String(corps.mot || "").trim().slice(0, 1500);
+    const ok = await notifier({
+      a: commande.email,
+      sujet: "📲 Votre accès KaizenServer (et comment l'installer sur votre téléphone)",
+      texte: `Bonjour ${commande.nom || ""},\n\n${mot ? `${mot}\n\n` : ""}Voici votre accès à KaizenServer : ${lien}\n\nGardez KaizenServer sur votre écran d'accueil :\n\n${texteSignet(lien)}\n\nExplications illustrées : ${site}/installer\n\nServer — KaizenServer`,
+      html: htmlSignet({ nom: commande.nom, lien, mot, site }),
+      repondreA: process.env.KAIZEN_EMAIL,
+    });
+    if (!ok) return refus("L'e-mail n'a pas pu être envoyé (vérifiez la configuration Resend).", 502);
+    // Trace dans le fil de messages du projet.
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "equipe", type: "message", contenu: `📲 Lien du site et explications pour installer le signet envoyés par e-mail (${lien}).${mot ? `\n\n${mot}` : ""}` });
     return NextResponse.json({ ok: true });
   }
 
