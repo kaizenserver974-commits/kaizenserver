@@ -130,11 +130,16 @@ c.querySelectorAll('[data-kz]').forEach(function(e){e.remove();});
 c.querySelectorAll('[data-kz-sel]').forEach(function(e){e.removeAttribute('data-kz-sel');});
 c.querySelectorAll('[data-kz-survol]').forEach(function(e){e.removeAttribute('data-kz-survol');});
 return '<!doctype html>\\n'+c.outerHTML;}
+function imageSous(t){if(!t||!t.closest)return null;var s=t.closest('svg');if(s)return s;if(t.tagName==='IMG')return t;var x=t;
+for(var i=0;i<3&&x&&x!==document.body&&x!==document.documentElement;i++,x=x.parentElement){var bg=getComputedStyle(x).backgroundImage||'';
+var cl=String((x.className&&x.className.baseVal!==undefined)?x.className.baseVal:(x.className||''))+' '+(x.id||'')+' '+(x.getAttribute('aria-label')||'');
+if(/url\\(/.test(bg)||/(img|image|photo|visuel|banner|banniere|hero|cover|avatar|placeholder|thumb|vignette|illustration|media|poster)/i.test(cl))return x;}return null;}
 function choisir(e){if(sel)sel.removeAttribute('data-kz-sel');sel=e||null;
-if(sel){sel.setAttribute('data-kz-sel','');var bg=getComputedStyle(sel).backgroundImage||'';
-dire({type:'sel',tag:sel.tagName.toLowerCase(),image:sel.tagName==='IMG'||/url\\(/.test(bg),texte:(sel.innerText||'').trim().slice(0,50),lien:sel.getAttribute('data-lien-ecran')||''});}else dire({type:'sel',tag:''});}
+if(sel){sel.setAttribute('data-kz-sel','');
+dire({type:'sel',tag:sel.tagName.toLowerCase(),image:imageSous(sel)===sel,texte:(sel.innerText||'').trim().slice(0,50),lien:sel.getAttribute('data-lien-ecran')||''});}else dire({type:'sel',tag:''});}
 function bloc(x){while(x&&x.parentElement&&x.parentElement!==document.body&&/^inline/.test(getComputedStyle(x).display))x=x.parentElement;return x;}
-document.addEventListener('click',function(e){if(mode!=='selection')return;e.preventDefault();e.stopPropagation();choisir(e.target);},true);
+document.addEventListener('click',function(e){if(mode==='texte'){var im=imageSous(e.target);if(im&&(im===e.target||im.contains(e.target)&&(im.tagName==='IMG'||im.tagName.toLowerCase()==='svg'))){e.preventDefault();choisir(im);}else if(sel)choisir(null);return;}
+if(mode!=='selection')return;e.preventDefault();e.stopPropagation();var t=e.target,im2=imageSous(t);choisir(im2&&(im2===t||im2.tagName.toLowerCase()==='svg')?im2:t);},true);
 document.addEventListener('mouseover',function(e){if(mode==='selection'&&e.target.setAttribute)e.target.setAttribute('data-kz-survol','');},true);
 document.addEventListener('mouseout',function(e){if(e.target.removeAttribute)e.target.removeAttribute('data-kz-survol');},true);
 document.addEventListener('input',function(){dire({type:'modif'});});
@@ -149,7 +154,15 @@ if(r&&r.parentNode)r.parentNode.insertBefore(i,r.nextSibling);else document.body
 if(mode==='selection')choisir(i);i.scrollIntoView({block:'center'});dire({type:'modif'});return;}
 if(!sel)return;
 if(d.type==='lien'){if(d.cible){sel.setAttribute('data-lien-ecran',d.cible);sel.style.cursor='pointer';if(!document.getElementById('kaizen-liens')){var k=document.createElement('script');k.id='kaizen-liens';k.textContent=d.code;document.body.appendChild(k);}}else{sel.removeAttribute('data-lien-ecran');sel.style.cursor='';}choisir(sel);dire({type:'modif'});}
-if(d.type==='image'){if(sel.tagName==='IMG'){sel.src=d.src;sel.removeAttribute('srcset');}else{sel.style.backgroundImage='url("'+d.src+'")';sel.style.backgroundSize='cover';sel.style.backgroundPosition='center';}dire({type:'modif'});}
+if(d.type==='image'){var tg=sel.tagName.toLowerCase();
+if(tg==='img'){sel.src=d.src;sel.removeAttribute('srcset');sel.style.objectFit=sel.style.objectFit||'cover';}
+else if(tg==='svg'){var rc=sel.getBoundingClientRect();var ni=document.createElement('img');ni.src=d.src;ni.alt='';var c2=sel.getAttribute('class');if(c2)ni.setAttribute('class',c2);
+ni.style.cssText='display:block;width:'+(rc.width?Math.round(rc.width)+'px':'100%')+';height:'+(rc.height?Math.round(rc.height)+'px':'auto')+';max-width:100%;object-fit:cover;border-radius:inherit';sel.replaceWith(ni);sel=null;choisir(ni);}
+else{sel.style.backgroundImage='url("'+d.src+'")';sel.style.backgroundSize='cover';sel.style.backgroundPosition='center';sel.style.backgroundRepeat='no-repeat';
+var tx=(sel.textContent||'').trim();if(!sel.children.length&&(tx.length<=3||/^(image|photo|visuel|illustration|img|📷|🖼️?)/i.test(tx)))sel.textContent='';
+else [].slice.call(sel.querySelectorAll('svg')).forEach(function(v){if(v.getBoundingClientRect().width>sel.getBoundingClientRect().width*0.3)v.remove();});
+if(sel.getBoundingClientRect().height<60)sel.style.minHeight='160px';}
+dire({type:'modif'});}
 if(d.type==='supprimer'){var s=sel;choisir(null);s.remove();dire({type:'modif'});}
 if(d.type==='dupliquer'){var c=sel.cloneNode(true);c.removeAttribute('data-kz-sel');sel.parentNode.insertBefore(c,sel.nextSibling);choisir(c);dire({type:'modif'});}
 if(d.type==='parent'&&sel.parentElement&&sel.parentElement!==document.documentElement)choisir(sel.parentElement);
@@ -245,7 +258,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
       if (e.source !== cadre.current?.contentWindow || !e.data?.kz) return;
       const d = e.data;
       if (d.type === "pret") cadre.current.contentWindow.postMessage({ kz: true, type: "mode", mode }, "*");
-      if (d.type === "sel") setSel(d.tag ? d : null);
+      if (d.type === "sel") { setSel(d.tag ? d : null); if (d.tag && d.image) setPanneau("images"); }
       if (d.type === "modif") setModifie(true);
       if ((d.type === "code" || d.type === "cibles") && enAttente.current[d.id]) { enAttente.current[d.id](d.type === "code" ? d.html : d.liste); delete enAttente.current[d.id]; }
     };
@@ -304,7 +317,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
   async function choisirImage(_id, url) {
     if (!sel) { await ajouterImage(_id, url); return; }
     await outil("image", { src: url });
-    setMessage({ type: "succes", texte: sel.tag === "img" ? "Image remplacée." : "Image placée en fond du bloc sélectionné." });
+    setMessage({ type: "succes", texte: sel.image ? "✅ Image remplacée." : "Image placée en fond du bloc sélectionné." });
   }
   async function ajouterImage(_id, url) {
     await outil("ajouter-image", { src: url });
@@ -348,14 +361,14 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
       </div>
 
       <p className="aide-outil">
-        {mode === "texte" ? "✏️ Cliquez directement sur un texte de l'aperçu et écrivez." : mode === "test" ? "▶ Mode test : cliquez dans la maquette comme le client (onglets, boutons, images cliquables)." : sel ? <>Sélection : <b>&lt;{sel.tag}&gt;</b> {sel.texte ? `« ${sel.texte} »` : ""}</> : "👆 Cliquez sur un bloc ou une image de l'aperçu pour le sélectionner."}
+        {mode === "texte" && sel?.image ? "🖼️ Image sélectionnée : choisissez dans la galerie à droite l'image qui la remplace." : mode === "texte" ? "✏️ Cliquez sur un texte pour l'écrire, ou sur une image pour la remplacer." : mode === "test" ? "▶ Mode test : cliquez dans la maquette comme le client (onglets, boutons, images cliquables)." : sel ? <>Sélection : <b>&lt;{sel.tag}&gt;</b> {sel.texte ? `« ${sel.texte} »` : ""}</> : "👆 Cliquez sur un bloc ou une image de l'aperçu pour le sélectionner."}
       </p>
       {mode === "selection" && sel && (
         <div className="actions outils-selection">
           <button className="btn petit secondaire" onClick={() => envoyer({ type: "parent" })}>⬆️ Bloc parent</button>
           <button className="btn petit secondaire" onClick={() => outil("dupliquer")}>⧉ Dupliquer</button>
           <button className="btn petit secondaire" onClick={() => outil("supprimer")}>🗑 Supprimer</button>
-          <button className="btn petit secondaire" onClick={() => setPanneau("images")}>🖼️ {sel.tag === "img" ? "Remplacer l'image" : "Mettre une image"}</button>
+          <button className="btn petit secondaire" onClick={() => setPanneau("images")}>🖼️ {sel.image ? "Remplacer l'image" : "Mettre une image"}</button>
           <label className="lien-clic">
             <span>🔗 Au clic, aller vers</span>
             <select value={sel.lien || ""} onChange={(e) => lier(e.target.value)}>
@@ -377,10 +390,10 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
           <aside className="panneau-atelier">
             {panneau === "images" && (
               <>
-                <p className="note">{sel ? <>Choisissez une image pour le bloc sélectionné (<b>&lt;{sel.tag}&gt;</b>).</> : "« Ajouter » place l'image dans l'écran affiché. Pour la mettre à un endroit précis ou en fond d'un bloc : 👆 Sélectionner, cliquez sur le bloc, puis choisissez l'image."}</p>
-                {sel && sel.tag !== "img" && <p className="note">« Fond du bloc » met l'image en fond du bloc ; les petites vignettes en dessous l'ajoutent juste sous le bloc.</p>}
-                <GalerieImages choisir={choisirImage} libelleChoisir={!sel ? "Ajouter" : sel.tag === "img" ? "Remplacer" : "Fond du bloc"} />
-                {sel && sel.tag !== "img" && <GalerieAjout ajouter={ajouterImage} />}
+                <p className="note">{sel?.image ? <b>🔁 Cliquez sur « Remplacer » sous une image de votre galerie : elle prend la place de l'image sélectionnée dans la maquette.</b> : sel ? <>Choisissez une image pour le bloc sélectionné (<b>&lt;{sel.tag}&gt;</b>).</> : "Pour remplacer une image de la maquette : cliquez dessus dans l'aperçu, puis sur « Remplacer » sous l'image de votre choix. « Ajouter » place une nouvelle image dans l'écran affiché."}</p>
+                {sel && !sel.image && <p className="note">« Fond du bloc » met l'image en fond du bloc ; les petites vignettes en dessous l'ajoutent juste sous le bloc.</p>}
+                <GalerieImages choisir={choisirImage} libelleChoisir={!sel ? "Ajouter" : sel.image ? "Remplacer" : "Fond du bloc"} />
+                {sel && !sel.image && <GalerieAjout ajouter={ajouterImage} />}
               </>
             )}
             {panneau === "couleurs" && (
