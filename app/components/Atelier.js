@@ -132,7 +132,8 @@ c.querySelectorAll('[data-kz-survol]').forEach(function(e){e.removeAttribute('da
 return '<!doctype html>\\n'+c.outerHTML;}
 function choisir(e){if(sel)sel.removeAttribute('data-kz-sel');sel=e||null;
 if(sel){sel.setAttribute('data-kz-sel','');var bg=getComputedStyle(sel).backgroundImage||'';
-dire({type:'sel',tag:sel.tagName.toLowerCase(),image:sel.tagName==='IMG'||/url\\(/.test(bg),texte:(sel.innerText||'').trim().slice(0,50)});}else dire({type:'sel',tag:''});}
+dire({type:'sel',tag:sel.tagName.toLowerCase(),image:sel.tagName==='IMG'||/url\\(/.test(bg),texte:(sel.innerText||'').trim().slice(0,50),lien:sel.getAttribute('data-lien-ecran')||''});}else dire({type:'sel',tag:''});}
+function bloc(x){while(x&&x.parentElement&&x.parentElement!==document.body&&/^inline/.test(getComputedStyle(x).display))x=x.parentElement;return x;}
 document.addEventListener('click',function(e){if(mode!=='selection')return;e.preventDefault();e.stopPropagation();choisir(e.target);},true);
 document.addEventListener('mouseover',function(e){if(mode==='selection'&&e.target.setAttribute)e.target.setAttribute('data-kz-survol','');},true);
 document.addEventListener('mouseout',function(e){if(e.target.removeAttribute)e.target.removeAttribute('data-kz-survol');},true);
@@ -141,15 +142,27 @@ function changerMode(m){mode=m;try{document.designMode=m==='texte'?'on':'off';}c
 window.addEventListener('message',function(e){var d=e.data||{};if(!d.kz)return;
 if(d.type==='mode')changerMode(d.mode);
 if(d.type==='lire')dire({type:'code',id:d.id,html:code()});
+if(d.type==='cibles'){var vus={},l=[];[].slice.call(document.querySelectorAll(d.selecteur)).forEach(function(x){if(x.closest('[data-kz]')||x.closest('[data-lien-ecran]'))return;var t=(x.innerText||x.textContent||'').replace(/\\s+/g,' ').trim();if(t&&t.length<=30&&!vus[t]){vus[t]=1;l.push(t);}});dire({type:'cibles',id:d.id,liste:l.slice(0,30)});}
+if(d.type==='ajouter-image'){var i=document.createElement('img');i.src=d.src;i.alt='';i.style.cssText='display:block;width:100%;height:auto;border-radius:16px;margin:10px 0';
+var r=sel;if(!r){var p=document.elementFromPoint(innerWidth/2,innerHeight/3);r=(p&&p!==document.body&&p!==document.documentElement)?bloc(p):null;}
+if(r&&r.parentNode)r.parentNode.insertBefore(i,r.nextSibling);else document.body.insertBefore(i,document.body.firstChild);
+if(mode==='selection')choisir(i);i.scrollIntoView({block:'center'});dire({type:'modif'});return;}
 if(!sel)return;
+if(d.type==='lien'){if(d.cible){sel.setAttribute('data-lien-ecran',d.cible);sel.style.cursor='pointer';if(!document.getElementById('kaizen-liens')){var k=document.createElement('script');k.id='kaizen-liens';k.textContent=d.code;document.body.appendChild(k);}}else{sel.removeAttribute('data-lien-ecran');sel.style.cursor='';}choisir(sel);dire({type:'modif'});}
 if(d.type==='image'){if(sel.tagName==='IMG'){sel.src=d.src;sel.removeAttribute('srcset');}else{sel.style.backgroundImage='url("'+d.src+'")';sel.style.backgroundSize='cover';sel.style.backgroundPosition='center';}dire({type:'modif'});}
-if(d.type==='ajouter-image'){var i=document.createElement('img');i.src=d.src;i.alt='';i.style.cssText='display:block;width:100%;height:auto;border-radius:16px;margin:10px 0';sel.parentNode.insertBefore(i,sel.nextSibling);choisir(i);dire({type:'modif'});}
 if(d.type==='supprimer'){var s=sel;choisir(null);s.remove();dire({type:'modif'});}
 if(d.type==='dupliquer'){var c=sel.cloneNode(true);c.removeAttribute('data-kz-sel');sel.parentNode.insertBefore(c,sel.nextSibling);choisir(c);dire({type:'modif'});}
 if(d.type==='parent'&&sel.parentElement&&sel.parentElement!==document.documentElement)choisir(sel.parentElement);
 });
 changerMode('texte');dire({type:'pret'});
 })();<\/script>`;
+
+// Éléments qui servent à naviguer (onglets, menus, boutons) : cibles possibles d'un lien.
+const SELECTEUR_CIBLES = "nav button,nav a,[role=tab],[data-tab],[data-vers],[data-target],[data-screen],[onclick],button,a";
+// Petit script enregistré DANS la maquette : un bloc ou une image « lien » clique sur l'onglet choisi.
+const CODE_LIENS = `(function(){var S=${JSON.stringify(SELECTEUR_CIBLES)};function n(x){return (x.innerText||x.textContent||"").replace(/\\s+/g," ").trim();}
+document.addEventListener("click",function(e){if(document.designMode==="on")return;var s=e.target.closest&&e.target.closest("[data-lien-ecran]");if(!s)return;var t=s.getAttribute("data-lien-ecran");
+var c=[].slice.call(document.querySelectorAll(S)).find(function(x){return !x.closest("[data-lien-ecran]")&&n(x)===t;});if(c){e.preventDefault();c.click();window.scrollTo(0,0);}});})();`;
 
 const injecter = (html) => (/<\/body>/i.test(html) ? html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${SCRIPT_EDITEUR}</body>`) : html + SCRIPT_EDITEUR);
 
@@ -234,19 +247,27 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
       if (d.type === "pret") cadre.current.contentWindow.postMessage({ kz: true, type: "mode", mode }, "*");
       if (d.type === "sel") setSel(d.tag ? d : null);
       if (d.type === "modif") setModifie(true);
-      if (d.type === "code" && enAttente.current[d.id]) { enAttente.current[d.id](d.html); delete enAttente.current[d.id]; }
+      if ((d.type === "code" || d.type === "cibles") && enAttente.current[d.id]) { enAttente.current[d.id](d.type === "code" ? d.html : d.liste); delete enAttente.current[d.id]; }
     };
     window.addEventListener("message", ecouter);
     return () => window.removeEventListener("message", ecouter);
   }, [mode]);
 
   const envoyer = (m) => cadre.current?.contentWindow?.postMessage({ kz: true, ...m }, "*");
-  const lire = () => new Promise((ok) => {
+  const demander = (type, extra = {}) => new Promise((ok) => {
     const id = `${Date.now()}-${Math.random()}`;
     enAttente.current[id] = ok;
-    envoyer({ type: "lire", id });
+    envoyer({ type, id, ...extra });
     setTimeout(() => { if (enAttente.current[id]) { delete enAttente.current[id]; ok(null); } }, 4000);
   });
+  const lire = () => demander("lire");
+  // Onglets / boutons de la maquette vers lesquels un bloc peut renvoyer au clic.
+  const [cibles, setCibles] = useState([]);
+  useEffect(() => { if (sel) demander("cibles", { selecteur: SELECTEUR_CIBLES }).then((l) => setCibles(l || [])); }, [sel?.tag, sel?.texte]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function lier(cible) {
+    await outil("lien", { cible, code: CODE_LIENS });
+    setMessage({ type: "succes", texte: cible ? `🔗 Au clic, ce bloc ouvre « ${cible} ». Essayez avec ▶ Tester.` : "Lien retiré." });
+  }
   // Prend une photo de l'état actuel (pour « Annuler »), puis applique un changement.
   async function memoriser() { const h = await lire(); if (h) setHistorique((x) => [...x.slice(-19), h]); return h; }
   async function recharger(html) { setSel(null); setSource(html); setVersion((v) => v + 1); setModifie(true); }
@@ -281,13 +302,13 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
     setMessage({ type: "succes", texte: "Code appliqué à l'aperçu." });
   }
   async function choisirImage(_id, url) {
-    if (!sel) { setMessage({ type: "erreur", texte: "Sélectionnez d'abord un bloc ou une image dans l'aperçu (outil 👆 Sélectionner)." }); return; }
+    if (!sel) { await ajouterImage(_id, url); return; }
     await outil("image", { src: url });
     setMessage({ type: "succes", texte: sel.tag === "img" ? "Image remplacée." : "Image placée en fond du bloc sélectionné." });
   }
   async function ajouterImage(_id, url) {
-    if (!sel) { setMessage({ type: "erreur", texte: "Sélectionnez d'abord l'endroit où ajouter l'image (outil 👆 Sélectionner)." }); return; }
     await outil("ajouter-image", { src: url });
+    setMessage({ type: "succes", texte: sel ? "Image ajoutée sous le bloc sélectionné." : "Image ajoutée à l'écran affiché. Pour la rendre cliquable : 👆 Sélectionner → cliquez sur l'image → 🔗 Au clic, aller vers…" });
   }
   async function sauver() {
     setMessage({ type: "", texte: "" }); setEnCours(true);
@@ -309,9 +330,11 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
 
   return (
     <div className="editeur-maquette">
+      <div className="entete-atelier">
       <div className="barre-outils" role="toolbar" aria-label="Outils de l'atelier">
         <button className={`btn petit ${mode === "texte" ? "" : "secondaire"}`} onClick={() => changerMode("texte")} title="Cliquez sur un texte de l'aperçu pour l'écrire">✏️ Textes</button>
         <button className={`btn petit ${mode === "selection" ? "" : "secondaire"}`} onClick={() => changerMode("selection")} title="Cliquez sur un bloc ou une image pour le sélectionner">👆 Sélectionner</button>
+        <button className={`btn petit ${mode === "test" ? "" : "secondaire"}`} onClick={() => changerMode("test")} title="Cliquez dans la maquette comme le client : onglets, boutons, liens">▶ Tester</button>
         <span className="separateur" />
         <button className={`btn petit ${panneau === "images" ? "" : "secondaire"}`} onClick={() => ouvrirPanneau("images")}>🖼️ Images</button>
         <button className={`btn petit ${panneau === "couleurs" ? "" : "secondaire"}`} onClick={() => ouvrirPanneau("couleurs")}>🎨 Couleurs</button>
@@ -325,7 +348,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
       </div>
 
       <p className="aide-outil">
-        {mode === "texte" ? "✏️ Cliquez directement sur un texte de l'aperçu et écrivez." : sel ? <>Sélection : <b>&lt;{sel.tag}&gt;</b> {sel.texte ? `« ${sel.texte} »` : ""}</> : "👆 Cliquez sur un bloc ou une image de l'aperçu pour le sélectionner."}
+        {mode === "texte" ? "✏️ Cliquez directement sur un texte de l'aperçu et écrivez." : mode === "test" ? "▶ Mode test : cliquez dans la maquette comme le client (onglets, boutons, images cliquables)." : sel ? <>Sélection : <b>&lt;{sel.tag}&gt;</b> {sel.texte ? `« ${sel.texte} »` : ""}</> : "👆 Cliquez sur un bloc ou une image de l'aperçu pour le sélectionner."}
       </p>
       {mode === "selection" && sel && (
         <div className="actions outils-selection">
@@ -333,9 +356,18 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
           <button className="btn petit secondaire" onClick={() => outil("dupliquer")}>⧉ Dupliquer</button>
           <button className="btn petit secondaire" onClick={() => outil("supprimer")}>🗑 Supprimer</button>
           <button className="btn petit secondaire" onClick={() => setPanneau("images")}>🖼️ {sel.tag === "img" ? "Remplacer l'image" : "Mettre une image"}</button>
+          <label className="lien-clic">
+            <span>🔗 Au clic, aller vers</span>
+            <select value={sel.lien || ""} onChange={(e) => lier(e.target.value)}>
+              <option value="">— rien (pas cliquable) —</option>
+              {sel.lien && !cibles.includes(sel.lien) && <option value={sel.lien}>{sel.lien}</option>}
+              {cibles.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
         </div>
       )}
       {message.texte && <p className={`alerte ${message.type === "erreur" ? "erreur" : "succes"}`}>{message.texte}</p>}
+      </div>
 
       <div className={`atelier-zone ${panneau ? "avec-panneau" : ""}`}>
         <div className={`cadre-maquette ${format}`}>
@@ -345,9 +377,9 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre }) {
           <aside className="panneau-atelier">
             {panneau === "images" && (
               <>
-                <p className="note">{sel ? <>Choisissez une image pour le bloc sélectionné (<b>&lt;{sel.tag}&gt;</b>).</> : "Sélectionnez d'abord un bloc ou une image dans l'aperçu (👆), puis choisissez une image."}</p>
-                {sel && sel.tag !== "img" && <p className="note">« Insérer » met l'image en fond du bloc ; « + Ajouter » la place juste en dessous.</p>}
-                <GalerieImages choisir={choisirImage} libelleChoisir={sel?.tag === "img" ? "Remplacer" : "Insérer"} />
+                <p className="note">{sel ? <>Choisissez une image pour le bloc sélectionné (<b>&lt;{sel.tag}&gt;</b>).</> : "« Ajouter » place l'image dans l'écran affiché. Pour la mettre à un endroit précis ou en fond d'un bloc : 👆 Sélectionner, cliquez sur le bloc, puis choisissez l'image."}</p>
+                {sel && sel.tag !== "img" && <p className="note">« Fond du bloc » met l'image en fond du bloc ; les petites vignettes en dessous l'ajoutent juste sous le bloc.</p>}
+                <GalerieImages choisir={choisirImage} libelleChoisir={!sel ? "Ajouter" : sel.tag === "img" ? "Remplacer" : "Fond du bloc"} />
                 {sel && sel.tag !== "img" && <GalerieAjout ajouter={ajouterImage} />}
               </>
             )}

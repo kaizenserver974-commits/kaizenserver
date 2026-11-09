@@ -1108,7 +1108,9 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .atelier-page { max-width: 1400px; }
 .atelier-projet { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 10px; }
 .atelier-projet .champ { flex: 1; min-width: 240px; }
-.barre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px; border-radius: 16px; background: var(--surface-2); position: sticky; top: 76px; z-index: 5; }
+.entete-atelier { position: sticky; top: 72px; z-index: 5; background: rgba(12, 14, 40, 0.94); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 16px; padding: 4px 0 2px; }
+.entete-atelier .alerte { margin: 6px 0; padding: 8px 12px; }
+.barre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px; border-radius: 16px; background: var(--surface-2); }
 .barre-outils .separateur { width: 1px; align-self: stretch; background: var(--ligne); margin: 0 4px; }
 .barre-outils .btn-enregistrer { margin-left: auto; background: linear-gradient(135deg, #10b981, #22d3ee); }
 .aide-outil { margin: 10px 2px 4px; font-size: 14px; color: var(--texte-doux, #c7c9f0); }
@@ -1136,5 +1138,7 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 .rangee-ajout button { padding: 0; border: 1px solid var(--ligne); border-radius: 10px; overflow: hidden; background: none; cursor: pointer; }
 .rangee-ajout img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
 button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
-@media (max-width: 1000px) { .atelier-zone.avec-panneau { grid-template-columns: 1fr; } .barre-outils { position: static; } .atelier-zone .cadre-maquette iframe { height: 600px; } }
+@media (max-width: 1000px) { .atelier-zone.avec-panneau { grid-template-columns: 1fr; } .entete-atelier { position: static; } .atelier-zone .cadre-maquette iframe { height: 600px; } }
 .atelier-zone > * { min-width: 0; }
+.lien-clic { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; background: var(--surface-2); border-radius: 10px; padding: 4px 4px 4px 10px; }
+.lien-clic select { background: var(--surface); color: var(--texte); border: 1px solid var(--ligne); border-radius: 8px; padding: 5px 8px; max-width: 220px; }
