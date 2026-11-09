@@ -132,7 +132,7 @@ export async function POST(request) {
       const recap = commande.recap?.ecrans?.length ? commande.recap : recapitulatifSecours(projet, estimer(projet));
       // Option : Server améliore la maquette actuelle du client au lieu de repartir de zéro.
       const base = corps.partirDeLaMaquette ? (await lireMaquette(sb, commande.id))?.html || "" : "";
-      const { html, source, raison } = await genererMaquette(projet, recap, { consignes, images, auteur: "server", base });
+      const { html, source, raison } = await genererMaquette(projet, recap, { consignes, images, auteur: "server", base, demandes: String(consignes || "").split(/\n+|(?<=[.!?;])\s+/).map((x) => x.replace(/^[-•*\d.)\s]+/, "").trim()).filter((x) => x.length > 3) });
       await enregistrerMaquette(sb, commande.id, html, source);
       if (recap !== commande.recap) await sb.from("kaizen_commandes").update({ recap: { ...recap, titre: commande.recap?.titre || recap.titre || projet.nom } }).eq("id", commande.id);
       return NextResponse.json({ ok: true, source, raison });

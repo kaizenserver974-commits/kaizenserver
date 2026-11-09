@@ -47,13 +47,16 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Le paiement en pièces d'or est indisponible pour le moment." }, { status: 500 });
   }
 
+  // Demandes explicites (une par ligne ou par phrase) : vérifiées point par point après la génération.
+  const decouper = (t) => String(t || "").split(/\n+|(?<=[.!?;])\s+/).map((x) => x.replace(/^[-•*\d.)\s]+/, "").trim()).filter((x) => x.length > 3);
+  const demandes = [...decouper(retour), ...decouper(consignesClient)];
   // Tout le dossier du client est transmis par genererMaquette ; ici ses consignes et sa demande de modification.
   const consignes = [
     consignesClient,
     retour && `Modifications demandées sur la maquette précédente (prioritaires) : ${retour}`,
   ].filter(Boolean).join("\n");
 
-  const resultat = await genererMaquette(projet, recap, { consignes, images: validerImagesReference([...photos, ...images]), auteur: "client", photos, base });
+  const resultat = await genererMaquette(projet, recap, { consignes, images: validerImagesReference([...photos, ...images]), auteur: "client", photos, base, demandes });
   // L'IA n'a pas répondu (maquette de secours) : le client est remboursé.
   if (resultat.source !== "ia") solde = await rembourser(sb, cleBourse, cout, motif).catch(() => solde);
   return NextResponse.json({ ...resultat, rembourse: resultat.source !== "ia", solde });
