@@ -3,7 +3,7 @@
 // Atelier de Server : créer ou retoucher soi-même la maquette d'un projet, et générer ses images.
 import { useCallback, useEffect, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../../lib/supabaseClient.js";
-import { EditeurMaquette, GalerieImages, maquetteVierge } from "../../components/Atelier.js";
+import { EditeurMaquette, GalerieImages, maquetteVierge, maquetteImages, ChoixEcransImages } from "../../components/Atelier.js";
 
 const api = (corps) => appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify(corps) });
 
@@ -15,6 +15,7 @@ export default function Atelier() {
   const [choisie, setChoisie] = useState("");
   const [maquette, setMaquette] = useState(null); // { html, cle }
   const [onglet, setOnglet] = useState("maquette");
+  const [avecImages, setAvecImages] = useState(false);
 
   const charger = useCallback(async () => {
     try {
@@ -84,12 +85,18 @@ export default function Atelier() {
               </select>
             </label>
             {c && <a className="btn petit secondaire" href={`/admin?commande=${c.id}`}>← Retour au projet</a>}
+            {maquette && <button className="btn petit" onClick={() => setAvecImages(true)}>🖼️ Faire la maquette avec mes images</button>}
             {maquette && !maquette.vierge && (
               <button className="btn petit secondaire" onClick={() => { if (window.confirm("Repartir d'une maquette vierge ? (L'ancienne reste enregistrée tant que vous ne cliquez pas sur Enregistrer.)")) setMaquette({ html: maquetteVierge(titre), cle: `${c.id}-vierge-${Date.now()}`, vierge: true }); }}>📄 Partir d'une page vierge</button>
             )}
           </div>
           {maquette?.vierge && <p className="note">Ce projet n'a pas encore de maquette : voici une page de départ à 4 écrans. Modifiez les textes, mettez vos images, changez les couleurs, puis enregistrez.</p>}
-          {!c ? <p className="discret">Aucun projet pour le moment.</p> : !maquette ? <p className="discret">Chargement de la maquette…</p> : (
+          {avecImages && c ? (
+            <ChoixEcransImages annuler={() => setAvecImages(false)} valider={(ecrans) => {
+              setMaquette({ html: maquetteImages(ecrans, titre), cle: `${c.id}-images-${Date.now()}` });
+              setAvecImages(false);
+            }} />
+          ) : !c ? <p className="discret">Aucun projet pour le moment.</p> : !maquette ? <p className="discret">Chargement de la maquette…</p> : (
             <EditeurMaquette key={maquette.cle} htmlInitial={maquette.html} titre={titre}
               enregistrer={async (html) => { await api({ action: "maquette_enregistrer", commandeId: c.id, html }); setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, maquette: { ...(x.maquette || {}), source: "server", updated_at: new Date().toISOString() } } : x))); }} />
           )}

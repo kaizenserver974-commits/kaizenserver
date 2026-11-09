@@ -1142,3 +1142,9 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .atelier-zone > * { min-width: 0; }
 .lien-clic { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; background: var(--surface-2); border-radius: 10px; padding: 4px 4px 4px 10px; }
 .lien-clic select { background: var(--surface); color: var(--texte); border: 1px solid var(--ligne); border-radius: 8px; padding: 5px 8px; max-width: 220px; }
+.choix-ecrans { display: grid; gap: 12px; margin-top: 8px; }
+.choix-ecrans h3 { margin: 0; }
+.liste-ecrans { display: grid; gap: 8px; padding-left: 22px; margin: 0; }
+.liste-ecrans li { display: flex; align-items: center; gap: 8px; }
+.liste-ecrans img { width: 54px; height: 54px; object-fit: cover; border-radius: 10px; }
+.liste-ecrans input { flex: 1; min-width: 0; background: var(--surface); color: var(--texte); border: 1px solid var(--ligne); border-radius: 10px; padding: 8px 10px; }

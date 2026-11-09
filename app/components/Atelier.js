@@ -443,3 +443,59 @@ function GalerieAjout({ ajouter }) {
     </div>
   );
 }
+
+// Maquette faite uniquement de vos images (un écran par image) : onglets en bas,
+// et un clic sur l'image passe à l'écran suivant. Modifiable ensuite dans l'atelier.
+export function maquetteImages(ecrans, titre = "Mon application") {
+  const echapper = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const plusieurs = ecrans.length > 1;
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${echapper(titre)}</title>
+<style>
+*{box-sizing:border-box;margin:0}body{background:#05060f;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;${plusieurs ? "padding-bottom:70px;" : ""}}
+.bandeau{font-size:11px;text-align:center;padding:4px;background:#1b2040;color:#a5abd6}
+.ecran{display:none}.ecran.actif{display:block}
+.ecran img{display:block;width:100%;height:auto;max-width:900px;margin:0 auto;${plusieurs ? "cursor:pointer;" : ""}}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:4px;padding:10px 6px 14px;background:rgba(10,12,30,.94);border-top:1px solid #222a52;overflow-x:auto}
+nav button{background:none;border:0;color:#8b93c9;font-size:13px;font-weight:600;padding:6px 10px;border-radius:10px;white-space:nowrap}
+nav button.actif{color:#fff;background:#7b5cff}
+</style></head><body>
+<div class="bandeau">Maquette Kaizen — aperçu non fonctionnel</div>
+${ecrans.map((e, i) => `<section class="ecran${i === 0 ? " actif" : ""}" data-ecran="e${i}"><img src="${echapper(e.url)}" alt="${echapper(e.nom)}"></section>`).join("\n")}
+${plusieurs ? `<nav>${ecrans.map((e, i) => `<button${i === 0 ? ' class="actif"' : ""} data-vers="e${i}">${echapper(e.nom)}</button>`).join("")}</nav>` : ""}
+<script>(function(){var b=[].slice.call(document.querySelectorAll('nav button'));function aller(id){document.querySelectorAll('.ecran').forEach(function(e){e.classList.toggle('actif',e.dataset.ecran===id)});b.forEach(function(x){x.classList.toggle('actif',x.dataset.vers===id)});window.scrollTo(0,0);}
+b.forEach(function(x){x.addEventListener('click',function(){aller(x.dataset.vers)})});
+document.querySelectorAll('.ecran img').forEach(function(im,i,l){im.addEventListener('click',function(e){if(e.target.closest('[data-lien-ecran]')||l.length<2)return;aller('e'+((i+1)%l.length));});});})();</script>
+</body></html>`;
+}
+
+// Choix des images qui deviennent les écrans de la maquette.
+export function ChoixEcransImages({ valider, annuler }) {
+  const [ecrans, setEcrans] = useState([]);
+  const deplacer = (i, d) => setEcrans((l) => { const n = [...l]; const j = i + d; if (j < 0 || j >= n.length) return l; [n[i], n[j]] = [n[j], n[i]]; return n; });
+  return (
+    <div className="choix-ecrans">
+      <h3>🖼️ Faire la maquette avec mes images</h3>
+      <p className="note">Chaque image devient un écran (vos captures, vos dessins, les images de l'IA…). Importez ou générez vos images ci-dessous, cliquez sur « + Écran » dans l'ordre voulu, nommez les écrans, puis créez la maquette. Le client pourra passer d'un écran à l'autre.</p>
+      {ecrans.length > 0 && (
+        <ol className="liste-ecrans">
+          {ecrans.map((e, i) => (
+            <li key={`${e.id}-${i}`}>
+              <img src={e.url} alt="" />
+              <input value={e.nom} maxLength={24} onChange={(ev) => setEcrans((l) => l.map((x, j) => (j === i ? { ...x, nom: ev.target.value } : x)))} aria-label={`Nom de l'écran ${i + 1}`} />
+              <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, -1)} aria-label="Monter">↑</button>
+              <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, 1)} aria-label="Descendre">↓</button>
+              <button type="button" className="btn petit secondaire" onClick={() => setEcrans((l) => l.filter((_, j) => j !== i))} aria-label="Retirer">×</button>
+            </li>
+          ))}
+        </ol>
+      )}
+      <div className="actions">
+        <button className="btn" disabled={!ecrans.length} onClick={() => valider(ecrans)}>✅ Créer la maquette avec {ecrans.length || "mes"} image{ecrans.length > 1 ? "s" : ""}</button>
+        <button className="btn secondaire" onClick={annuler}>Annuler</button>
+      </div>
+      <GalerieImages libelleChoisir="+ Écran" choisir={(id, url) => setEcrans((l) => (l.length >= 8 ? l : [...l, { id, url, nom: l.length === 0 ? "Accueil" : `Écran ${l.length + 1}` }]))} />
+    </div>
+  );
+}
