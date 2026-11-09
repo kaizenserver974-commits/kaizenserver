@@ -77,6 +77,7 @@ export default function Admin() {
 
       <div className="admin-grille">
         <aside className="admin-liste">
+          <PublicationFacebook />
           <NouveauProjet creer={async (p) => { const r = await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "creer", ...p }) }); await charger(); setChoisie(r.id); }} />
           {liste.length === 0 && <p className="discret">Aucune commande.</p>}
           {liste.map((x) => {
@@ -206,6 +207,41 @@ function PiecesClient({ commandeId }) {
         {pieces.map((p, i) => (p.type.startsWith("image/")
           ? <a key={i} href={p.url} target="_blank" rel="noopener noreferrer" title={p.nom}><img src={p.url} alt={p.nom} /></a>
           : <a key={i} className="btn petit secondaire" href={p.url} download={p.nom}>📄 {p.nom}</a>))}
+      </div>
+    </div>
+  );
+}
+
+// Texte prêt à publier sur Facebook pour récolter des projets (lien vers /bientot).
+const TEXTE_FACEBOOK = `🌍 Le monde Kaizen ouvre bientôt pour réaliser votre application de rêve !
+
+Vous avez besoin d'une application 📱
+🏢 pour votre entreprise (réservations, commandes, clients…)
+🙋 ou pour vous, personnellement ?
+
+👉 Dites-nous votre idée : nous la créons pour vous, à prix doux 💶
+Server, le maître du jeu, étudie chaque projet et vous recontacte avec ses conseils. Gratuit et sans engagement.
+
+✍️ Inscrivez votre projet ici : https://kaizenserver.fr/bientot?source=facebook
+
+#application #appli #entreprise #startup #KaizenServer`;
+
+function PublicationFacebook() {
+  const [ouvert, setOuvert] = useState(false);
+  const [copie, setCopie] = useState("");
+  async function copier(quoi, texte) {
+    try { await navigator.clipboard.writeText(texte); setCopie(quoi); setTimeout(() => setCopie(""), 2000); } catch { window.prompt("Copiez ce texte :", texte); }
+  }
+  if (!ouvert) return <button className="btn secondaire" onClick={() => setOuvert(true)}>📣 Publication Facebook</button>;
+  return (
+    <div className="carte publication-fb">
+      <div className="titre-ligne"><h3>📣 Publication Facebook</h3><button className="btn petit secondaire" onClick={() => setOuvert(false)}>✕</button></div>
+      <p className="note">Copiez le texte et collez-le sur votre page Facebook : l'aperçu (image et titre) s'affiche tout seul. Les projets reçus arrivent ici, marqués « 📣 Pré-inscription ».</p>
+      <textarea readOnly rows={12} value={TEXTE_FACEBOOK} />
+      <div className="actions">
+        <button className="btn petit" onClick={() => copier("texte", TEXTE_FACEBOOK)}>{copie === "texte" ? "✅ Texte copié" : "Copier le texte"}</button>
+        <button className="btn petit secondaire" onClick={() => copier("lien", "https://kaizenserver.fr/bientot?source=facebook")}>{copie === "lien" ? "✅ Lien copié" : "Copier le lien seul"}</button>
+        <a className="btn petit secondaire" href="/bientot" target="_blank" rel="noopener noreferrer">Voir la page ↗</a>
       </div>
     </div>
   );
@@ -356,6 +392,7 @@ function InfosProjet({ c, action }) {
         <p><b>Idée :</b> {c.projet?.idee || "—"}</p>
         <p><b>Fonctionnalités :</b> {[...(c.projet?.fonctionnalites || []).map((id) => fonctionnalite(id)?.label || id), ...(c.projet?.personnalisees || [])].join(", ") || "—"}</p>
         {c.projet?.message && <p><b>Message :</b> {c.projet.message}</p>}
+        {c.formule === "preinscription" && <p><b>📣 Pré-inscription :</b> {({ entreprise: "pour son entreprise", personnel: "pour lui-même", association: "pour son association" })[c.projet?.cadre] || ""} · <b>Budget :</b> {c.projet?.budgetLibre || "—"} · <b>Délai :</b> {c.projet?.delaiLibre || "—"} · <b>Venu de :</b> {c.projet?.source || "site"}</p>}
         <p><b>Maquette :</b> {c.projet?.maquetteValidee ? "✅ acceptée par le client" : "pas encore acceptée"}{c.projet?.retours?.length ? ` · ${c.projet.retours.length} demande(s) de modification` : ""}</p>
         {c.projet?.retours?.length > 0 && <ul className="retours-admin">{c.projet.retours.map((r, i) => <li key={i}>💬 {r}</li>)}</ul>}
         {c.projet?.pieces?.length > 0 && <p><b>Pièces jointes (reçues par e-mail) :</b> {c.projet.pieces.join(", ")}</p>}
