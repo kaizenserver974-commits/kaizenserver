@@ -752,3 +752,77 @@ export function EnvoiMaquette({ commande, apres }) {
     </div>
   );
 }
+
+// « Vitrine express » : 6 emplacements d'images + 1 pour le signet, puis la maquette est créée
+// directement en présentation Vitrine (comme une fiche d'application).
+export function VitrineExpress({ titre, valider, annuler }) {
+  const [cases, setCases] = useState(() => Array.from({ length: 6 }, () => ({ url: "", phrase: "" })));
+  const [signet, setSignet] = useState("");
+  const [nom, setNom] = useState(titre || "");
+  const [sousTitre, setSousTitre] = useState("");
+  const [couleur, setCouleur] = useState("#7b2cbf");
+  const [attente, setAttente] = useState("");
+  const [erreur, setErreur] = useState("");
+  const [galeriePour, setGaleriePour] = useState(null); // "signet" ou numéro de case
+
+  const placer = (cible, url) => {
+    if (cible === "signet") setSignet(url);
+    else setCases((l) => l.map((c, j) => (j === cible ? { ...c, url } : c)));
+  };
+  async function importer(cible, fichier) {
+    if (!fichier) return;
+    if (!/^image\//.test(fichier.type)) { setErreur("Choisissez une image (JPG, PNG…)."); return; }
+    setErreur(""); setAttente(cible === "signet" ? "Envoi du signet…" : `Envoi de l'image ${cible + 1}…`);
+    try {
+      const r = await api({ action: "image_ajouter", image: await versDataUrl(fichier, cible === "signet" ? 1024 : 4096, { qualite: 0.93, max: 3_800_000 }), description: cible === "signet" ? `Signet — ${fichier.name}` : `Vitrine ${cible + 1} — ${fichier.name}` });
+      placer(cible, urlImage(r.image.id));
+    } catch (e) { setErreur(e.message); } finally { setAttente(""); }
+  }
+  const remplies = cases.filter((c) => c.url);
+  const Emplacement = ({ cible, url, libelle, carre }) => (
+    <div className={`emplacement ${carre ? "carre" : ""} ${url ? "rempli" : ""}`}>
+      <label className="emplacement-zone">
+        {url ? <img src={url} alt={libelle} /> : <span><b>📥</b>{libelle}<small>Toucher pour ajouter</small></span>}
+        <input type="file" accept="image/*" hidden onChange={(e) => { importer(cible, e.target.files?.[0]); e.target.value = ""; }} />
+      </label>
+      <div className="emplacement-actions">
+        <button type="button" className="btn petit secondaire" onClick={() => setGaleriePour(galeriePour === cible ? null : cible)}>🖼️ Galerie</button>
+        {url && <button type="button" className="btn petit secondaire" onClick={() => placer(cible, "")} aria-label="Retirer">×</button>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="vitrine-express">
+      <h3>🛍️ Vitrine en 6 images</h3>
+      <p className="note">Ajoutez le signet (l'icône) et jusqu'à 6 écrans de l'application, avec une phrase pour chacun. La maquette sera présentée comme une fiche d'application.</p>
+      <div className="ve-entete">
+        <div>
+          <p className="ve-titre">Signet</p>
+          <Emplacement cible="signet" url={signet} libelle="Signet" carre />
+        </div>
+        <div className="ve-champs">
+          <label className="champ" style={{ marginTop: 0 }}><span>Nom de l'application</span><input value={nom} maxLength={40} onChange={(e) => setNom(e.target.value)} /></label>
+          <label className="champ" style={{ marginTop: 0 }}><span>Phrase d'accroche</span><input value={sousTitre} maxLength={70} onChange={(e) => setSousTitre(e.target.value)} placeholder="Ex. : Votre moto connectée et suivie au quotidien" /></label>
+          <label className="ligne-couleur"><input type="color" value={couleur} onChange={(e) => setCouleur(e.target.value)} /> <span>Couleur des fonds</span></label>
+        </div>
+      </div>
+      {galeriePour === "signet" && <GalerieImages libelleChoisir="Prendre comme signet" choisir={(_id, url) => { placer("signet", url); setGaleriePour(null); }} />}
+      <div className="ve-grille">
+        {cases.map((c, i) => (
+          <div key={i} className="ve-case">
+            <Emplacement cible={i} url={c.url} libelle={`Image ${i + 1}`} />
+            <input className="ve-phrase" value={c.phrase} maxLength={80} placeholder={`Phrase de l'image ${i + 1}`} onChange={(e) => setCases((l) => l.map((x, j) => (j === i ? { ...x, phrase: e.target.value } : x)))} />
+          </div>
+        ))}
+      </div>
+      {typeof galeriePour === "number" && <GalerieImages libelleChoisir={`Mettre en image ${galeriePour + 1}`} choisir={(_id, url) => { placer(galeriePour, url); setGaleriePour(null); }} />}
+      {attente && <div className="chargement"><span className="rond" /> {attente}</div>}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+      <div className="actions">
+        <button className="btn" disabled={!remplies.length || Boolean(attente)} onClick={() => valider(remplies.map((c, i) => ({ id: `v${i}`, url: c.url, nom: c.phrase || `Écran ${i + 1}`, legende: c.phrase })), { style: "vitrine", sousTitre, couleur, icone: signet, nom: nom.trim() || titre })}>✅ Créer la maquette ({remplies.length} image{remplies.length > 1 ? "s" : ""})</button>
+        <button className="btn secondaire" onClick={annuler}>Annuler</button>
+      </div>
+    </div>
+  );
+}

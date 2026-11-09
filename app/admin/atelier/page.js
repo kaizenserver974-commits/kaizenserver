@@ -3,7 +3,7 @@
 // Atelier de Server : créer ou retoucher soi-même la maquette d'un projet, et générer ses images.
 import { useCallback, useEffect, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../../lib/supabaseClient.js";
-import { EditeurMaquette, GalerieImages, maquetteVierge, maquetteImages, ChoixEcransImages, EnvoiMaquette } from "../../components/Atelier.js";
+import { EditeurMaquette, GalerieImages, maquetteVierge, maquetteImages, ChoixEcransImages, EnvoiMaquette, VitrineExpress } from "../../components/Atelier.js";
 
 const api = (corps) => appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify(corps) });
 
@@ -16,6 +16,7 @@ export default function Atelier() {
   const [maquette, setMaquette] = useState(null); // { html, cle }
   const [onglet, setOnglet] = useState("maquette");
   const [avecImages, setAvecImages] = useState(false);
+  const [express, setExpress] = useState(false);
 
   const charger = useCallback(async () => {
     try {
@@ -85,14 +86,20 @@ export default function Atelier() {
               </select>
             </label>
             {c && <a className="btn petit secondaire" href={`/admin?commande=${c.id}`}>← Retour au projet</a>}
-            {maquette && <button className="btn petit" onClick={() => setAvecImages(true)}>🖼️ Faire la maquette avec mes images</button>}
+            {maquette && <button className="btn petit btn-vitrine" onClick={() => { setExpress(true); setAvecImages(false); }}>🛍️ Vitrine en 6 images</button>}
+            {maquette && <button className="btn petit" onClick={() => { setAvecImages(true); setExpress(false); }}>🖼️ Faire la maquette avec mes images</button>}
             {maquette && !maquette.vierge && (
               <button className="btn petit secondaire" onClick={() => { if (window.confirm("Repartir d'une maquette vierge ? (L'ancienne reste enregistrée tant que vous ne cliquez pas sur Enregistrer.)")) setMaquette({ html: maquetteVierge(titre), cle: `${c.id}-vierge-${Date.now()}`, vierge: true }); }}>📄 Partir d'une page vierge</button>
             )}
           </div>
-          {maquette?.images && !avecImages && <p className="alerte succes">🖼️ Votre maquette est prête avec vos images. Vérifiez avec ▶ Tester, puis cliquez sur <b>💾 Enregistrer</b> : elle remplacera la maquette proposée.</p>}
+          {maquette?.images && !avecImages && !express && <p className="alerte succes">🖼️ Votre maquette est prête avec vos images. Vérifiez avec ▶ Tester, puis cliquez sur <b>💾 Enregistrer</b> : elle remplacera la maquette proposée.</p>}
           {maquette?.vierge && <p className="note">Ce projet n'a pas encore de maquette : voici une page de départ à 4 écrans. Modifiez les textes, mettez vos images, changez les couleurs, puis enregistrez.</p>}
-          {avecImages && c ? (
+          {express && c ? (
+            <VitrineExpress titre={titre} annuler={() => setExpress(false)} valider={(ecrans, options) => {
+              setMaquette({ html: maquetteImages(ecrans, options.nom || titre, { ...options, resume: c.recap?.resume || "" }), cle: `${c.id}-vitrine-${Date.now()}`, images: true });
+              setExpress(false);
+            }} />
+          ) : avecImages && c ? (
             <ChoixEcransImages initial={avecImages?.url ? avecImages : null} annuler={() => setAvecImages(false)} valider={(ecrans, options) => {
               setMaquette({ html: maquetteImages(ecrans, titre, { ...options, resume: c.recap?.resume || "" }), cle: `${c.id}-images-${Date.now()}`, images: true });
               setAvecImages(false);
@@ -102,7 +109,7 @@ export default function Atelier() {
               versImages={(image) => { setAvecImages(image?.url ? image : true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               enregistrer={async (html) => { await api({ action: "maquette_enregistrer", commandeId: c.id, html }); setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, maquette: { ...(x.maquette || {}), source: "server", updated_at: new Date().toISOString() } } : x))); }} />
           )}
-          {c && !avecImages && <EnvoiMaquette key={`envoi-${c.id}-${c.maquette?.updated_at || ""}`} commande={c} apres={() => setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, projet: { ...(x.projet || {}), maquetteEnvoyeeLe: new Date().toISOString() } } : x)))} />}
+          {c && !avecImages && !express && <EnvoiMaquette key={`envoi-${c.id}-${c.maquette?.updated_at || ""}`} commande={c} apres={() => setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, projet: { ...(x.projet || {}), maquetteEnvoyeeLe: new Date().toISOString() } } : x)))} />}
         </section>
       )}
     </main>
