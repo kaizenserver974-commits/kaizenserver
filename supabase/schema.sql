@@ -188,3 +188,14 @@ create table if not exists public.kaizen_pieces_jointes (
 );
 create index if not exists kaizen_pieces_jointes_commande on public.kaizen_pieces_jointes (commande_id);
 alter table public.kaizen_pieces_jointes enable row level security;
+
+-- Atelier de Server : images générées par l'IA ou importées, servies par /api/images/<id>.
+create table if not exists public.kaizen_images (
+  id uuid primary key default gen_random_uuid(),
+  type text not null default 'image/webp',
+  contenu text not null,
+  description text not null default '',
+  origine text not null default 'ia',
+  created_at timestamptz not null default now()
+);
+alter table public.kaizen_images enable row level security;

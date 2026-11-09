@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PARCOURS_STATUTS, SUIVI_CLIENT, statut, montantEnLigne } from "../../lib/espace.js";
+import { GalerieImages, versDataUrl } from "./Atelier.js";
 
 export const euros = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(n);
 export const date = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
@@ -171,7 +172,8 @@ function reduireImage(fichier) {
 
 // Maquette d'un projet, chargée à la demande et affichée dans une iframe isolée.
 // Côté Server (generer fourni) : consignes et images de référence pour l'IA.
-export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "", jeton, ouvrir = false, acceptee = false }) {
+export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "", jeton, ouvrir = false, acceptee = false, atelier = "" }) {
+  const [galerie, setGalerie] = useState(false);
   const [copie, setCopie] = useState(false);
   const lien = jeton && typeof window !== "undefined" ? `${window.location.origin}/maquette/${jeton}` : "";
   const [html, setHtml] = useState("");
@@ -220,6 +222,7 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
         {disponible && lien && <a className="btn petit secondaire" href={lien} target="_blank" rel="noopener noreferrer">↗ Ouvrir en plein écran</a>}
         {disponible && lien && <button className="btn petit secondaire" onClick={async () => { try { await navigator.clipboard.writeText(lien); setCopie(true); setTimeout(() => setCopie(false), 2000); } catch { window.prompt("Copiez ce lien :", lien); } }}>{copie ? "✅ Lien copié" : "🔗 Copier le lien"}</button>}
         {generer && <button className="btn petit" disabled={Boolean(attente)} onClick={creer}>✨ {disponible ? "Améliorer avec mes consignes" : "Générer la maquette"}</button>}
+        {atelier && <a className="btn petit secondaire" href={atelier}>🎨 {disponible ? "Modifier moi-même (atelier)" : "Créer moi-même (atelier)"}</a>}
         {html && (
           <>
             <button className={`btn petit ${format === "bureau" ? "" : "secondaire"}`} onClick={() => setFormat("bureau")}>Ordinateur</button>
@@ -249,6 +252,12 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
               </div>
             ))}
             {images.length < 3 && (
+              <button type="button" className="depot depot-petit" onClick={() => setGalerie((x) => !x)}>
+                <span aria-hidden="true">✨</span>
+                <small>{galerie ? "Fermer ma galerie" : "Choisir dans ma galerie"}</small>
+              </button>
+            )}
+            {images.length < 3 && (
               <label className="depot depot-petit">
                 <input type="file" accept="image/*" multiple onChange={(e) => { ajouterImages(e.target.files); e.target.value = ""; }} />
                 <span aria-hidden="true">🖼️</span>
@@ -256,6 +265,11 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
               </label>
             )}
           </div>
+          {galerie && images.length < 3 && (
+            <GalerieImages libelleChoisir="Prendre comme référence" choisir={async (_id, url) => {
+              try { const blob = await (await fetch(url)).blob(); const data = await versDataUrl(blob); setImages((x) => [...x, data].slice(0, 3)); setGalerie(false); } catch (e) { setErreur(e.message); }
+            }} />
+          )}
           <p className="note">Captures d'écran, croquis, applications que vous aimez : l'IA s'en inspire (mise en page, couleurs, ambiance). Les images servent seulement à la génération et ne sont pas enregistrées.</p>
           {disponible && (
             <label className="case" style={{ marginTop: 8 }}>

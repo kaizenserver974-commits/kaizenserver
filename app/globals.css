@@ -1103,3 +1103,38 @@ img[src="/personnages/server.webp"] { border-radius: 50%; object-fit: cover; box
 @keyframes delta-descend { 0% { opacity: 0; transform: translateY(-10px) scale(0.8); } 15% { opacity: 1; transform: translateY(0) scale(1.2); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .compteur-flottant, .compteur-flottant * { animation: none !important; transition: none !important; } }
 @media print { .compteur-flottant { display: none !important; } }
+
+/* ——— Atelier de Server : galerie d'images + éditeur de maquette ——— */
+.atelier-page { max-width: 1400px; }
+.atelier-projet { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 10px; }
+.atelier-projet .champ { flex: 1; min-width: 240px; }
+.barre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px; border-radius: 16px; background: var(--surface-2); position: sticky; top: 76px; z-index: 5; }
+.barre-outils .separateur { width: 1px; align-self: stretch; background: var(--ligne); margin: 0 4px; }
+.barre-outils .btn-enregistrer { margin-left: auto; background: linear-gradient(135deg, #10b981, #22d3ee); }
+.aide-outil { margin: 10px 2px 4px; font-size: 14px; color: var(--texte-doux, #c7c9f0); }
+.outils-selection { margin: 6px 0; }
+.atelier-zone { display: grid; gap: 16px; align-items: start; }
+.atelier-zone.avec-panneau { grid-template-columns: minmax(0, 1fr) 380px; }
+.atelier-zone .cadre-maquette iframe { height: 720px; }
+.panneau-atelier { background: var(--surface-2); border-radius: 16px; padding: 14px; max-height: 760px; overflow: auto; margin-top: 14px; }
+.galerie-atelier { display: grid; gap: 12px; }
+.generateur-image select { background: var(--surface); color: var(--texte); border: 1px solid var(--ligne); border-radius: 10px; padding: 7px 10px; }
+.idees-image { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.idees-image .puce { font-size: 12px; padding: 5px 10px; }
+.grille-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.panneau-atelier .grille-images { grid-template-columns: repeat(2, 1fr); }
+.image-galerie { margin: 0; background: var(--surface); border-radius: 14px; overflow: hidden; display: grid; }
+.image-galerie img { width: 100%; aspect-ratio: 1; object-fit: cover; background: #0b0f1e; }
+.image-galerie figcaption { font-size: 12px; padding: 6px 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--texte-doux, #c7c9f0); }
+.image-actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px 8px; }
+.image-actions .btn { padding: 4px 8px; font-size: 12px; }
+.couleurs-atelier { display: grid; gap: 8px; }
+.ligne-couleur { display: flex; align-items: center; gap: 10px; }
+.ligne-couleur input[type=color] { width: 46px; height: 34px; border: 0; padding: 0; background: none; cursor: pointer; }
+.code-atelier textarea { width: 100%; min-height: 520px; font: 12px/1.45 ui-monospace, Menlo, monospace; background: #070914; color: #d7dbff; border: 1px solid var(--ligne); border-radius: 12px; padding: 10px; }
+.rangee-ajout { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.rangee-ajout button { padding: 0; border: 1px solid var(--ligne); border-radius: 10px; overflow: hidden; background: none; cursor: pointer; }
+.rangee-ajout img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
+@media (max-width: 1000px) { .atelier-zone.avec-panneau { grid-template-columns: 1fr; } .barre-outils { position: static; } .atelier-zone .cadre-maquette iframe { height: 600px; } }
+.atelier-zone > * { min-width: 0; }

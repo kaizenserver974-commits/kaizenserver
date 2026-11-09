@@ -58,6 +58,7 @@ export function EnteteNav() {
         <span className="badge-server">🧞 Server</span>
         <a href="/admin">Projets en cours</a>
         <a href="/admin?filtre=toutes">Tous les projets</a>
+        <a href="/admin/atelier">🎨 Atelier</a>
         <a href="/espace?client=1">Voir comme un client</a>
         <a href="/" className="masque-mobile">Le site</a>
         <Compte libelle="Espace Server" lien="/admin" />
@@ -87,6 +88,7 @@ export function NavBasse() {
       <nav className="nav-basse" aria-label="Navigation mobile de Server">
         <a href="/admin" className="principal"><span>🧞</span>Projets</a>
         <a href="/admin?filtre=toutes"><span>🗂️</span>Tous</a>
+        <a href="/admin/atelier"><span>🎨</span>Atelier</a>
         <a href="/espace?client=1"><span>👁️</span>Vue client</a>
         <a href="/"><span>🌐</span>Le site</a>
       </nav>

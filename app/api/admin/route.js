@@ -9,6 +9,8 @@ import { mollieConfigure } from "../../../lib/serveur/mollie.js";
 import { rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
 import { montantEnLigne, validerLien, validerNouveauProjet, validerInfos, offreModifiable } from "../../../lib/espace.js";
 import { numeroCommande } from "../../../lib/commande.js";
+import { genererImage, validerImageImportee, validerMaquetteAtelier } from "../../../lib/serveur/images.js";
+import { assainir } from "../../../lib/serveur/generation.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +61,35 @@ export async function POST(request) {
     }).select("id").single();
     if (error) return refus("Le projet n'a pas pu être créé.", 500);
     return NextResponse.json({ ok: true, id: data.id, numero });
+  }
+
+  // ——— Atelier : galerie d'images (générées par l'IA ou importées) ———
+  const tableImagesManquante = (e) => /kaizen_images|relation|does not exist|schema cache/i.test(String(e?.message || ""));
+  const erreurImages = (e) => refus(tableImagesManquante(e) ? "La galerie n'est pas encore activée : relancez supabase/schema.sql dans Supabase (SQL Editor)." : "La galerie est indisponible pour le moment.", 500);
+  if (corps.action === "images_lister") {
+    const { data, error } = await sb.from("kaizen_images").select("id, description, origine, created_at").order("created_at", { ascending: false }).limit(60);
+    if (error) return erreurImages(error);
+    return NextResponse.json({ ok: true, images: data });
+  }
+  if (corps.action === "image_generer" || corps.action === "image_ajouter") {
+    let image;
+    const description = String(corps.description || "").trim().slice(0, 1000);
+    if (corps.action === "image_generer") {
+      if (!process.env.OPENAI_API_KEY) return refus("L'IA n'est pas configurée (OPENAI_API_KEY absente dans Vercel).", 503);
+      if (description.length < 5) return refus("Décrivez l'image en quelques mots.", 400);
+      try { image = await genererImage(description, corps.format); } catch (e) { return refus(e.message, 502); }
+    } else {
+      image = validerImageImportee(corps.image);
+      if (!image) return refus("Image invalide ou trop lourde (JPG, PNG ou WebP).", 400);
+    }
+    const { data, error } = await sb.from("kaizen_images").insert({ ...image, description: description || "Image importée", origine: corps.action === "image_generer" ? "ia" : "import" }).select("id, description, origine, created_at").single();
+    if (error) return erreurImages(error);
+    return NextResponse.json({ ok: true, image: data });
+  }
+  if (corps.action === "image_supprimer") {
+    const { error } = await sb.from("kaizen_images").delete().eq("id", String(corps.imageId || ""));
+    if (error) return erreurImages(error);
+    return NextResponse.json({ ok: true });
   }
 
   const [commande] = await chargerCommandes(sb, { id: String(corps.commandeId || "") }).catch(() => []);
@@ -112,6 +143,14 @@ export async function POST(request) {
   if (corps.action === "maquette_lire") {
     const m = await lireMaquette(sb, commande.id);
     return m ? NextResponse.json({ ok: true, ...m }) : refus("Pas encore de maquette pour ce projet.", 404);
+  }
+
+  // Atelier : maquette créée ou retouchée à la main par Server.
+  if (corps.action === "maquette_enregistrer") {
+    const { html, erreur } = validerMaquetteAtelier(corps.html);
+    if (erreur) return refus(erreur, 400);
+    try { await enregistrerMaquette(sb, commande.id, assainir(html), "server"); } catch (e) { return refus(`La maquette n'a pas pu être enregistrée (${e.message}).`, 500); }
+    return NextResponse.json({ ok: true });
   }
 
   // Server demande à l'IA de (re)créer la maquette à partir de la description du projet.

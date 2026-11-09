@@ -16,7 +16,11 @@ export default function Admin() {
   const [choisie, setChoisie] = useState(null);
   const [filtre, setFiltre] = useState("actives");
   // Menu « Tous les projets » : /admin?filtre=toutes
-  useEffect(() => { if (new URLSearchParams(window.location.search).get("filtre") === "toutes") setFiltre("toutes"); }, []);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("filtre") === "toutes") setFiltre("toutes");
+    if (q.get("commande")) { setChoisie(q.get("commande")); setFiltre("toutes"); } // retour depuis l'atelier
+  }, []);
 
   const charger = useCallback(async () => {
     try {
@@ -107,11 +111,12 @@ export default function Admin() {
               <h2>🖼️ Maquette</h2>
               <BlocMaquette
                 key={c.id}
+                atelier={`/admin/atelier?commande=${c.id}`}
                 jeton={c.maquette?.jeton}
                 disponible={Boolean(c.maquette)}
                 ouvrir
                 acceptee={c.projet?.maquetteValidee === true}
-                infos={c.maquette ? `${c.projet?.maquetteValidee ? `✅ Maquette ACCEPTÉE par le client${c.projet?.maquetteAccepteeLe ? ` le ${date(c.projet.maquetteAccepteeLe)}` : ""}. ` : "⏳ Maquette pas encore acceptée par le client. "}${c.maquette.source === "ia" ? "Créée par l'IA" : "Créée à partir du modèle"}, mise à jour le ${date(c.maquette.updated_at)}. Visible aussi par le client dans son espace.` : "Pas encore de maquette pour ce projet."}
+                infos={c.maquette ? `${c.projet?.maquetteValidee ? `✅ Maquette ACCEPTÉE par le client${c.projet?.maquetteAccepteeLe ? ` le ${date(c.projet.maquetteAccepteeLe)}` : ""}. ` : "⏳ Maquette pas encore acceptée par le client. "}${c.maquette.source === "ia" ? "Créée par l'IA" : c.maquette.source === "server" ? "Créée par Server dans l'atelier" : "Créée à partir du modèle"}, mise à jour le ${date(c.maquette.updated_at)}. Visible aussi par le client dans son espace.` : "Pas encore de maquette pour ce projet."}
                 lire={async () => (await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
                 consignesInitiales={c.projet?.idee && c.projet.idee.length >= 10 ? "" : (c.projet?.idee || "")}
                 generer={async ({ consignes, images, partir }) => { const r = await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_generer", commandeId: c.id, consignes, images, partirDeLaMaquette: Boolean(partir) }) }); await charger(); return r; }}
