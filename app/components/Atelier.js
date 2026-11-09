@@ -511,7 +511,7 @@ document.querySelectorAll('.ecran img, .ecran .decoupe').forEach(function(im,i,l
 // Présentation « vitrine » (inspirée des fiches d'applications) : en-tête avec l'icône et le nom,
 // puis les écrans en carrousel, chacun dans un téléphone sur fond coloré avec une phrase.
 // Un clic sur un écran l'ouvre en grand. C'est une présentation de maquette, pas une vraie fiche de magasin.
-export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre = "", couleur = "#7b2cbf", resume = "", icone = "" } = {}) {
+export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre = "", couleur = "#7b2cbf", resume = "", icone = "", telephone = false } = {}) {
   const e = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const initiale = (String(titre).trim()[0] || "K").toUpperCase();
   const ecranHtml = (x) => (x.decoupe ? styleDecoupe(x, e) : `<img src="${e(x.url)}" alt="${e(x.nom)}">`);
@@ -532,6 +532,11 @@ export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre =
 .carte h2{font-size:18px;line-height:1.25;text-align:center;font-weight:600;min-height:2.5em}
 .tel{margin-top:16px;width:82%;flex:1;min-height:0;border:6px solid #0d0d10;border-bottom:0;border-radius:30px 30px 0 0;overflow:hidden;background:#111;box-shadow:0 14px 34px rgba(0,0,0,.55)}
 .tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}
+.carte.seule{flex:0 0 auto;max-width:none;aspect-ratio:auto;background:none;padding:0;gap:10px}
+.carte.seule h2{min-height:0;font-size:16px}
+.carte.seule .tel{flex:none;margin:0;width:auto;height:min(58vh,620px);border:0;border-radius:18px;background:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.carte.seule .tel img{width:auto;height:100%;max-width:86vw;object-fit:contain}
+.carte.seule .tel .decoupe{height:100%;width:auto}
 .texte{max-width:900px;margin:0 auto;padding:4px 18px 30px;color:#d0d0d8;font-size:15px;line-height:1.5}
 .visionneuse{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center}
 .visionneuse.ouverte{display:flex}.visionneuse .vue{max-width:94vw;max-height:88vh;display:flex}
@@ -543,7 +548,7 @@ export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre =
 <header class="app">${icone ? `<div class="icone" style="background-image:url('${e(icone)}');background-size:cover;background-position:center"></div>` : `<div class="icone">${e(initiale)}</div>`}<div><h1>${e(titre)}</h1><p>${e(sousTitre || "Votre application, en avant-première")}</p><button class="voir" data-ouvrir="0">Voir la maquette</button></div></header>
 <div class="infos"><div><small>Maquette</small><b>V1</b></div><div><small>Écrans</small><b>${ecrans.length}</b></div><div><small>Statut</small><b>✨</b></div><div><small>Création</small><b>Kaizen</b></div></div>
 <div class="carrousel">
-${ecrans.map((x, i) => `<div class="carte" data-ouvrir="${i}"><h2>${e(x.legende || x.nom)}</h2><div class="tel">${ecranHtml(x)}</div></div>`).join("\n")}
+${ecrans.map((x, i) => `<div class="carte${telephone ? "" : " seule"}" data-ouvrir="${i}">${x.legende ? `<h2>${e(x.legende)}</h2>` : ""}<div class="tel">${ecranHtml(x)}</div></div>`).join("\n")}
 </div>
 ${resume ? `<p class="texte">${e(resume)}</p>` : ""}
 <div class="visionneuse" aria-hidden="true"><div class="vue"></div><button class="fermer" aria-label="Fermer">✕</button><button class="prec" aria-label="Précédent">‹</button><button class="suiv" aria-label="Suivant">›</button></div>
@@ -555,7 +560,22 @@ if(ev.target.closest('.fermer')||ev.target===v)v.classList.remove('ouverte');if(
 }
 
 // Vitrines déjà enregistrées : l'image remplit maintenant tout l'écran du téléphone.
-export const majVitrine = (html) => String(html || "").replace('.tel img{display:block;width:100%;height:auto}.tel .decoupe{width:100%;background-repeat:no-repeat}', '.tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}');
+const CSS_SEULE = `.carte.seule{flex:0 0 auto;max-width:none;aspect-ratio:auto;background:none;padding:0;gap:10px}
+.carte.seule h2{min-height:0;font-size:16px}
+.carte.seule .tel{flex:none;margin:0;width:auto;height:min(58vh,620px);border:0;border-radius:18px;background:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.carte.seule .tel img{width:auto;height:100%;max-width:86vw;object-fit:contain}
+.carte.seule .tel .decoupe{height:100%;width:auto}
+`;
+export function majVitrine(html) {
+  let h = String(html || "").replace(".tel img{display:block;width:100%;height:auto}.tel .decoupe{width:100%;background-repeat:no-repeat}", ".tel img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.tel .decoupe{width:100%;height:100%;background-repeat:no-repeat}");
+  // Anciennes vitrines (fond coloré + téléphone) : l'image seule, en entier, sans titre « Écran N ».
+  if (/data-maquette-vitrine/.test(h) && !h.includes(".carte.seule{")) {
+    h = h.replace(".texte{max-width:900px;", CSS_SEULE + ".texte{max-width:900px;")
+      .replace(/class="carte" data-ouvrir/g, 'class="carte seule" data-ouvrir')
+      .replace(/<h2>Écran \d+<\/h2>/g, "");
+  }
+  return h;
+}
 
 // Une partie d'une image qui contient plusieurs écrans (côte à côte et/ou sur plusieurs lignes).
 const MAX_ECRANS = 40;
@@ -619,6 +639,7 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
   const [couleur, setCouleur] = useState("#7b2cbf");
   const [icone, setIcone] = useState("");
   const [choixIcone, setChoixIcone] = useState(false);
+  const [telephone, setTelephone] = useState(false);
   // Une planche avec plusieurs écrans (ex. 6 par ligne sur 2 lignes) est VRAIMENT découpée :
   // chaque écran devient sa propre image (ajoutée à la galerie), lue ligne par ligne.
   const [decoupe, setDecoupe] = useState("");
@@ -706,7 +727,8 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
             </div>
           </div>
           {choixIcone && <GalerieImages libelleChoisir="Prendre comme signet" choisir={(_id, url) => { setIcone(url); setChoixIcone(false); }} />}
-          <label className="ligne-couleur"><input type="color" value={couleur} onChange={(e) => setCouleur(e.target.value)} /> <span>Couleur des fonds</span></label>
+          <label className="case" style={{ marginTop: 0 }}><input type="checkbox" checked={telephone} onChange={(e) => setTelephone(e.target.checked)} /><span>Mettre chaque écran dans un téléphone sur fond coloré (sinon : l'image seule, en entier)</span></label>
+          {telephone && <label className="ligne-couleur"><input type="color" value={couleur} onChange={(e) => setCouleur(e.target.value)} /> <span>Couleur des fonds</span></label>}
           <p className="note">Écrivez une phrase pour chaque écran (au-dessus du téléphone). Le client fait défiler les écrans et les ouvre en grand d'un clic.</p>
         </div>
       )}
@@ -717,7 +739,7 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
         </label>
       )}
       <div className="actions">
-        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={() => valider(ecrans, { onglets, style, sousTitre, couleur, icone })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
+        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={() => valider(ecrans, { onglets, style, sousTitre, couleur, icone, telephone })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
         <button className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
       <GalerieImages libelleChoisir="+ Écran" choisir={(id, url) => setEcrans((l) => (l.length >= MAX_ECRANS ? l : [...l, { id, url, nom: l.length === 0 ? "Accueil" : `Écran ${l.length + 1}` }]))} />
@@ -767,6 +789,7 @@ export function VitrineExpress({ titre, valider, annuler }) {
   const [attente, setAttente] = useState("");
   const [erreur, setErreur] = useState("");
   const [galeriePour, setGaleriePour] = useState(null); // "signet" ou numéro de case
+  const [telephone, setTelephone] = useState(false);
 
   const placer = (cible, url) => {
     if (cible === "signet") setSignet(url);
@@ -807,7 +830,8 @@ export function VitrineExpress({ titre, valider, annuler }) {
         <div className="ve-champs">
           <label className="champ" style={{ marginTop: 0 }}><span>Nom de l'application</span><input value={nom} maxLength={40} onChange={(e) => setNom(e.target.value)} /></label>
           <label className="champ" style={{ marginTop: 0 }}><span>Phrase d'accroche</span><input value={sousTitre} maxLength={70} onChange={(e) => setSousTitre(e.target.value)} placeholder="Ex. : Votre moto connectée et suivie au quotidien" /></label>
-          <label className="ligne-couleur"><input type="color" value={couleur} onChange={(e) => setCouleur(e.target.value)} /> <span>Couleur des fonds</span></label>
+          <label className="case" style={{ marginTop: 0 }}><input type="checkbox" checked={telephone} onChange={(e) => setTelephone(e.target.checked)} /><span>Mettre chaque écran dans un téléphone sur fond coloré (sinon : l'image seule, en entier)</span></label>
+          {telephone && <label className="ligne-couleur"><input type="color" value={couleur} onChange={(e) => setCouleur(e.target.value)} /> <span>Couleur des fonds</span></label>}
         </div>
       </div>
       {galeriePour === "signet" && <GalerieImages libelleChoisir="Prendre comme signet" choisir={(_id, url) => { placer("signet", url); setGaleriePour(null); }} />}
@@ -823,7 +847,7 @@ export function VitrineExpress({ titre, valider, annuler }) {
       {attente && <div className="chargement"><span className="rond" /> {attente}</div>}
       {erreur && <p className="alerte erreur">{erreur}</p>}
       <div className="actions">
-        <button className="btn" disabled={!remplies.length || Boolean(attente)} onClick={() => valider(remplies.map((c, i) => ({ id: `v${i}`, url: c.url, nom: c.phrase || `Écran ${i + 1}`, legende: c.phrase })), { style: "vitrine", sousTitre, couleur, icone: signet, nom: nom.trim() || titre })}>✅ Créer la maquette ({remplies.length} image{remplies.length > 1 ? "s" : ""})</button>
+        <button className="btn" disabled={!remplies.length || Boolean(attente)} onClick={() => valider(remplies.map((c, i) => ({ id: `v${i}`, url: c.url, nom: c.phrase || `Écran ${i + 1}`, legende: c.phrase })), { style: "vitrine", sousTitre, couleur, icone: signet, telephone, nom: nom.trim() || titre })}>✅ Créer la maquette ({remplies.length} image{remplies.length > 1 ? "s" : ""})</button>
         <button className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
     </div>
