@@ -1162,3 +1162,5 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .options-vitrine { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
 .options-vitrine input:not([type=color]), .liste-ecrans input.legende { background: var(--surface); color: var(--texte); border: 1px solid var(--ligne); border-radius: 10px; padding: 8px 10px; }
 .liste-ecrans input.legende { flex-basis: 100%; }
+.choix-signet { display: flex; align-items: center; gap: 12px; }
+.apercu-signet { flex: none; width: 64px; height: 64px; border-radius: 16px; background-size: cover; background-position: center; display: grid; place-items: center; font-size: 34px; font-weight: 900; color: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); }

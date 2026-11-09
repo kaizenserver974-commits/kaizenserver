@@ -150,7 +150,7 @@ return '<!doctype html>\\n'+c.outerHTML;}
 function imageSous(t){if(!t||!t.closest)return null;var s=t.closest('svg');if(s)return s;if(t.tagName==='IMG')return t;var x=t;
 for(var i=0;i<3&&x&&x!==document.body&&x!==document.documentElement;i++,x=x.parentElement){var bg=getComputedStyle(x).backgroundImage||'';
 var cl=String((x.className&&x.className.baseVal!==undefined)?x.className.baseVal:(x.className||''))+' '+(x.id||'')+' '+(x.getAttribute('aria-label')||'');
-if(/url\\(/.test(bg)||/(img|image|photo|visuel|banner|banniere|hero|cover|avatar|placeholder|thumb|vignette|illustration|media|poster)/i.test(cl))return x;}return null;}
+if(/url\\(/.test(bg)||/(img|image|photo|visuel|banner|banniere|hero|cover|avatar|placeholder|thumb|vignette|illustration|media|poster|icone|icon|logo|signet)/i.test(cl))return x;}return null;}
 function choisir(e){if(sel)sel.removeAttribute('data-kz-sel');sel=e||null;
 if(sel){sel.setAttribute('data-kz-sel','');
 dire({type:'sel',tag:sel.tagName.toLowerCase(),image:imageSous(sel)===sel,texte:(sel.innerText||'').trim().slice(0,50),lien:sel.getAttribute('data-lien-ecran')||''});}else dire({type:'sel',tag:''});}
@@ -269,7 +269,7 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages })
   const [source, setSource] = useState(htmlInitial); // ce qui est chargé dans l'aperçu
   const [version, setVersion] = useState(0); // force le rechargement de l'aperçu
   const [historique, setHistorique] = useState([]);
-  const [mode, setMode] = useState(() => (/data-maquette-images|<section class="ecran[^>]*>\s*<img/.test(htmlInitial) ? "selection" : "texte"));
+  const [mode, setMode] = useState(() => (/data-maquette-images|data-maquette-vitrine|<section class="ecran[^>]*>\s*<img/.test(htmlInitial) ? "selection" : "texte"));
   const [sel, setSel] = useState(null);
   const [panneau, setPanneau] = useState(""); // "", "images", "couleurs", "code"
   const [code, setCode] = useState("");
@@ -511,7 +511,7 @@ document.querySelectorAll('.ecran img, .ecran .decoupe').forEach(function(im,i,l
 // Présentation « vitrine » (inspirée des fiches d'applications) : en-tête avec l'icône et le nom,
 // puis les écrans en carrousel, chacun dans un téléphone sur fond coloré avec une phrase.
 // Un clic sur un écran l'ouvre en grand. C'est une présentation de maquette, pas une vraie fiche de magasin.
-export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre = "", couleur = "#7b2cbf", resume = "" } = {}) {
+export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre = "", couleur = "#7b2cbf", resume = "", icone = "" } = {}) {
   const e = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const initiale = (String(titre).trim()[0] || "K").toUpperCase();
   const ecranHtml = (x) => (x.decoupe ? styleDecoupe(x, e) : `<img src="${e(x.url)}" alt="${e(x.nom)}">`);
@@ -540,7 +540,7 @@ export function maquetteVitrine(ecrans, titre = "Mon application", { sousTitre =
 .fermer{top:12px;right:12px}.prec{left:10px;top:50%}.suiv{right:10px;top:50%}
 </style></head><body data-maquette-vitrine="1">
 <div class="bandeau">Maquette Kaizen — aperçu non fonctionnel</div>
-<header class="app"><div class="icone">${e(initiale)}</div><div><h1>${e(titre)}</h1><p>${e(sousTitre || "Votre application, en avant-première")}</p><button class="voir" data-ouvrir="0">Voir la maquette</button></div></header>
+<header class="app">${icone ? `<div class="icone" style="background-image:url('${e(icone)}');background-size:cover;background-position:center"></div>` : `<div class="icone">${e(initiale)}</div>`}<div><h1>${e(titre)}</h1><p>${e(sousTitre || "Votre application, en avant-première")}</p><button class="voir" data-ouvrir="0">Voir la maquette</button></div></header>
 <div class="infos"><div><small>Maquette</small><b>V1</b></div><div><small>Écrans</small><b>${ecrans.length}</b></div><div><small>Statut</small><b>✨</b></div><div><small>Création</small><b>Kaizen</b></div></div>
 <div class="carrousel">
 ${ecrans.map((x, i) => `<div class="carte" data-ouvrir="${i}"><h2>${e(x.legende || x.nom)}</h2><div class="tel">${ecranHtml(x)}</div></div>`).join("\n")}
@@ -614,6 +614,8 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
   const [style, setStyle] = useState("ecrans");
   const [sousTitre, setSousTitre] = useState("");
   const [couleur, setCouleur] = useState("#7b2cbf");
+  const [icone, setIcone] = useState("");
+  const [choixIcone, setChoixIcone] = useState(false);
   // Une planche avec plusieurs écrans (ex. 6 par ligne sur 2 lignes) est VRAIMENT découpée :
   // chaque écran devient sa propre image (ajoutée à la galerie), lue ligne par ligne.
   const [decoupe, setDecoupe] = useState("");
@@ -690,6 +692,17 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
           <label className="champ" style={{ marginTop: 0 }}><span>Phrase sous le nom de l'application</span>
             <input value={sousTitre} maxLength={70} onChange={(e) => setSousTitre(e.target.value)} placeholder="Ex. : Votre moto connectée et suivie au quotidien" />
           </label>
+          <div className="choix-signet">
+            <span className="apercu-signet" style={icone ? { backgroundImage: `url(${icone})` } : { background: `linear-gradient(135deg, ${couleur}, #1a0533)` }}>{icone ? "" : "K"}</span>
+            <div>
+              <b>Signet (icône de l'application)</b>
+              <div className="actions">
+                <button type="button" className="btn petit" onClick={() => setChoixIcone((x) => !x)}>{choixIcone ? "Fermer" : "🖼️ Choisir dans ma galerie"}</button>
+                {icone && <button type="button" className="btn petit secondaire" onClick={() => setIcone("")}>Retirer</button>}
+              </div>
+            </div>
+          </div>
+          {choixIcone && <GalerieImages libelleChoisir="Prendre comme signet" choisir={(_id, url) => { setIcone(url); setChoixIcone(false); }} />}
           <label className="ligne-couleur"><input type="color" value={couleur} onChange={(e) => setCouleur(e.target.value)} /> <span>Couleur des fonds</span></label>
           <p className="note">Écrivez une phrase pour chaque écran (au-dessus du téléphone). Le client fait défiler les écrans et les ouvre en grand d'un clic.</p>
         </div>
@@ -701,7 +714,7 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
         </label>
       )}
       <div className="actions">
-        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={() => valider(ecrans, { onglets, style, sousTitre, couleur })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
+        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={() => valider(ecrans, { onglets, style, sousTitre, couleur, icone })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
         <button className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
       <GalerieImages libelleChoisir="+ Écran" choisir={(id, url) => setEcrans((l) => (l.length >= MAX_ECRANS ? l : [...l, { id, url, nom: l.length === 0 ? "Accueil" : `Écran ${l.length + 1}` }]))} />
