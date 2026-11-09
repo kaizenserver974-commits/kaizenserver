@@ -118,7 +118,7 @@ npm test                     # tests du moteur
 1. Créer un dépôt GitHub `kaizen` et y copier le contenu de ce dossier.
 2. Dans Vercel : *Add New → Project*, importer le dépôt (framework Next.js détecté).
 3. Variables pour **activer les commandes** : `RESEND_API_KEY` (clé Resend), `KAIZEN_EMAIL` (votre adresse, qui reçoit les commandes) et `KAIZEN_EMAIL_FROM` (expéditeur d'un domaine vérifié dans Resend). Sans elles, le site affiche honnêtement que la commande en ligne n'est pas activée et propose de copier ou télécharger le dossier.
-4. Autres variables : `OPENAI_API_KEY` (facultatif), `OPENAI_MODEL` (facultatif, défaut `gpt-5-mini`), `NEXT_PUBLIC_KAIZEN_EMAIL` (facultatif : adresse qui reçoit les demandes).
+4. Autres variables : `OPENAI_API_KEY` (facultatif), `OPENAI_MODEL` (facultatif, défaut `gpt-5-mini`), `OPENAI_MODEL_MAQUETTE` (facultatif, défaut `gpt-5` : modèle des maquettes de Server ; repli automatique sur `OPENAI_MODEL` s'il est indisponible), `NEXT_PUBLIC_KAIZEN_EMAIL` (facultatif : adresse qui reçoit les demandes).
 
 ## Structure
 

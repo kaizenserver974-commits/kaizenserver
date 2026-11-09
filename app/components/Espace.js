@@ -155,11 +155,13 @@ function reduireImage(fichier) {
       const img = new Image();
       img.onerror = () => rejeter(new Error("Image illisible"));
       img.onload = () => {
-        const echelle = Math.min(1, 1024 / Math.max(img.width, img.height));
+        const echelle = Math.min(1, 1600 / Math.max(img.width, img.height)); // assez grand pour que l'IA lise les détails
         const c = document.createElement("canvas");
         c.width = Math.round(img.width * echelle); c.height = Math.round(img.height * echelle);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        resoudre(c.toDataURL("image/jpeg", 0.8));
+        let url = c.toDataURL("image/jpeg", 0.85);
+        if (url.length > 1_300_000) url = c.toDataURL("image/jpeg", 0.65);
+        resoudre(url);
       };
       img.src = lecteur.result;
     };
