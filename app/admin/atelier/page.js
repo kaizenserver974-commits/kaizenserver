@@ -93,8 +93,8 @@ export default function Atelier() {
           {maquette?.images && !avecImages && <p className="alerte succes">🖼️ Votre maquette est prête avec vos images. Vérifiez avec ▶ Tester, puis cliquez sur <b>💾 Enregistrer</b> : elle remplacera la maquette proposée.</p>}
           {maquette?.vierge && <p className="note">Ce projet n'a pas encore de maquette : voici une page de départ à 4 écrans. Modifiez les textes, mettez vos images, changez les couleurs, puis enregistrez.</p>}
           {avecImages && c ? (
-            <ChoixEcransImages initial={avecImages?.url ? avecImages : null} annuler={() => setAvecImages(false)} valider={(ecrans) => {
-              setMaquette({ html: maquetteImages(ecrans, titre), cle: `${c.id}-images-${Date.now()}`, images: true });
+            <ChoixEcransImages initial={avecImages?.url ? avecImages : null} annuler={() => setAvecImages(false)} valider={(ecrans, options) => {
+              setMaquette({ html: maquetteImages(ecrans, titre, options), cle: `${c.id}-images-${Date.now()}`, images: true });
               setAvecImages(false);
             }} />
           ) : !c ? <p className="discret">Aucun projet pour le moment.</p> : !maquette ? <p className="discret">Chargement de la maquette…</p> : (

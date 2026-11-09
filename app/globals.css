@@ -1151,3 +1151,6 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .vignette-decoupe { width: 54px; height: 54px; border-radius: 10px; background-repeat: no-repeat; flex: none; background-color: #0b0f1e; }
 .bouton-toute-maquette { width: 100%; justify-content: center; margin-bottom: 10px; }
 .image-actions .btn-toute { flex-basis: 100%; justify-content: center; background: linear-gradient(135deg, #10b981, #22d3ee); }
+.decoupe-choix { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.decoupe-choix select { background: var(--surface); color: var(--texte); border: 1px solid var(--ligne); border-radius: 8px; padding: 5px 6px; font-size: 13px; }
+.liste-ecrans li { flex-wrap: wrap; }

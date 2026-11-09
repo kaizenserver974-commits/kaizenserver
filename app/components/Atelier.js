@@ -468,14 +468,14 @@ function GalerieAjout({ ajouter }) {
 
 // Maquette faite uniquement de vos images (un écran par image) : onglets en bas,
 // et un clic sur l'image passe à l'écran suivant. Modifiable ensuite dans l'atelier.
-export function maquetteImages(ecrans, titre = "Mon application") {
+export function maquetteImages(ecrans, titre = "Mon application", { onglets = true } = {}) {
   const echapper = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const plusieurs = ecrans.length > 1;
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${echapper(titre)}</title>
 <style>
-*{box-sizing:border-box;margin:0}body{background:#05060f;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;${plusieurs ? "padding-bottom:70px;" : ""}}
+*{box-sizing:border-box;margin:0}body{background:#05060f;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;${plusieurs && onglets ? "padding-bottom:70px;" : ""}}
 .bandeau{font-size:11px;text-align:center;padding:4px;background:#1b2040;color:#a5abd6}
 .ecran{display:none}.ecran.actif{display:block}
 .ecran img{display:block;width:100%;height:auto;max-width:900px;margin:0 auto;${plusieurs ? "cursor:pointer;" : ""}}
@@ -486,58 +486,96 @@ nav button.actif{color:#fff;background:#7b5cff}
 </style></head><body>
 <div class="bandeau">Maquette Kaizen — aperçu non fonctionnel</div>
 ${ecrans.map((e, i) => `<section class="ecran${i === 0 ? " actif" : ""}" data-ecran="e${i}">${e.decoupe ? styleDecoupe(e, echapper) : `<img src="${echapper(e.url)}" alt="${echapper(e.nom)}">`}</section>`).join("\n")}
-${plusieurs ? `<nav>${ecrans.map((e, i) => `<button${i === 0 ? ' class="actif"' : ""} data-vers="e${i}">${echapper(e.nom)}</button>`).join("")}</nav>` : ""}
+${plusieurs ? `<nav${onglets ? "" : ' style="display:none"'}>${ecrans.map((e, i) => `<button${i === 0 ? ' class="actif"' : ""} data-vers="e${i}">${echapper(e.nom)}</button>`).join("")}</nav>` : ""}
 <script>(function(){var b=[].slice.call(document.querySelectorAll('nav button'));function aller(id){document.querySelectorAll('.ecran').forEach(function(e){e.classList.toggle('actif',e.dataset.ecran===id)});b.forEach(function(x){x.classList.toggle('actif',x.dataset.vers===id)});window.scrollTo(0,0);}
 b.forEach(function(x){x.addEventListener('click',function(){aller(x.dataset.vers)})});
 document.querySelectorAll('.ecran > img, .ecran > .decoupe').forEach(function(im,i,l){im.addEventListener('click',function(e){if(e.target.closest('[data-lien-ecran]')||l.length<2)return;aller('e'+((i+1)%l.length));});});})();</script>
 </body></html>`;
 }
 
-// Une partie d'une image qui contient plusieurs écrans côte à côte (ex. 2 captures de téléphone).
+// Une partie d'une image qui contient plusieurs écrans (côte à côte et/ou sur plusieurs lignes).
+const MAX_ECRANS = 24;
+function fond(d) {
+  const n = d.n || 1, m = d.m || 1, k = d.k || 0, r = d.r || 0;
+  return {
+    taille: `${n * 100}% ${m * 100}%`,
+    position: `${n === 1 ? 0 : (k / (n - 1)) * 100}% ${m === 1 ? 0 : (r / (m - 1)) * 100}%`,
+    ratio: `${Math.round(d.l / n)} / ${Math.round(d.h / m)}`,
+  };
+}
 function styleDecoupe(e, echapper) {
-  const { k, n, l, h } = e.decoupe;
-  return `<div class="decoupe" role="img" aria-label="${echapper(e.nom)}" style="background-image:url('${echapper(e.url)}');background-size:${n * 100}% auto;background-position:${n === 1 ? 0 : (k / (n - 1)) * 100}% 0;aspect-ratio:${Math.round(l / n)} / ${h}"></div>`;
+  const f = fond(e.decoupe);
+  return `<div class="decoupe" role="img" aria-label="${echapper(e.nom)}" style="background-image:url('${echapper(e.url)}');background-size:${f.taille};background-position:${f.position};aspect-ratio:${f.ratio}"></div>`;
 }
 const dimensions = (url) => new Promise((ok) => { const i = new Image(); i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => ok(null); i.src = url; });
+
+// Découpe d'une image : nombre d'écrans par ligne et nombre de lignes.
+function Decoupe({ couper }) {
+  const [n, setN] = useState(2);
+  const [m, setM] = useState(1);
+  return (
+    <span className="decoupe-choix">
+      <span>✂️</span>
+      <select value={n} onChange={(e) => setN(Number(e.target.value))} aria-label="Écrans par ligne">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((x) => <option key={x} value={x}>{x} par ligne</option>)}
+      </select>
+      <select value={m} onChange={(e) => setM(Number(e.target.value))} aria-label="Nombre de lignes">
+        {[1, 2, 3, 4].map((x) => <option key={x} value={x}>{x} ligne{x > 1 ? "s" : ""}</option>)}
+      </select>
+      <button type="button" className="btn petit" disabled={n * m < 2} onClick={() => couper(n, m)}>Couper en {n * m}</button>
+    </span>
+  );
+}
 
 // Choix des images qui deviennent les écrans de la maquette.
 export function ChoixEcransImages({ valider, annuler, initial = null }) {
   const [ecrans, setEcrans] = useState(initial ? [{ ...initial, nom: "Accueil" }] : []);
-  // Une image avec plusieurs écrans côte à côte devient plusieurs écrans.
-  async function couper(i, n) {
+  const [onglets, setOnglets] = useState(true);
+  // Une planche avec plusieurs écrans (ex. 6 par ligne sur 2 lignes) devient autant d'écrans, lus ligne par ligne.
+  async function couper(i, n, m) {
     const e = ecrans[i];
     const dim = await dimensions(e.url);
     if (!dim) return;
-    const parts = Array.from({ length: n }, (_, k) => ({ ...e, nom: k === 0 ? e.nom : `Écran ${i + k + 1}`, decoupe: { k, n, ...dim } }));
-    setEcrans((l) => [...l.slice(0, i), ...parts, ...l.slice(i + 1)].slice(0, 8));
+    const parts = [];
+    for (let r = 0; r < m; r++) for (let k = 0; k < n; k++) parts.push({ ...e, nom: parts.length === 0 ? e.nom : `Écran ${i + parts.length + 1}`, decoupe: { k, n, r, m, ...dim } });
+    setEcrans((l) => [...l.slice(0, i), ...parts, ...l.slice(i + 1)].slice(0, MAX_ECRANS));
+    if (n * m > 6) setOnglets(false); // l'image a souvent sa propre barre de menu : on la rend cliquable avec « ▭ Zone cliquable »
   }
   const deplacer = (i, d) => setEcrans((l) => { const n = [...l]; const j = i + d; if (j < 0 || j >= n.length) return l; [n[i], n[j]] = [n[j], n[i]]; return n; });
   return (
     <div className="choix-ecrans">
       <h3>🖼️ Faire la maquette avec mes images</h3>
-      <p className="note">Chaque image devient un écran (vos captures, vos dessins, les images de l'IA…). Importez ou générez vos images ci-dessous, cliquez sur « + Écran » dans l'ordre voulu, nommez les écrans, puis créez la maquette. Le client pourra passer d'un écran à l'autre.</p>
+      <p className="note">Chaque image devient un écran (vos captures, vos dessins, les images de l'IA…). Cliquez sur « + Écran » sous vos images dans l'ordre voulu. Si une image contient plusieurs écrans (une planche), choisissez combien il y en a par ligne et combien de lignes, puis « Couper ». Nommez les écrans comme les boutons de votre application (Accueil, Entretien, Historique…). Jusqu'à {MAX_ECRANS} écrans.</p>
       {ecrans.length > 0 && (
         <ol className="liste-ecrans">
-          {ecrans.map((e, i) => (
-            <li key={`${e.id}-${i}`}>
-              {e.decoupe
-                ? <span className="vignette-decoupe" style={{ backgroundImage: `url(${e.url})`, backgroundSize: `${e.decoupe.n * 100}% auto`, backgroundPosition: `${e.decoupe.n === 1 ? 0 : (e.decoupe.k / (e.decoupe.n - 1)) * 100}% 0` }} />
-                : <img src={e.url} alt="" />}
-              <input value={e.nom} maxLength={24} onChange={(ev) => setEcrans((l) => l.map((x, j) => (j === i ? { ...x, nom: ev.target.value } : x)))} aria-label={`Nom de l'écran ${i + 1}`} />
-              <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, -1)} aria-label="Monter">↑</button>
-              <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, 1)} aria-label="Descendre">↓</button>
-              {!e.decoupe && <button type="button" className="btn petit secondaire" title="L'image contient plusieurs écrans côte à côte : la couper" onClick={() => couper(i, 2)}>✂️ 2 écrans</button>}
-              {!e.decoupe && <button type="button" className="btn petit secondaire" title="L'image contient 3 écrans côte à côte" onClick={() => couper(i, 3)}>✂️ 3</button>}
-              <button type="button" className="btn petit secondaire" onClick={() => setEcrans((l) => l.filter((_, j) => j !== i))} aria-label="Retirer">×</button>
-            </li>
-          ))}
+          {ecrans.map((e, i) => {
+            const f = e.decoupe ? fond(e.decoupe) : null;
+            return (
+              <li key={`${e.id}-${i}-${e.decoupe ? `${e.decoupe.k}-${e.decoupe.r}` : ""}`}>
+                {f
+                  ? <span className="vignette-decoupe" style={{ backgroundImage: `url(${e.url})`, backgroundSize: f.taille, backgroundPosition: f.position }} />
+                  : <img src={e.url} alt="" />}
+                <input value={e.nom} maxLength={24} onChange={(ev) => setEcrans((l) => l.map((x, j) => (j === i ? { ...x, nom: ev.target.value } : x)))} aria-label={`Nom de l'écran ${i + 1}`} />
+                <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, -1)} aria-label="Monter">↑</button>
+                <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, 1)} aria-label="Descendre">↓</button>
+                {!e.decoupe && <Decoupe couper={(n, m) => couper(i, n, m)} />}
+                <button type="button" className="btn petit secondaire" onClick={() => setEcrans((l) => l.filter((_, j) => j !== i))} aria-label="Retirer">×</button>
+              </li>
+            );
+          })}
         </ol>
       )}
+      {ecrans.length > 1 && (
+        <label className="case">
+          <input type="checkbox" checked={onglets} onChange={(e) => setOnglets(e.target.checked)} />
+          <span>Ajouter une barre d'onglets en bas (décochez si vos images ont déjà leur menu : rendez-le cliquable avec « ▭ Zone cliquable »)</span>
+        </label>
+      )}
       <div className="actions">
-        <button className="btn" disabled={!ecrans.length} onClick={() => valider(ecrans)}>✅ Créer la maquette avec {ecrans.length || "mes"} image{ecrans.length > 1 ? "s" : ""}</button>
+        <button className="btn" disabled={!ecrans.length} onClick={() => valider(ecrans, { onglets })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
         <button className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
-      <GalerieImages libelleChoisir="+ Écran" choisir={(id, url) => setEcrans((l) => (l.length >= 8 ? l : [...l, { id, url, nom: l.length === 0 ? "Accueil" : `Écran ${l.length + 1}` }]))} />
+      <GalerieImages libelleChoisir="+ Écran" choisir={(id, url) => setEcrans((l) => (l.length >= MAX_ECRANS ? l : [...l, { id, url, nom: l.length === 0 ? "Accueil" : `Écran ${l.length + 1}` }]))} />
     </div>
   );
 }
