@@ -3,7 +3,7 @@
 // Atelier de Server : créer ou retoucher soi-même la maquette d'un projet, et générer ses images.
 import { useCallback, useEffect, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../../lib/supabaseClient.js";
-import { EditeurMaquette, GalerieImages, maquetteVierge, maquetteImages, ChoixEcransImages } from "../../components/Atelier.js";
+import { EditeurMaquette, GalerieImages, maquetteVierge, maquetteImages, ChoixEcransImages, EnvoiMaquette } from "../../components/Atelier.js";
 
 const api = (corps) => appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify(corps) });
 
@@ -102,6 +102,7 @@ export default function Atelier() {
               versImages={(image) => { setAvecImages(image?.url ? image : true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               enregistrer={async (html) => { await api({ action: "maquette_enregistrer", commandeId: c.id, html }); setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, maquette: { ...(x.maquette || {}), source: "server", updated_at: new Date().toISOString() } } : x))); }} />
           )}
+          {c && !avecImages && <EnvoiMaquette key={`envoi-${c.id}-${c.maquette?.updated_at || ""}`} commande={c} apres={() => setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, projet: { ...(x.projet || {}), maquetteEnvoyeeLe: new Date().toISOString() } } : x)))} />}
         </section>
       )}
     </main>

@@ -7,6 +7,7 @@ import MotDePasse from "../components/MotDePasse.js";
 import { FriseStatut, FilMessages, CarteDevis, BlocMaquette, date, euros } from "../components/Espace.js";
 import { TYPES, BUDGETS, DELAIS, PRIORITES, trouver, fonctionnalite } from "../../lib/catalogue.js";
 import { labelFormule } from "../../lib/commande.js";
+import { EnvoiMaquette } from "../components/Atelier.js";
 
 export default function Admin() {
   const sb = supabaseNavigateur();
@@ -121,6 +122,7 @@ export default function Admin() {
                 consignesInitiales={c.projet?.idee && c.projet.idee.length >= 10 ? "" : (c.projet?.idee || "")}
                 generer={async ({ consignes, images, partir }) => { const r = await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_generer", commandeId: c.id, consignes, images, partirDeLaMaquette: Boolean(partir) }) }); await charger(); return r; }}
               />
+              <EnvoiMaquette key={`envoi-${c.id}`} commande={c} apres={charger} />
             </div>
 
             {c.projet?.pieces?.length > 0 && <PiecesClient key={`p-${c.id}`} commandeId={c.id} />}

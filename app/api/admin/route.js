@@ -8,7 +8,7 @@ import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
 import { rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
 import { montantEnLigne, validerLien, validerNouveauProjet, validerInfos, offreModifiable } from "../../../lib/espace.js";
-import { numeroCommande } from "../../../lib/commande.js";
+import { numeroCommande, emailMaquetteEnvoyee } from "../../../lib/commande.js";
 import { genererImage, validerImageImportee, validerMaquetteAtelier } from "../../../lib/serveur/images.js";
 import { assainir } from "../../../lib/serveur/generation.js";
 
@@ -151,6 +151,22 @@ export async function POST(request) {
     if (erreur) return refus(erreur, 400);
     try { await enregistrerMaquette(sb, commande.id, assainir(html), "server"); } catch (e) { return refus(`La maquette n'a pas pu être enregistrée (${e.message}).`, 500); }
     return NextResponse.json({ ok: true });
+  }
+
+  // Server envoie la maquette au client (« votre vœu est exaucé » pour une demande au génie) :
+  // un message dans son espace + un e-mail avec le lien de la maquette.
+  if (corps.action === "maquette_envoyer") {
+    if (!commande.maquette) return refus("Enregistrez d'abord une maquette pour ce projet.", 400);
+    const mot = String(corps.mot || "").trim().slice(0, 1500);
+    const genie = commande.formule === "genie";
+    const lienMaquette = commande.maquette.jeton ? `${urlSite(request)}/maquette/${commande.maquette.jeton}` : lienClient;
+    const contenu = `${genie ? "🧞 Votre vœu est exaucé ! Votre maquette sur mesure est prête." : "🖼️ Votre maquette est prête."} Retrouvez-la ci-dessous : vous pouvez l'accepter ou demander une modification.${mot ? `\n\n${mot}` : ""}`;
+    const { error } = await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "equipe", type: "message", contenu });
+    if (error) return refus("Le message n'a pas pu être envoyé.", 500);
+    await sb.from("kaizen_commandes").update({ projet: { ...(commande.projet || {}), maquetteEnvoyeeLe: new Date().toISOString() }, updated_at: new Date().toISOString() }).eq("id", commande.id);
+    const email = emailMaquetteEnvoyee({ nom: commande.nom, numero: commande.numero, genie, mot, lienMaquette, lienEspace: lienClient });
+    const envoye = await notifier({ a: commande.email, ...email, repondreA: process.env.KAIZEN_EMAIL });
+    return NextResponse.json({ ok: true, email: envoye });
   }
 
   // Server demande à l'IA de (re)créer la maquette à partir de la description du projet.

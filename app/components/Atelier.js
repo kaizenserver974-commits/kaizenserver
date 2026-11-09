@@ -635,3 +635,34 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
     </div>
   );
 }
+
+// Server envoie la maquette au client : message dans son espace + e-mail avec le lien.
+export function EnvoiMaquette({ commande, apres }) {
+  const genie = commande.formule === "genie";
+  const [mot, setMot] = useState("");
+  const [etat, setEtat] = useState({ type: "", texte: "" });
+  const [enCours, setEnCours] = useState(false);
+  if (!commande.maquette) return null;
+  const deja = commande.projet?.maquetteEnvoyeeLe;
+  async function envoyer() {
+    setEnCours(true); setEtat({ type: "", texte: "" });
+    try {
+      const r = await api({ action: "maquette_envoyer", commandeId: commande.id, mot });
+      setEtat({ type: "succes", texte: r.email ? `✅ Envoyé ! ${commande.nom || "Le client"} a reçu un e-mail avec le lien de sa maquette, et un message dans son espace.` : "✅ Message envoyé dans l'espace du client (l'e-mail n'a pas pu partir : vérifiez RESEND_API_KEY dans Vercel)." });
+      setMot("");
+      apres?.();
+    } catch (e) { setEtat({ type: "erreur", texte: e.message }); } finally { setEnCours(false); }
+  }
+  return (
+    <div className="envoi-maquette">
+      <h3>{genie ? "🧞 Exaucer le vœu : envoyer la maquette au client" : "📩 Envoyer la maquette au client"}</h3>
+      <p className="note">{deja ? `Déjà envoyée le ${new Date(deja).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. Vous pouvez la renvoyer après une modification.` : "Le client recevra un e-mail avec le lien de sa maquette et un message dans son espace, où il pourra l'accepter ou demander une modification."}</p>
+      <label className="champ" style={{ marginTop: 0 }}>
+        <span>Votre mot pour le client <small className="discret">(facultatif)</small></span>
+        <textarea rows={3} maxLength={1500} value={mot} onChange={(e) => setMot(e.target.value)} placeholder={genie ? "Ex. : Voici votre application telle que je l'imagine ! Dites-moi ce que vous en pensez." : "Ex. : Voici la maquette de votre application, j'attends votre avis."} />
+      </label>
+      <button className="btn" disabled={enCours} onClick={envoyer}>{enCours ? "Envoi…" : genie ? "🧞 Vœu exaucé : envoyer au client" : "📩 Envoyer au client"}</button>
+      {etat.texte && <p className={`alerte ${etat.type === "erreur" ? "erreur" : "succes"}`}>{etat.texte}</p>}
+    </div>
+  );
+}
