@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin, enregistrerMaquette } from "../../../../lib/serveur/supabase.js";
+import { supabaseAdmin, enregistrerMaquette, lireMaquette } from "../../../../lib/serveur/supabase.js";
 import { assainir } from "../../../../lib/serveur/generation.js";
 import { notifier } from "../../../../lib/serveur/email.js";
 
@@ -19,8 +19,17 @@ export async function POST(request) {
   const { data: commande } = await sb.from("kaizen_commandes").select("id, numero, projet").eq("numero", numero).maybeSingle();
   if (!commande || commande.projet?.cleClient !== cle) return NextResponse.json({ erreur: "Commande inconnue." }, { status: 404 });
 
+  const actuelle = await lireMaquette(sb, commande.id).catch(() => null);
+  // Lecture : le client récupère la maquette faite par Server (atelier, IA de Server…).
+  if (corps?.action === "lire") {
+    return actuelle ? NextResponse.json({ ok: true, html: actuelle.html, source: actuelle.source, updatedAt: actuelle.updated_at }) : NextResponse.json({ ok: false }, { status: 404 });
+  }
+  // Le travail de Server n'est JAMAIS écrasé par l'ancienne maquette gardée dans le navigateur du client :
+  // on n'enregistre la version du client que si elle est plus récente que celle du serveur.
+  const genereLe = Date.parse(corps?.genereLe || "") || 0;
+  const plusRecenteCoteServeur = actuelle && (actuelle.source === "server" || Date.parse(actuelle.updated_at) > genereLe);
   const html = assainir(String(corps?.html || "").slice(0, 2_000_000));
-  if (html.toLowerCase().startsWith("<!doctype html")) {
+  if (!plusRecenteCoteServeur && html.toLowerCase().startsWith("<!doctype html")) {
     await enregistrerMaquette(sb, commande.id, html, corps.source === "ia" ? "ia" : "gabarit");
   }
   const acceptee = corps?.acceptee === true;

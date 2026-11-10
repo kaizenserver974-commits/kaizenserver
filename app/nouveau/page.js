@@ -133,14 +133,36 @@ function Parcours() {
     if (etapeCourante !== undefined) window.scrollTo({ top: 0, behavior: "smooth" });
   }, [etapeCourante]);
 
-  // Après la commande, la maquette (modifiée ou acceptée) est aussi envoyée dans l'Espace Server.
+  // Après la commande : on récupère d'abord la maquette faite par Server (elle remplace l'ancienne
+  // gardée dans le navigateur), puis seuls les vrais changements du client (acceptation, modification)
+  // sont renvoyés — jamais au simple chargement de la page.
   const genereLe = projet?.maquette?.genereLe;
   const maquetteAcceptee = projet?.maquetteValidee === true;
+  const synchroPrete = useRef(false);
+  const dejaSynchro = useRef({ html: null, acceptee: null }); // dernière version identique côté serveur
+  const commandeCle = projet?.commande?.cle;
   useEffect(() => {
-    if (!projet?.commande?.cle || !projet.maquette?.html) return;
+    synchroPrete.current = false;
+    if (!commandeCle) return;
+    let annule = false;
+    fetch("/api/commande/maquette", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "lire", numero: projet.commande.numero, cle: commandeCle }) })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((m) => {
+        if (annule || !m?.html) return;
+        dejaSynchro.current = { html: m.html, acceptee: maquetteAcceptee };
+        setProjet((p) => (p.maquette?.html === m.html ? p : enregistrerProjet({ ...p, maquette: { ...(p.maquette || {}), html: m.html, source: m.source, genereLe: m.updatedAt || new Date().toISOString(), deServer: true } })));
+      })
+      .catch(() => {})
+      .finally(() => { if (!annule) setTimeout(() => { synchroPrete.current = true; }, 0); });
+    return () => { annule = true; };
+  }, [projet?.id, commandeCle]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!synchroPrete.current || !projet?.commande?.cle || !projet.maquette?.html) return;
+    if (dejaSynchro.current.html === projet.maquette.html && dejaSynchro.current.acceptee === maquetteAcceptee) return;
+    dejaSynchro.current = { html: projet.maquette.html, acceptee: maquetteAcceptee };
     fetch("/api/commande/maquette", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numero: projet.commande.numero, cle: projet.commande.cle, html: projet.maquette.html, source: projet.maquette.source, acceptee: maquetteAcceptee }),
+      body: JSON.stringify({ numero: projet.commande.numero, cle: projet.commande.cle, html: projet.maquette.html, source: projet.maquette.source, genereLe: projet.maquette.genereLe, acceptee: maquetteAcceptee }),
     }).catch(() => {});
   }, [genereLe, maquetteAcceptee]); // eslint-disable-line react-hooks/exhaustive-deps
 

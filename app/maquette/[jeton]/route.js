@@ -18,7 +18,7 @@ export async function GET(_request, { params }) {
   return new Response(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Content-Security-Policy": "sandbox allow-scripts allow-modals; default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; font-src data:",
+      "Content-Security-Policy": "sandbox allow-scripts allow-modals; default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob: 'self' https:; font-src data:",
       "X-Robots-Tag": "noindex, nofollow",
       "Cache-Control": "no-store",
       "Referrer-Policy": "no-referrer",
