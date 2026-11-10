@@ -73,7 +73,7 @@ export function EnteteNav() {
       <a href="/exemples">Exemples</a>
       <a href="/ressources">Ressources</a>
       <a href="/a-propos">À propos</a>
-      <a href="/projets">Mes projets</a>
+      {role !== "visiteur" && <a href="/projets">Mes projets</a>}
       <Compte />
       <a href="/nouveau" className="btn petit btn-entete">Créer <span className="masque-mobile">mon projet</span></a>
     </nav>
@@ -91,6 +91,17 @@ export function NavBasse() {
         <a href="/admin/atelier"><span>🎨</span>Atelier</a>
         <a href="/espace?client=1"><span>👁️</span>Vue client</a>
         <a href="/"><span>🌐</span>Le site</a>
+      </nav>
+    );
+  }
+  // Visiteur non connecté : seulement les pages publiques et la connexion.
+  if (role === "visiteur") {
+    return (
+      <nav className="nav-basse" aria-label="Navigation mobile">
+        <a href="/"><span>🏠</span>Accueil</a>
+        <a href="/nouveau" className="principal"><span>✨</span>Commander</a>
+        <a href="/exemples"><span>💡</span>Exemples</a>
+        <a href="/connexion"><span>👤</span>Connexion</a>
       </nav>
     );
   }
