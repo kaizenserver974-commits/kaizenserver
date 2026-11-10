@@ -39,6 +39,8 @@ export async function POST(request) {
   if (!sb) return NextResponse.json({ erreur: "Les pièces d'or ne sont pas encore activées sur ce site." }, { status: 503 });
   const compte = await utilisateur(request);
   if (!compte) return NextResponse.json({ erreur: "Connectez-vous pour utiliser vos pièces d'or.", connexion: true }, { status: 401 });
+  // La commande est rattachée au compte connecté : le client la retrouve dans son espace.
+  if (commande.contact.email.toLowerCase() !== compte.email) commande.contact = { ...commande.contact, emailSaisi: commande.contact.email, email: compte.email };
   const cleBourse = bourse(compte.email, corps?.projet?.id);
   if (!cleBourse) return NextResponse.json({ erreur: "Projet inconnu." }, { status: 400 });
   const genie = commande.formule === "genie";

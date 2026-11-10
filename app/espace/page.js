@@ -72,7 +72,8 @@ function Espace() {
   if (etat === "deconnecte") return <Message titre="Connectez-vous" texte="Retrouvez vos commandes, vos devis et vos messages avec l'e-mail utilisé lors de votre commande." lien="/connexion" bouton="Se connecter" />;
   if (etat === "erreur") return <Message titre="Oups" texte={erreur} lien="/espace" bouton="Réessayer" />;
 
-  const { commandes } = donnees;
+  const tout = donnees.commandes;
+  const commandes = tout.filter((c) => c.formule !== "contact"); // le fil « Message à Server » n'est pas une commande
   const tousDevis = commandes.flatMap((c) => c.devis.map((d) => ({ ...d, commande: c })));
   const devisEnAttente = tousDevis.filter((d) => d.statut === "envoye").length;
 
@@ -100,7 +101,7 @@ function Espace() {
         <p className="succes">💳 Retour de Mollie : si votre paiement est validé, il apparaît ci-dessous sous quelques instants (rechargez la page au besoin). Vous recevrez aussi un e-mail.</p>
       )}
 
-      {onglet !== "profil" && commandes.length === 0 && (
+      {(onglet === "commandes" || onglet === "devis") && commandes.length === 0 && (
         <div className="carte vide"><p>Aucune commande associée à {donnees.email} pour l'instant.</p><a className="btn" href="/nouveau">Commander mon application</a></div>
       )}
 
@@ -116,7 +117,8 @@ function Espace() {
               lire={async () => (await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
             />
           )}
-          {c.maquette && <DemandeModification c={c} recharger={charger} />}
+          {c.maquette && <AccepterMaquette c={c} recharger={charger} />}
+          {c.maquette && !c.projet?.maquetteValidee && <DemandeModification c={c} recharger={charger} />}
           {c.liens?.length > 0 && (
             <div className="liens-client">
               <h3>🔗 Vos liens</h3>
@@ -147,15 +149,22 @@ function Espace() {
 
       {onglet === "messages" && commande && (
         <div className="carte">
-          {commandes.length > 1 && (
-            <label className="champ" style={{ marginTop: 0 }}><span>Commande</span>
+          {tout.length > 1 && (
+            <label className="champ" style={{ marginTop: 0 }}><span>Discussion</span>
               <select value={choisie} onChange={(e) => setChoisie(e.target.value)}>
-                {commandes.map((c) => <option key={c.id} value={c.id}>{c.numero} — {c.recap?.titre || "Mon application"}</option>)}
+                {tout.map((c) => <option key={c.id} value={c.id}>{c.formule === "contact" ? "💬 Message à Server" : `${c.numero} — ${c.recap?.titre || "Mon application"}`}</option>)}
               </select>
             </label>
           )}
           <div className="maitre"><img src="/personnages/server.webp" alt="" width="56" height="56" /><div><strong>Server · Maître du jeu</strong><p>Posez vos questions : je vous réponds ici, avec mes conseils pour votre projet.</p></div></div>
           <FilMessages messages={commande.messages} moi="client" placeholder="Écrivez à Server, le maître du jeu…" envoyer={(contenu) => action({ action: "message", commandeId: commande.id, contenu })} />
+        </div>
+      )}
+
+      {onglet === "messages" && !commande && (
+        <div className="carte">
+          <div className="maitre"><img src="/personnages/server.webp" alt="" width="56" height="56" /><div><strong>Server · Maître du jeu</strong><p>Une question, une idée, un conseil avant de commander ? Écrivez-moi : je vous réponds ici et par e-mail.</p></div></div>
+          <FilMessages messages={[]} moi="client" placeholder="Écrivez à Server, le maître du jeu…" envoyer={async (contenu) => { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "contact", contenu }) }); await charger(); }} />
         </div>
       )}
 
@@ -187,6 +196,28 @@ function Message({ titre, texte, lien, bouton }) {
         <a className="btn" href={lien}>{bouton}</a>
       </section>
     </main>
+  );
+}
+
+// Accepter la maquette envoyée par Server (gratuit) : Server est prévenu et passe à la suite.
+function AccepterMaquette({ c, recharger }) {
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  if (c.projet?.maquetteValidee) {
+    return <p className="succes">✅ Vous avez accepté cette maquette{c.projet.maquetteAccepteeLe ? ` le ${date(c.projet.maquetteAccepteeLe)}` : ""}. Server prépare la suite et vous enverra son offre.</p>;
+  }
+  async function accepter() {
+    if (!window.confirm("Accepter cette maquette ? Server sera prévenu et préparera la suite de votre projet.")) return;
+    setEnCours(true); setErreur("");
+    try { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "maquette_accepter", commandeId: c.id }) }); await recharger(); }
+    catch (e) { setErreur(e.message); } finally { setEnCours(false); }
+  }
+  return (
+    <div className="accepter-maquette">
+      <p><b>Cette maquette vous plaît ?</b> Acceptez-la, ou demandez une modification juste en dessous.</p>
+      <button className="btn" disabled={enCours} onClick={accepter}>{enCours ? "Envoi…" : "✅ J'accepte cette maquette"}</button>
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+    </div>
   );
 }
 

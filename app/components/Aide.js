@@ -3,6 +3,7 @@ import { usePathname } from "next/navigation";
 
 import { useEffect, useRef, useState } from "react";
 import { QUESTIONS_AIDE } from "../../lib/aide.js";
+import { jeton } from "../../lib/supabaseClient.js";
 
 // Bulle « Besoin d'aide ? » avec le robot Bip.
 // Pas de bulle d'aide sur les pages autonomes (formulaire partagé sur les réseaux).
@@ -33,7 +34,8 @@ function AideBulle() {
     setQuestion("");
     setAttente(true);
     try {
-      const r = await fetch("/api/aide", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q }) });
+      const t = await jeton().catch(() => null);
+      const r = await fetch("/api/aide", { method: "POST", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ question: q }) });
       const d = await r.json();
       setFil((f) => [...f, { de: "bip", texte: d.reponse || d.erreur || "Je n'ai pas compris, pouvez-vous reformuler ?" }]);
     } catch {

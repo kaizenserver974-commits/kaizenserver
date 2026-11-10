@@ -14,6 +14,7 @@ import { jeton } from "../../lib/supabaseClient.js";
 import { videoPartagee, installerDeverrouillage } from "../../lib/videoPartagee.js";
 import { lireFichiers, enregistrerFichiers, ajouterFichiers, tailleLisible, LIMITES } from "../../lib/fichiers.js";
 import Avatar from "../components/Avatar.js";
+import ExigeCompte from "../components/ExigeCompte.js";
 import { PERSONNAGES, trouverPersonnage } from "../../lib/avatar.js";
 import { jouerSon, arreterSon, sonDisponible, redemarrerSon } from "../../lib/sons.js";
 import {
@@ -46,7 +47,7 @@ async function appeler(url, corps) {
   return donnees;
 }
 
-export default function Page() {
+function PageParcours() {
   return (
     <Suspense fallback={<main className="conteneur page"><p className="discret">Chargement…</p></main>}>
       <PortefeuilleProvider>
@@ -2041,3 +2042,9 @@ const CONSEILS = {
   mise_en_ligne: "Vérifiez les mentions légales, la politique de confidentialité et faites tester l'application par quelques vrais utilisateurs avant de la faire connaître.",
   evolution: "Regardez ce que vos utilisateurs utilisent vraiment. Ajoutez les évolutions une par une, en commençant par celles qu'ils demandent le plus.",
 };
+
+
+// Le parcours est réservé aux personnes connectées.
+export default function Page() {
+  return <ExigeCompte titre="Créez votre compte pour créer votre application"><PageParcours /></ExigeCompte>;
+}

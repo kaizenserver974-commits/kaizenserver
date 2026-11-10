@@ -24,6 +24,8 @@ function destination() {
 export default function Connexion() {
   const sb = supabaseNavigateur();
   const [mode, setMode] = useState("connexion");
+  // Lien « Créer mon compte » : /connexion?mode=inscription (lu après le premier affichage).
+  useEffect(() => { if (new URLSearchParams(window.location.search).get("mode") === "inscription") setMode("inscription"); }, []);
   const [email, setEmail] = useState("");
   const [mdp, setMdp] = useState("");
   const [mdp2, setMdp2] = useState("");

@@ -6,6 +6,7 @@ import { validerMessage, nonLus, statut, liensPourClient } from "../../../lib/es
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
 import { demarrerPaiement, rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
+import { numeroCommande } from "../../../lib/commande.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,10 +39,53 @@ export async function POST(request) {
   try { corps = await request.json(); } catch { return refus("Requête invalide.", 400); }
 
   const sb = supabaseAdmin();
+
+  // Écrire à Server sans commande : un fil « Message à Server » est créé au premier message
+  // (visible dans l'Espace Server, qui répond dans ce même fil).
+  if (corps.action === "contact") {
+    const { contenu, erreur } = validerMessage(corps.contenu);
+    if (erreur) return refus(erreur, 400);
+    let fil = (await chargerCommandes(sb, { email: u.email }).catch(() => [])).find((c) => c.formule === "contact");
+    if (!fil) {
+      const { data, error } = await sb.from("kaizen_commandes").insert({
+        numero: numeroCommande(), email: u.email, nom: String(corps.nom || "").trim().slice(0, 80) || u.email.split("@")[0], formule: "contact", statut: "nouvelle",
+        projet: { nom: "Message à Server", idee: "", fonctionnalites: [], personnalisees: [] }, recap: { titre: "💬 Message à Server" },
+      }).select("id, numero").single();
+      if (error) return refus("Le message n'a pas pu être envoyé.", 500);
+      fil = data;
+    }
+    const { error } = await sb.from("kaizen_messages").insert({ commande_id: fil.id, auteur: "client", type: "message", contenu });
+    if (error) return refus("Le message n'a pas pu être envoyé.", 500);
+    await notifier({
+      a: process.env.KAIZEN_EMAIL,
+      sujet: `💬 Nouveau message de ${u.email}`,
+      texte: `${u.email} vous écrit :\n\n${contenu}\n\nRépondez depuis l'Espace Server : ${urlSite(request)}/admin`,
+      repondreA: u.email,
+    }).catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
+
   const [commande] = await chargerCommandes(sb, { id: String(corps.commandeId || ""), email: u.email }).catch(() => []);
   if (!commande) return refus("Commande introuvable.", 404);
 
   // Demande de modification de la maquette à Server : 30 pièces d'or prises dans la bourse du projet.
+  // Le client accepte la maquette envoyée par Server : Server est prévenu.
+  if (corps.action === "maquette_accepter") {
+    if (!commande.maquette) return refus("Pas encore de maquette.", 404);
+    if (commande.projet?.maquetteValidee === true) return NextResponse.json({ ok: true, deja: true });
+    const le = new Date().toISOString();
+    const { error } = await sb.from("kaizen_commandes").update({ projet: { ...(commande.projet || {}), maquetteValidee: true, maquetteAccepteeLe: le }, updated_at: le }).eq("id", commande.id);
+    if (error) return refus("L'acceptation n'a pas pu être enregistrée.", 500);
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "client", contenu: "✅ J'accepte la maquette, merci !" });
+    await notifier({
+      a: process.env.KAIZEN_EMAIL,
+      sujet: `✅ Maquette acceptée — ${commande.numero} (${commande.nom || commande.email})`,
+      texte: `${commande.nom || commande.email} a accepté sa maquette (commande ${commande.numero}).\n\nEspace Server : ${urlSite(request)}/admin`,
+      repondreA: commande.email,
+    }).catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
+
   if (corps.action === "modification") {
     const { contenu, erreur } = validerMessage(corps.contenu);
     if (erreur) return refus(erreur, 400);

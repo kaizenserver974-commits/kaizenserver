@@ -5,8 +5,9 @@ import { listerProjets, supprimerProjet } from "../../lib/stockage.js";
 import { ETAPES_SUIVI, TYPES, trouver } from "../../lib/catalogue.js";
 import { trouverAvatar, trouverUnivers, niveau } from "../../lib/jeu.js";
 import Avatar from "../components/Avatar.js";
+import ExigeCompte from "../components/ExigeCompte.js";
 
-export default function MesProjets() {
+function ListeProjets() {
   const [projets, setProjets] = useState(null);
 
   useEffect(() => setProjets(listerProjets()), []);
@@ -61,4 +62,9 @@ export default function MesProjets() {
       )}
     </main>
   );
+}
+
+
+export default function MesProjets() {
+  return <ExigeCompte titre="Connectez-vous pour retrouver vos projets"><ListeProjets /></ExigeCompte>;
 }

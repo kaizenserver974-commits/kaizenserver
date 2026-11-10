@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { TYPES, FONCTIONNALITES, PLATEFORMES } from "../../../lib/catalogue.js";
 import { analyserIdeeSecours } from "../../../lib/moteur.js";
 import { iaDisponible, demanderJSON, s } from "../../../lib/ia.js";
+import { utilisateur, supabaseConfigure } from "../../../lib/serveur/supabase.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,8 @@ const schema = s.obj({
 });
 
 export async function POST(request) {
+  // Réservé aux personnes connectées (protège aussi la facture de l'IA).
+  if (supabaseConfigure() && !(await utilisateur(request))) return NextResponse.json({ erreur: "Connectez-vous pour utiliser les services de Kaizen.", connexion: true }, { status: 401 });
   let idee = "";
   try {
     ({ idee = "" } = await request.json());

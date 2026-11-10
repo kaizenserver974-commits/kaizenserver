@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { QUESTIONS_AIDE, repondreSansIA } from "../../../lib/aide.js";
 import { iaDisponible, demanderTexte } from "../../../lib/ia.js";
+import { utilisateur, supabaseConfigure } from "../../../lib/serveur/supabase.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,8 @@ export async function POST(request) {
   question = String(question).trim().slice(0, 500);
   if (question.length < 3) return NextResponse.json({ erreur: "Posez votre question en quelques mots." }, { status: 400 });
 
-  if (iaDisponible()) {
+  const membre = !supabaseConfigure() || Boolean(await utilisateur(request));
+  if (iaDisponible() && membre) {
     try {
       const reponse = await demanderTexte({
         consignes: `Tu es Bip, l'assistant d'aide du site KaizenServer, qui aide des personnes à transformer leur idée en application puis à la commander.
