@@ -1570,9 +1570,8 @@ function EnvoiDemande({ projet, commander }) {
   return (
     <div className="envoi sans-impression">
       <h3>🚀 Parfait ! Votre projet est prêt</h3>
-      <p className="discret">{projet.commande ? `Commande n° ${projet.commande.numero} envoyée le ${new Date(projet.commande.date).toLocaleDateString("fr-FR")}.` : "Commandez votre application : Server, le maître du jeu, étudie votre projet et vous envoie son offre et ses conseils."}</p>
+      <p className="discret">{projet.commande ? `Commande n° ${projet.commande.numero} envoyée le ${new Date(projet.commande.date).toLocaleDateString("fr-FR")}.` : "Prochaine étape : faites un vœu au génie Server, juste en dessous. Il dessine la maquette de votre application, puis vous envoie son offre et ses conseils."}</p>
       <div className="actions">
-        {!projet.commande && commander && <button className="btn grand" onClick={commander}>Commander mon application 🛒</button>}
         <button className="btn secondaire" onClick={copier}>Copier mon dossier</button>
         <button className="btn secondaire" onClick={() => window.print()}>Télécharger en PDF</button>
       </div>
