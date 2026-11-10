@@ -20,7 +20,7 @@ export async function POST(request) {
     let solde, gagne = 0, plafond = false;
     if (Array.isArray(corps?.recompenses)) {
       // Server (administrateur) n'a pas de limite quotidienne : il peut tester librement.
-      ({ solde, gagne, plafond } = await crediterRecompenses(sb, u.email, corps.projet, corps.recompenses.map(String), { sansPlafond: u.admin }));
+      ({ solde, gagne, plafond } = await crediterRecompenses(sb, u.email, corps.projet, corps.recompenses.map(String)));
     } else {
       solde = await lireSolde(sb, cleBourse);
     }
