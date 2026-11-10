@@ -373,6 +373,15 @@ function Parcours() {
           <span>{univers.icone} {univers.niveaux[etape]}</span>
         </div>
       )}
+      {(projet.commande || projet.demandeGenie) && (
+        <div className="bandeau-suivi">
+          <div>
+            <strong>{projet.demandeGenie ? "🧞 Votre vœu a été envoyé au génie Server" : "📬 Votre commande a été envoyée à Server"} (n° {(projet.commande || projet.demandeGenie).numero})</strong>
+            <p>La proposition de Server (votre maquette), ses messages et ses offres se trouvent dans votre espace.</p>
+          </div>
+          <a className="btn" href="/espace">Voir la proposition de Server →</a>
+        </div>
+      )}
       {enJeu
         ? <TableauJoueur jeu={projet.jeu} changer={() => setChoixPerso(true)} recharger={() => setRechargeOuverte(true)} />
         : (
@@ -1507,6 +1516,8 @@ function FormulaireGenie({ projet, maj, noter, recharger, annuler, animer = () =
       maj({
         contact: { ...contact, nom, email },
         demandeGenie: { numero: d.numero, date: new Date().toISOString() },
+        commande: { numero: d.numero, cle: d.cleClient, date: d.date || new Date().toISOString(), formule: "genie", confirmationEnvoyee: d.confirmationEnvoyee, espaceClient: Boolean(d.espaceClient) },
+        statut: "commande",
         journal: noter(projet, `Maquette sur mesure demandée au génie Server (n° ${d.numero})`),
       });
     } catch (e) {
@@ -1570,7 +1581,7 @@ function EnvoiDemande({ projet, commander }) {
   return (
     <div className="envoi sans-impression">
       <h3>🚀 Parfait ! Votre projet est prêt</h3>
-      <p className="discret">{projet.commande ? `Commande n° ${projet.commande.numero} envoyée le ${new Date(projet.commande.date).toLocaleDateString("fr-FR")}.` : "Prochaine étape : faites un vœu au génie Server, juste en dessous. Il dessine la maquette de votre application, puis vous envoie son offre et ses conseils."}</p>
+      <p className="discret">{projet.demandeGenie ? `Vœu envoyé au génie Server (n° ${projet.demandeGenie.numero}) : sa proposition et ses offres arrivent dans votre espace.` : projet.commande ? `Commande n° ${projet.commande.numero} envoyée le ${new Date(projet.commande.date).toLocaleDateString("fr-FR")}.` : "Prochaine étape : faites un vœu au génie Server, juste en dessous. Il dessine la maquette de votre application, puis vous envoie son offre et ses conseils."}</p>
       <div className="actions">
         <button className="btn secondaire" onClick={copier}>Copier mon dossier</button>
         <button className="btn secondaire" onClick={() => window.print()}>Télécharger en PDF</button>

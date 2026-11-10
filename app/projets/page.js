@@ -52,7 +52,9 @@ function ListeProjets() {
                 </div>
                 <div className="projet-actions">
                   <span className="badge">{statut?.label || "Idée"}</span>
-                  <a className="btn petit" href={`/nouveau?id=${encodeURIComponent(p.id)}`}>Ouvrir</a>
+                  {p.commande || p.demandeGenie
+                    ? <><a className="btn petit" href="/espace">📬 Proposition de Server et offres</a><a className="btn petit secondaire" href={`/nouveau?id=${encodeURIComponent(p.id)}`}>Revoir le parcours</a></>
+                    : <a className="btn petit" href={`/nouveau?id=${encodeURIComponent(p.id)}`}>Ouvrir</a>}
                   <button className="btn petit lien-danger" onClick={() => supprimer(p.id, p.nom)}>Supprimer</button>
                 </div>
               </article>
