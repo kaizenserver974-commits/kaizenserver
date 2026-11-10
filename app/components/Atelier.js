@@ -263,7 +263,7 @@ nav button{background:none;border:0;color:#7d86bd;font-size:12px;display:grid;ju
 }
 
 // Éditeur : l'aperçu est modifiable directement (textes), et des outils agissent sur le bloc sélectionné.
-export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages }) {
+export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages, sauverRef }) {
   const cadre = useRef(null);
   const enAttente = useRef({});
   const [source, setSource] = useState(htmlInitial); // ce qui est chargé dans l'aperçu
@@ -350,6 +350,17 @@ export function EditeurMaquette({ htmlInitial, enregistrer, titre, versImages })
     await outil("ajouter-image", { src: url });
     setMessage({ type: "succes", texte: sel ? "Image ajoutée sous le bloc sélectionné." : "Image ajoutée à l'écran affiché. Pour la rendre cliquable : 👆 Sélectionner → cliquez sur l'image → 🔗 Au clic, aller vers…" });
   }
+  // Permet au bloc « Vœu exaucé » d'enregistrer d'abord ce qui est affiché dans l'atelier.
+  useEffect(() => {
+    if (!sauverRef) return undefined;
+    sauverRef.current = async () => {
+      const h = await lire();
+      if (!h) throw new Error("L'aperçu ne répond pas : rechargez la page.");
+      await enregistrer(h);
+      setModifie(false);
+    };
+    return () => { sauverRef.current = null; };
+  });
   async function sauver() {
     setMessage({ type: "", texte: "" }); setEnCours(true);
     try {
@@ -756,16 +767,18 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
 }
 
 // Server envoie la maquette au client : message dans son espace + e-mail avec le lien.
-export function EnvoiMaquette({ commande, apres }) {
+export function EnvoiMaquette({ commande, apres, avant = null }) {
   const genie = commande.formule === "genie";
   const [mot, setMot] = useState("");
   const [etat, setEtat] = useState({ type: "", texte: "" });
   const [enCours, setEnCours] = useState(false);
-  if (!commande.maquette) return null;
+  if (!commande.maquette && !avant) return null;
   const deja = commande.projet?.maquetteEnvoyeeLe;
   async function envoyer() {
     setEnCours(true); setEtat({ type: "", texte: "" });
     try {
+      // Dans l'atelier : on enregistre d'abord la maquette affichée (celle qu'on vient de finaliser).
+      if (avant) { setEtat({ type: "succes", texte: "Enregistrement de la maquette affichée…" }); await avant(); }
       const r = await api({ action: "maquette_envoyer", commandeId: commande.id, mot });
       setEtat({ type: "succes", texte: r.email ? `✅ Envoyé ! ${commande.nom || "Le client"} a reçu un e-mail avec le lien de sa maquette, et un message dans son espace.` : "✅ Message envoyé dans l'espace du client (l'e-mail n'a pas pu partir : vérifiez RESEND_API_KEY dans Vercel)." });
       setMot("");
@@ -775,6 +788,7 @@ export function EnvoiMaquette({ commande, apres }) {
   return (
     <div className="envoi-maquette">
       <h3>{genie ? "🧞 Exaucer le vœu : envoyer la maquette au client" : "📩 Envoyer la maquette au client"}</h3>
+      {avant && <p className="note"><b>La maquette affichée ci-dessus est enregistrée automatiquement puis envoyée</b> : c'est exactement elle que le client verra.</p>}
       <p className="note">{deja ? `Déjà envoyée le ${new Date(deja).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. Vous pouvez la renvoyer après une modification.` : "Le client recevra un e-mail avec le lien de sa maquette et un message dans son espace, où il pourra l'accepter ou demander une modification."}</p>
       <label className="champ" style={{ marginTop: 0 }}>
         <span>Votre mot pour le client <small className="discret">(facultatif)</small></span>

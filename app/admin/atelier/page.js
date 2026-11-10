@@ -1,7 +1,7 @@
 "use client";
 
 // Atelier de Server : créer ou retoucher soi-même la maquette d'un projet, et générer ses images.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseNavigateur, appelAuthentifie } from "../../../lib/supabaseClient.js";
 import { EditeurMaquette, GalerieImages, maquetteVierge, maquetteImages, ChoixEcransImages, EnvoiMaquette, VitrineExpress, majVitrine } from "../../components/Atelier.js";
 
@@ -17,6 +17,7 @@ export default function Atelier() {
   const [onglet, setOnglet] = useState("maquette");
   const [avecImages, setAvecImages] = useState(false);
   const [express, setExpress] = useState(false);
+  const sauverRef = useRef(null); // enregistre ce qui est affiché dans l'atelier
 
   const charger = useCallback(async () => {
     try {
@@ -105,11 +106,11 @@ export default function Atelier() {
               setAvecImages(false);
             }} />
           ) : !c ? <p className="discret">Aucun projet pour le moment.</p> : !maquette ? <p className="discret">Chargement de la maquette…</p> : (
-            <EditeurMaquette key={maquette.cle} htmlInitial={maquette.html} titre={titre}
+            <EditeurMaquette key={maquette.cle} htmlInitial={maquette.html} titre={titre} sauverRef={sauverRef}
               versImages={(image) => { setAvecImages(image?.url ? image : true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               enregistrer={async (html) => { await api({ action: "maquette_enregistrer", commandeId: c.id, html }); setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, maquette: { ...(x.maquette || {}), source: "server", updated_at: new Date().toISOString() } } : x))); }} />
           )}
-          {c && !avecImages && !express && <EnvoiMaquette key={`envoi-${c.id}-${c.maquette?.updated_at || ""}`} commande={c} apres={() => setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, projet: { ...(x.projet || {}), maquetteEnvoyeeLe: new Date().toISOString() } } : x)))} />}
+          {c && !avecImages && !express && <EnvoiMaquette key={`envoi-${c.id}`} commande={c} avant={maquette ? async () => { if (!sauverRef.current) throw new Error("La maquette n'est pas encore chargée."); await sauverRef.current(); } : null} apres={() => setCommandes((l) => l.map((x) => (x.id === c.id ? { ...x, projet: { ...(x.projet || {}), maquetteEnvoyeeLe: new Date().toISOString() } } : x)))} />}
         </section>
       )}
     </main>
