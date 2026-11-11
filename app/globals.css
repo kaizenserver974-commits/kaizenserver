@@ -1261,3 +1261,10 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .liste-choix-admin { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
 .liste-choix-admin li { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--surface-2); }
 .liste-choix-admin p { margin: 4px 0; }
+
+/* Bouton « Acheter » toujours visible dans le compteur de pièces (en haut) */
+.compteur-acheter { margin-left: 4px; border: 0; border-radius: 999px; padding: 6px 12px; font-weight: 800; font-size: 13px; color: #1a1300; background: linear-gradient(135deg, #fde68a, #f5c542); box-shadow: 0 0 14px rgba(245, 197, 66, 0.5); cursor: pointer; }
+.compteur-acheter:hover { filter: brightness(1.08); }
+@media (max-width: 760px) { .compteur-acheter { padding: 5px 9px; font-size: 12px; } }
+.barre-pieces { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(245, 197, 66, 0.1); border: 1px solid rgba(245, 197, 66, 0.4); color: #fde68a; }
+.barre-pieces b { color: #fff3c4; font-size: 17px; }

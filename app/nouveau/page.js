@@ -67,6 +67,7 @@ function Parcours() {
   const [gain, setGain] = useState(null);
   const [lieuDebloque, setLieuDebloque] = useState(null);
   const [rechargeOuverte, setRechargeOuverte] = useState(false);
+  useEffect(() => { if (params.get("recharge")) setRechargeOuverte(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Vidéo d'introduction d'étape déjà vue (clé « projet:étape ») : ensuite le formulaire apparaît.
   const [introVue, setIntroVue] = useState("");
   const portefeuille = usePortefeuille();
@@ -351,7 +352,8 @@ function Parcours() {
         {persoMonde?.monde && <div className="fond-monde fond-intro" aria-hidden="true" style={{ "--fond-large": `url(${persoMonde.fondVide || persoMonde.fond || persoMonde.monde})`, "--fond-portrait": `url(${persoMonde.fondVide || persoMonde.monde})` }} />}
         <IntroVideo key={cleIntro} src={videoEtape} nom={projet.jeu.pseudo || persoJoueur.nom} lieu={`${univers.icone} ${univers.niveaux[etape]}`} texte={recit(projet.jeu, etape)} finir={() => setIntroVue(cleIntro)}
           bourse={null} />
-        <CompteurFlottant />
+        <CompteurFlottant acheter={() => setRechargeOuverte(true)} />
+        {rechargeOuverte && <FenetreRecharge projet={projet} fermer={() => setRechargeOuverte(false)} />}
         {/* Les pièces gagnées à l'étape validée s'annoncent aussi pendant la vidéo. */}
         {portefeuille.gain && (
           <div key={portefeuille.gain.cle} className="gain-or gain-intro" role="status" aria-live="polite">
@@ -457,7 +459,7 @@ function Parcours() {
           {portefeuille.gain.plafond && <span className="gain-plafond">Vos 1000 pièces offertes (3 projets) sont utilisées : achetez des pièces pour continuer.</span>}
         </div>
       )}
-      <CompteurFlottant />
+      <CompteurFlottant acheter={() => setRechargeOuverte(true)} />
       {portefeuille.depense && (
         <div key={portefeuille.depense.cle} className="depense-or" role="status" aria-live="polite">
           <strong>−{portefeuille.depense.montant} 🪙</strong>
@@ -645,7 +647,7 @@ function AvatarJoueur({ jeu, taille, classe }) {
 
 // Compteur de pièces qui flotte toujours à l'écran : quand une étape est validée, on le voit se charger
 // (le chiffre monte, « +60 » s'envole) sans avoir à remonter en haut de la page.
-function CompteurFlottant() {
+function CompteurFlottant({ acheter }) {
   const { connecte, solde, gain, depense } = usePortefeuille();
   const [anim, setAnim] = useState(null); // { de, vers, delta, cle }
   const [affiche, setAffiche] = useState(null);
@@ -674,6 +676,7 @@ function CompteurFlottant() {
       <span className="compteur-piece" aria-hidden="true">🪙</span>
       <b aria-live="polite">{affiche ?? solde}</b>
       {anim && <span key={anim.cle} className="compteur-delta" aria-hidden="true">{anim.delta > 0 ? `+${anim.delta}` : anim.delta}</span>}
+      {acheter && <button type="button" className="compteur-acheter" onClick={acheter}>＋ Acheter</button>}
     </div>
   );
 }

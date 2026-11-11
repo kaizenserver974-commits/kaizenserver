@@ -210,6 +210,23 @@ function etapeCommande(c) {
   return "cours";
 }
 
+// Toujours en haut de la commande : les pièces d'or du projet et l'achat de pièces.
+function BarrePieces({ c }) {
+  const [solde, setSolde] = useState(null);
+  const projet = c.projet?.projetLocal;
+  useEffect(() => {
+    if (!projet) return;
+    appelAuthentifie("/api/pieces/solde", { method: "POST", body: JSON.stringify({ projet }) }).then((d) => setSolde(d.solde)).catch(() => {});
+  }, [projet]);
+  if (!projet) return null;
+  return (
+    <div className="barre-pieces">
+      <span>🪙 <b>{solde ?? "…"}</b> pièces d'or pour ce projet</span>
+      <a className="btn petit bourse-acheter" href={`/nouveau?id=${encodeURIComponent(projet)}&recharge=1`}>＋ Acheter des pièces</a>
+    </div>
+  );
+}
+
 function ParcoursCommande({ c, recharger, paiementEnLigne }) {
   const etape = etapeCommande(c);
   const index = ETAPES_COMMANDE.findIndex(([id]) => id === etape);
@@ -217,6 +234,7 @@ function ParcoursCommande({ c, recharger, paiementEnLigne }) {
   const lire = async () => (await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html;
   return (
     <div className="parcours-commande">
+      <BarrePieces c={c} />
       <ol className="etapes-commande">
         {ETAPES_COMMANDE.map(([id, label], i) => (
           <li key={id} className={i < index ? "faite" : i === index ? "actuelle" : ""}><span>{i < index ? "✓" : i + 1}</span>{label}</li>
@@ -413,7 +431,7 @@ function DemandeModification({ c, recharger }) {
       <textarea rows={3} maxLength={3000} value={texte} onChange={(e) => setTexte(e.target.value)} placeholder={"Ex. :\nAccueil : mettre la photo de ma moto en arrière-plan\nAjouter un écran « Historique d'entretien »"} />
       {etat === "ok" && <p className="succes">✅ Demande envoyée à Server (−{COUT_MODIF_SERVER} 🪙). Il vous répond dans vos messages.</p>}
       {etat && etat !== "ok" && etat !== "envoi" && <p className="alerte erreur">{etat}</p>}
-      {!assez && <p className="alerte">Il vous manque {COUT_MODIF_SERVER - solde} pièces d'or : rechargez-les depuis votre projet (« Mes projets »).</p>}
+      {!assez && <p className="alerte">Il vous manque {COUT_MODIF_SERVER - solde} pièces d'or. {projet && <a className="lien-cyan" href={`/nouveau?id=${encodeURIComponent(projet)}&recharge=1`}>＋ Acheter des pièces</a>}</p>}
       <div className="actions">
         <button className="btn" disabled={texte.trim().length < 5 || etat === "envoi" || !assez} onClick={envoyer}>{etat === "envoi" ? "Envoi…" : `Envoyer la demande (−${COUT_MODIF_SERVER} 🪙)`}</button>
       </div>
