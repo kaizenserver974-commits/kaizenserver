@@ -50,6 +50,14 @@ export function GalerieImages({ choisir, libelleChoisir = "Insérer", enPlus = n
   const [attente, setAttente] = useState("");
   const [erreur, setErreur] = useState("");
   const [copie, setCopie] = useState("");
+  const [menage, setMenage] = useState(false);
+  const [coches, setCoches] = useState([]);
+  async function supprimerCoches() {
+    if (!coches.length || !window.confirm(`Supprimer ${coches.length} image${coches.length > 1 ? "s" : ""} de la galerie ? (Si une maquette les utilise, elles n'y apparaîtront plus.)`)) return;
+    setAttente("Suppression…");
+    for (const id of coches) { try { await api({ action: "image_supprimer", imageId: id }); } catch { /* on continue */ } }
+    setImages((x) => x.filter((i) => !coches.includes(i.id))); setCoches([]); setMenage(false); setAttente("");
+  }
 
   async function charger() {
     try { setImages((await api({ action: "images_lister" })).images); } catch (e) { setErreur(e.message); setImages([]); }
@@ -107,9 +115,18 @@ export function GalerieImages({ choisir, libelleChoisir = "Insérer", enPlus = n
       {attente && <div className="chargement"><span className="rond" /> {attente}</div>}
       {erreur && <p className="alerte erreur">{erreur}</p>}
       {images === null ? <p className="discret">Chargement de la galerie…</p> : images.length === 0 ? <p className="discret">Votre galerie est vide : générez ou importez une image.</p> : (
+        <>
+        <div className="actions menage-galerie">
+          <button type="button" className={`btn petit ${menage ? "" : "secondaire"}`} onClick={() => { setMenage((x) => !x); setCoches([]); }}>{menage ? "Annuler le ménage" : "🧹 Faire le ménage"}</button>
+          {menage && <>
+            <button type="button" className="btn petit secondaire" onClick={() => setCoches(coches.length === images.length ? [] : images.map((i) => i.id))}>{coches.length === images.length ? "Tout décocher" : "Tout cocher"}</button>
+            <button type="button" className="btn petit" disabled={!coches.length} onClick={supprimerCoches}>🗑 Supprimer ({coches.length})</button>
+          </>}
+        </div>
         <div className="grille-images">
           {images.map((i) => (
-            <figure key={i.id} className="image-galerie">
+            <figure key={i.id} className={`image-galerie ${menage && coches.includes(i.id) ? "cochee" : ""}`} onClick={menage ? () => setCoches((c) => (c.includes(i.id) ? c.filter((x) => x !== i.id) : [...c, i.id])) : undefined}>
+              {menage && <span className="coche-galerie">{coches.includes(i.id) ? "✓" : ""}</span>}
               <img src={urlImage(i.id)} alt={i.description} loading="lazy" />
               <figcaption title={i.description}>{i.origine === "ia" ? "🎨 " : "📥 "}{i.description}</figcaption>
               <div className="image-actions">
@@ -122,6 +139,7 @@ export function GalerieImages({ choisir, libelleChoisir = "Insérer", enPlus = n
             </figure>
           ))}
         </div>
+        </>
       )}
     </div>
   );
@@ -700,11 +718,33 @@ async function decouperPlanche(url, n, m, { haut = 0, bas = 0, cotes = 0 } = {},
       if (agrandir > 1.05) nettete(ctx, toile.width, toile.height, 0.35);
       let donnees = toile.toDataURL("image/jpeg", 0.94);
       if (donnees.length > 3_800_000) donnees = toile.toDataURL("image/jpeg", 0.85);
-      const repImg = await api({ action: "image_ajouter", image: donnees, description: `${nom} — écran ${numero}` });
-      parts.push({ id: repImg.image.id, url: urlImage(repImg.image.id) });
+      parts.push({ id: `local-${Date.now()}-${numero}`, url: donnees, description: `${nom} — écran ${numero}` });
     }
   }
   return parts;
+}
+
+// Essais (découpes, images importées) gardés dans le navigateur : envoyés dans la galerie
+// seulement quand on valide la maquette. Retourne la liste avec les adresses définitives.
+async function envoyerEssais(liste, progression = () => {}) {
+  const vus = new Map();
+  const out = [];
+  let k = 0;
+  for (const e of liste) {
+    if (e?.url && e.url.startsWith("data:")) {
+      if (!vus.has(e.url)) {
+        k += 1; progression(`Enregistrement des images (${k})…`);
+        const r = await api({ action: "image_ajouter", image: e.url, description: e.description || e.nom || "Écran de maquette" });
+        vus.set(e.url, urlImage(r.image.id));
+      }
+      out.push({ ...e, url: vus.get(e.url) });
+    } else out.push(e);
+  }
+  return out;
+}
+async function envoyerUne(url, description, progression) {
+  if (!url || !url.startsWith("data:")) return url;
+  return (await envoyerEssais([{ url, description }], progression))[0].url;
 }
 
 // Choix des images qui deviennent les écrans de la maquette.
@@ -795,7 +835,7 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
         </label>
       )}
       <div className="actions">
-        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={() => valider(ecrans, { onglets, style, sousTitre, couleur, icone, telephone })}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
+        <button className="btn" disabled={!ecrans.length || Boolean(decoupe)} onClick={async () => { setErreur(""); try { const ok = await envoyerEssais(ecrans, setDecoupe); valider(ok, { onglets, style, sousTitre, couleur, icone, telephone }); } catch (e) { setErreur(`Enregistrement impossible (${e.message}).`); } finally { setDecoupe(""); } }}>✅ Créer la maquette avec {ecrans.length || "mes"} écran{ecrans.length > 1 ? "s" : ""}</button>
         <button className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
       <GalerieImages libelleChoisir="+ Écran" choisir={(id, url) => setEcrans((l) => (l.length >= MAX_ECRANS ? l : [...l, { id, url, nom: l.length === 0 ? "Accueil" : `Écran ${l.length + 1}` }]))} />
@@ -881,8 +921,7 @@ export function VitrineExpress({ titre, valider, annuler }) {
     if (!fichier) return;
     setErreur(""); setAttente("Envoi de la planche…");
     try {
-      const r = await api({ action: "image_ajouter", image: await versDataUrl(fichier, 4096, { qualite: 0.93, max: 3_800_000 }), description: `Planche — ${fichier.name}` });
-      setPlanche(urlImage(r.image.id));
+      setPlanche(await versDataUrl(fichier, 4096, { qualite: 0.93, max: 3_800_000 })); // reste dans le navigateur
     } catch (e) { setErreur(e.message); } finally { setAttente(""); }
   }
   async function decouperDansVitrine(n, m, marges) {
@@ -907,8 +946,7 @@ export function VitrineExpress({ titre, valider, annuler }) {
     if (!/^image\//.test(fichier.type)) { setErreur("Choisissez une image (JPG, PNG…)."); return; }
     setErreur(""); setAttente(cible === "signet" ? "Envoi du signet…" : `Envoi de l'image ${cible + 1}…`);
     try {
-      const r = await api({ action: "image_ajouter", image: await versDataUrl(fichier, cible === "signet" ? 1024 : 4096, { qualite: 0.93, max: 3_800_000 }), description: cible === "signet" ? `Signet — ${fichier.name}` : `Vitrine ${cible + 1} — ${fichier.name}` });
-      placer(cible, urlImage(r.image.id));
+      placer(cible, await versDataUrl(fichier, cible === "signet" ? 1024 : 4096, { qualite: 0.93, max: 3_800_000 })); // envoyée à la validation
     } catch (e) { setErreur(e.message); } finally { setAttente(""); }
   }
   const remplies = cases.filter((c) => c.url);
@@ -970,7 +1008,14 @@ export function VitrineExpress({ titre, valider, annuler }) {
       {attente && <div className="chargement"><span className="rond" /> {attente}</div>}
       {erreur && <p className="alerte erreur">{erreur}</p>}
       <div className="actions">
-        <button className="btn" disabled={!remplies.length || Boolean(attente)} onClick={() => valider(remplies.map((c, i) => ({ id: `v${i}`, url: c.url, nom: c.phrase || `Écran ${i + 1}`, legende: c.phrase })), { style: "vitrine", sousTitre, couleur, icone: signet, telephone, nom: nom.trim() || titre })}>✅ Créer la maquette ({remplies.length} image{remplies.length > 1 ? "s" : ""})</button>
+        <button className="btn" disabled={!remplies.length || Boolean(attente)} onClick={async () => {
+          setErreur("");
+          try {
+            const ecr = await envoyerEssais(remplies.map((c, i) => ({ id: `v${i}`, url: c.url, nom: c.phrase || `Écran ${i + 1}`, legende: c.phrase, description: `Vitrine — écran ${i + 1}` })), setAttente);
+            const ico = await envoyerUne(signet, "Signet de la vitrine", setAttente);
+            valider(ecr, { style: "vitrine", sousTitre, couleur, icone: ico, telephone, nom: nom.trim() || titre });
+          } catch (e) { setErreur(`Enregistrement impossible (${e.message}).`); } finally { setAttente(""); }
+        }}>✅ Créer la maquette ({remplies.length} image{remplies.length > 1 ? "s" : ""})</button>
         <button className="btn secondaire" onClick={annuler}>Annuler</button>
       </div>
     </div>
