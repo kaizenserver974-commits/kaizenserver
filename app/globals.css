@@ -1210,3 +1210,10 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .bandeau-suivi p { margin: 4px 0 0; font-size: 14px; }
 @media (min-width: 761px) { .bandeau-suivi { margin-top: 56px; } }
 .bourse-plafond { flex-basis: 100%; color: #fcd34d; font-size: 12px; line-height: 1.35; }
+.gratuites-jour { flex-basis: 100%; display: grid; gap: 4px; font-size: 13px; color: #c7f9e2; }
+.gratuites-jour b { color: #6ee7b7; font-size: 15px; }
+.gratuites-jour i { display: block; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; max-width: 320px; }
+.gratuites-jour em { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #10b981, #6ee7b7); transition: width 0.6s ease; }
+.gratuites-jour.bas b { color: #fcd34d; } .gratuites-jour.bas em { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
+.gratuites-jour.epuise b { color: #fca5a5; } .gratuites-jour.epuise em { background: #ef4444; }
+.gratuites-jour small { color: #fde68a; font-size: 12px; }

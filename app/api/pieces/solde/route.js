@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, utilisateur } from "../../../../lib/serveur/supabase.js";
-import { lireSolde, crediterRecompenses, historique, bourse } from "../../../../lib/serveur/portefeuille.js";
+import { lireSolde, crediterRecompenses, historique, bourse, resteDuJour } from "../../../../lib/serveur/portefeuille.js";
+import { PLAFOND_GRATUIT_JOUR } from "../../../../lib/pieces.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +26,8 @@ export async function POST(request) {
       solde = await lireSolde(sb, cleBourse);
     }
     const mouvements = corps?.historique ? await historique(sb, cleBourse) : undefined;
-    return NextResponse.json({ ok: true, solde, gagne, plafond, email: u.email, ...(mouvements ? { mouvements } : {}) });
+    const resteJour = await resteDuJour(sb, u.email).catch(() => null);
+    return NextResponse.json({ ok: true, solde, gagne, plafond, resteJour, plafondJour: PLAFOND_GRATUIT_JOUR, email: u.email, ...(mouvements ? { mouvements } : {}) });
   } catch (e) {
     console.error("Kaizen portefeuille :", e?.message);
     // Tables ou fonctions absentes : supabase/schema.sql n'a pas été lancé.

@@ -671,7 +671,7 @@ function CompteurFlottant() {
 
 // Bourse de pièces d'or, toujours visible en haut, avec le bouton pour en acheter.
 function BourseOr({ recharger }) {
-  const { connecte, solde, indisponible, erreur, charger, plafondAtteint } = usePortefeuille();
+  const { connecte, solde, indisponible, erreur, charger, plafondAtteint, resteJour, plafondJour } = usePortefeuille();
   if (connecte === null) return <div className="bourse-or"><span className="bourse-solde">🪙 …</span></div>;
   if (connecte && solde === null && erreur) {
     return (
@@ -693,7 +693,16 @@ function BourseOr({ recharger }) {
     <div className="bourse-or">
       <span className="bourse-solde" title="Vos pièces d'or, gardées sur votre compte">🪙 <b>{indisponible ? "—" : solde ?? "…"}</b> pièces d'or</span>
       <button className="btn petit bourse-acheter" onClick={recharger}>＋ Acheter des pièces</button>
-      {plafondAtteint && <small className="bourse-plafond">⏳ Limite de 1000 pièces gratuites atteinte aujourd'hui (tous projets du compte). Les étapes rapportent de nouveau des pièces demain à 4 h (heure de La Réunion) ; vos pièces achetées restent utilisables.</small>}
+      {typeof resteJour === "number" && (
+        <div className={`gratuites-jour ${resteJour === 0 ? "epuise" : resteJour < 330 ? "bas" : ""}`} title="Pièces gratuites que les étapes du jeu peuvent encore vous rapporter aujourd'hui (tous projets)">
+          <span>🎁 Pièces gratuites du jour : <b>{resteJour}</b> / {plafondJour || 1000}</span>
+          <i><em style={{ width: `${Math.round((resteJour / (plafondJour || 1000)) * 100)}%` }} /></i>
+          {resteJour === 0
+            ? <small>Plus de pièces gratuites aujourd'hui : achetez des pièces pour continuer, ou revenez demain dès 4 h (heure de La Réunion).</small>
+            : resteJour < 330 ? <small>Bientôt épuisées : un projet complet en rapporte 330. Pensez à acheter des pièces.</small> : null}
+        </div>
+      )}
+      {plafondAtteint && typeof resteJour !== "number" && <small className="bourse-plafond">⏳ Limite de 1000 pièces gratuites atteinte aujourd'hui (tous projets du compte). Les étapes rapportent de nouveau des pièces demain à 4 h (heure de La Réunion) ; vos pièces achetées restent utilisables.</small>}
     </div>
   );
 }
