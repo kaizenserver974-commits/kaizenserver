@@ -1268,3 +1268,8 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 @media (max-width: 760px) { .compteur-acheter { padding: 5px 9px; font-size: 12px; } }
 .barre-pieces { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(245, 197, 66, 0.1); border: 1px solid rgba(245, 197, 66, 0.4); color: #fde68a; }
 .barre-pieces b { color: #fff3c4; font-size: 17px; }
+/* Pendant une préparation (analyse de l'idée, récapitulatif…) : le bouton cliqué reste bien visible et passe au vert. */
+.en-analyse .voile { opacity: 1; }
+.en-analyse .voile .etape > *:not(.navigation) { opacity: 0.45; }
+.en-analyse .etape .navigation .btn:not(.secondaire) { position: relative; pointer-events: none; min-width: 250px; white-space: nowrap; color: transparent; background: linear-gradient(135deg, #10b981, #34d399) !important; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.35), 0 0 28px rgba(16, 185, 129, 0.7); }
+.en-analyse .etape .navigation .btn:not(.secondaire)::after { content: "✓ Validé ! En préparation…"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 800; white-space: nowrap; animation: valide-pop 0.35s cubic-bezier(.2, 1.5, .4, 1); }
