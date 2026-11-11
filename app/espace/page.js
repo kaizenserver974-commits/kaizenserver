@@ -238,7 +238,11 @@ function ParcoursCommande({ c, recharger, paiementEnLigne }) {
       {!(c.paiements || []).some((p) => p.statut === "paid") && c.statut !== "livree" && (
         <button className="btn petit secondaire lien-danger annuler-demande" onClick={async () => {
           if (!window.confirm(`Annuler votre demande ${c.numero} pour ${COUT_ANNULATION} pièces d'or ? Elle disparaîtra de votre espace (les pièces d'or déjà dépensées ne sont pas rendues).`)) return;
-          try { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "commande_annuler", commandeId: c.id }) }); await recharger(); } catch (e) { window.alert(e.message); }
+          try {
+            const r = await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "commande_annuler", commandeId: c.id }) });
+            window.alert(`Demande annulée : −${COUT_ANNULATION} pièces d'or.${typeof r.solde === "number" ? ` Il vous reste ${r.solde} pièces d'or pour ce projet.` : ""}`);
+            await recharger();
+          } catch (e) { window.alert(e.message); }
         }}>Annuler ma demande (−{COUT_ANNULATION} 🪙)</button>
       )}
       <ol className="etapes-commande">
