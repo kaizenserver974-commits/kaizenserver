@@ -63,8 +63,19 @@ function Espace() {
   // Ouvrir les messages d'une commande les marque comme lus.
   const commande = donnees?.commandes.find((c) => c.id === choisie && c.statut !== "annulee");
   const aNonLus = commande?.messages.some((m) => m.auteur === "equipe" && !m.lu);
+  const nonLusDe = (c) => (c?.messages || []).filter((m) => m.auteur === "equipe" && !m.lu).length;
   useEffect(() => {
-    if (onglet === "messages" && commande && aNonLus) action({ action: "lu", commandeId: commande.id }).catch(() => {});
+    if (onglet !== "messages" || !donnees) return;
+    // En ouvrant les messages, on va directement à la discussion qui a des messages non lus.
+    if (!aNonLus) {
+      const autre = donnees.commandes.find((c) => c.statut !== "annulee" && nonLusDe(c) > 0);
+      if (autre) { setChoisie(autre.id); return; }
+    }
+    if (commande && aNonLus) {
+      // Vu = lu : la pastille s'efface tout de suite, sans devoir répondre.
+      setDonnees((d) => ({ ...d, commandes: d.commandes.map((c) => (c.id === commande.id ? { ...c, messages: c.messages.map((m) => (m.auteur === "equipe" ? { ...m, lu: true } : m)) } : c)) }));
+      appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "lu", commandeId: commande.id }) }).catch(() => {});
+    }
   }, [onglet, commande?.id, aNonLus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (etat === "chargement") return <main className="conteneur page"><p className="discret">Chargement de votre espace…</p></main>;
@@ -145,7 +156,7 @@ function Espace() {
           {tout.length > 1 && (
             <label className="champ" style={{ marginTop: 0 }}><span>Discussion</span>
               <select value={choisie} onChange={(e) => setChoisie(e.target.value)}>
-                {tout.map((c) => <option key={c.id} value={c.id}>{c.formule === "contact" ? "💬 Message à Server" : `${c.numero} — ${c.recap?.titre || "Mon application"}`}</option>)}
+                {tout.map((c) => <option key={c.id} value={c.id}>{c.formule === "contact" ? "💬 Message à Server" : `${c.numero} — ${c.recap?.titre || "Mon application"}`}{nonLusDe(c) ? ` (${nonLusDe(c)} nouveau${nonLusDe(c) > 1 ? "x" : ""})` : ""}</option>)}
               </select>
             </label>
           )}
