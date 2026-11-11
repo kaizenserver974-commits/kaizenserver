@@ -1231,3 +1231,33 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .offre-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .offre-champs .offre-details { grid-column: 1 / -1; }
 .offre-champs input, .offre-champs select, .offre-champs textarea { width: 100%; }
+
+/* Parcours de la commande dans l'espace client */
+.parcours-commande { display: grid; gap: 14px; margin-top: 10px; }
+.etapes-commande { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.etapes-commande li { display: grid; justify-items: center; gap: 6px; text-align: center; font-size: 13px; color: var(--texte-doux, #9aa3d9); padding: 10px 4px; border-radius: 12px; background: var(--surface-2); }
+.etapes-commande li span { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: rgba(255, 255, 255, 0.08); }
+.etapes-commande li.faite { color: #6ee7b7; } .etapes-commande li.faite span { background: #10b981; color: #fff; }
+.etapes-commande li.actuelle { color: #fff; box-shadow: 0 0 0 2px var(--violet), 0 0 20px rgba(123, 92, 255, 0.4); } .etapes-commande li.actuelle span { background: linear-gradient(135deg, #7b5cff, #d946ef); color: #fff; }
+.etape-commande { display: grid; gap: 12px; }
+.etape-commande h3 { margin: 0; }
+.offre-client { padding: 14px; border-radius: 14px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.45); }
+.offre-client .prix { font-size: 28px; font-weight: 800; margin: 4px 0; }
+.offre-client p { margin: 4px 0; }
+.choix-client { display: grid; gap: 10px; }
+.choix-client h4 { margin: 0; display: flex; align-items: center; gap: 8px; }
+.un-choix { padding: 14px; border-radius: 14px; background: var(--surface-2); display: grid; gap: 10px; }
+.un-choix p { margin: 0; }
+.un-choix.fait { opacity: 0.85; border-left: 4px solid #10b981; }
+.options-choix { display: grid; gap: 8px; }
+.option-choix { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--ligne); cursor: pointer; }
+.option-choix.choisie { border-color: var(--violet); background: rgba(123, 92, 255, 0.15); }
+.badge-or { background: rgba(245, 197, 66, 0.18); color: #fde68a; }
+.badge-gratuit { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; }
+@media (max-width: 600px) { .etapes-commande li { font-size: 11px; } }
+
+.form-choix { display: grid; gap: 10px; margin: 8px 0; }
+.form-choix input, .form-choix textarea, .form-choix select { width: 100%; }
+.liste-choix-admin { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
+.liste-choix-admin li { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--surface-2); }
+.liste-choix-admin p { margin: 4px 0; }

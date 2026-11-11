@@ -139,6 +139,8 @@ export default function Admin() {
 
             {c.projet?.pieces?.length > 0 && <PiecesClient key={`p-${c.id}`} commandeId={c.id} />}
 
+            <ChoixAdmin c={c} action={action} />
+
             <Liens c={c} action={action} />
 
             <div className="carte">
@@ -334,6 +336,63 @@ function NouveauProjet({ creer }) {
 }
 
 // Liens du projet : livrables partagés avec le client, et accès privés de Server.
+// Choix à transmettre au client pendant la réalisation : gratuits, ou validés avec des pièces d'or.
+const COUTS_CHOIX = [[0, "Gratuit"], [10, "10 pièces d'or"], [20, "20 pièces d'or"], [30, "30 pièces d'or"], [50, "50 pièces d'or"], [100, "100 pièces d'or"]];
+function ChoixAdmin({ c, action }) {
+  const liste = Array.isArray(c.projet?.choix) ? c.projet.choix : [];
+  const [ouvert, setOuvert] = useState(false);
+  const [f, setF] = useState({ question: "", details: "", options: "", cout: 0 });
+  const [etat, setEtat] = useState({ type: "", texte: "" });
+  const [envoi, setEnvoi] = useState(false);
+  const nbOptions = f.options.split("\n").map((x) => x.trim()).filter(Boolean).length;
+  async function envoyer() {
+    setEnvoi(true); setEtat({ type: "", texte: "" });
+    try {
+      await action({ action: "choix_ajouter", commandeId: c.id, question: f.question, details: f.details, options: f.options.split("\n"), cout: f.cout });
+      setF({ question: "", details: "", options: "", cout: 0 }); setOuvert(false);
+      setEtat({ type: "succes", texte: "✅ Choix envoyé : le client est prévenu par e-mail et le retrouve dans « Ma commande »." });
+    } catch (e) { setEtat({ type: "erreur", texte: e.message }); } finally { setEnvoi(false); }
+  }
+  return (
+    <div className="carte">
+      <div className="titre-ligne">
+        <h2>📋 Choix à faire par le client</h2>
+        {!ouvert && <button className="btn petit" onClick={() => setOuvert(true)}>+ Nouveau choix</button>}
+      </div>
+      <p className="note">Pendant la réalisation, demandez au client de choisir (couleur, option, fonction…). Pour chaque choix, décidez s'il est gratuit ou s'il se valide avec des pièces d'or.</p>
+      {ouvert && (
+        <div className="form-choix">
+          <label className="champ" style={{ marginTop: 0 }}><span>Question *</span><input value={f.question} maxLength={300} onChange={(e) => setF({ ...f, question: e.target.value })} placeholder="Ex. : Quelle couleur principale pour votre application ?" /></label>
+          <label className="champ" style={{ marginTop: 0 }}><span>Informations pour le client <small className="discret">(facultatif)</small></span><textarea rows={2} maxLength={1500} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} placeholder="Ex. : Voici les deux propositions, elles s'adaptent au logo." /></label>
+          <label className="champ" style={{ marginTop: 0 }}><span>Réponses possibles * <small className="discret">(une par ligne, 2 à 8)</small></span><textarea rows={4} value={f.options} onChange={(e) => setF({ ...f, options: e.target.value })} placeholder={"Bleu nuit et orange\nNoir et rouge\nBlanc et vert"} /></label>
+          <label className="champ" style={{ marginTop: 0 }}><span>Pour valider ce choix</span>
+            <select value={f.cout} onChange={(e) => setF({ ...f, cout: Number(e.target.value) })}>{COUTS_CHOIX.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          </label>
+          <div className="actions">
+            <button className="btn" disabled={envoi || f.question.trim().length < 3 || nbOptions < 2} onClick={envoyer}>{envoi ? "Envoi…" : `Envoyer le choix au client${f.cout ? ` (${f.cout} 🪙)` : " (gratuit)"}`}</button>
+            <button className="btn secondaire" onClick={() => setOuvert(false)}>Annuler</button>
+          </div>
+        </div>
+      )}
+      {etat.texte && <p className={`alerte ${etat.type === "erreur" ? "erreur" : "succes"}`}>{etat.texte}</p>}
+      {liste.length > 0 && (
+        <ul className="liste-choix-admin">
+          {liste.map((ch) => (
+            <li key={ch.id}>
+              <div>
+                <b>{ch.question}</b> <span className={`badge ${ch.cout > 0 ? "badge-or" : "badge-gratuit"}`}>{ch.cout > 0 ? `🪙 ${ch.cout}` : "Gratuit"}</span>
+                <p className="discret">{ch.options.join(" · ")}</p>
+                {ch.reponse ? <p className="succes" style={{ margin: 0 }}>☑️ Réponse du client : <b>{ch.reponse}</b>{ch.reponduLe ? ` (${date(ch.reponduLe)})` : ""}</p> : <p className="note" style={{ margin: 0 }}>⏳ En attente de la réponse du client</p>}
+              </div>
+              {!ch.reponse && <button className="btn petit secondaire" onClick={() => { if (window.confirm("Retirer ce choix ?")) action({ action: "choix_retirer", commandeId: c.id, choixId: ch.id }).catch((e) => setEtat({ type: "erreur", texte: e.message })); }}>Retirer</button>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Liens({ c, action }) {
   const [f, setF] = useState({ titre: "", url: "", visibleClient: true, prevenir: true });
   const [erreur, setErreur] = useState("");

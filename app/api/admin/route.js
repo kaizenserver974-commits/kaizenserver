@@ -3,7 +3,7 @@ import { texteSignet, htmlSignet } from "../../../lib/signet.js";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette, enregistrerMaquette, lirePiecesJointes } from "../../../lib/serveur/supabase.js";
 import { genererMaquette, validerImagesReference } from "../../../lib/serveur/generation.js";
 import { nettoyerProjet, estimer, recapitulatifSecours } from "../../../lib/moteur.js";
-import { STATUTS, validerMessage, validerDevis, statut, nonLus } from "../../../lib/espace.js";
+import { STATUTS, validerMessage, validerDevis, statut, nonLus, validerChoix } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
 import { rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
@@ -150,6 +150,34 @@ export async function POST(request) {
     const { html, erreur } = validerMaquetteAtelier(corps.html);
     if (erreur) return refus(erreur, 400);
     try { await enregistrerMaquette(sb, commande.id, assainir(html), "server"); } catch (e) { return refus(`La maquette n'a pas pu être enregistrée (${e.message}).`, 500); }
+    return NextResponse.json({ ok: true });
+  }
+
+  // Server transmet un choix au client pendant la réalisation (gratuit ou payant en pièces d'or).
+  if (corps.action === "choix_ajouter") {
+    const { choix, erreur } = validerChoix(corps);
+    if (erreur) return refus(erreur, 400);
+    const liste = Array.isArray(commande.projet?.choix) ? commande.projet.choix : [];
+    if (liste.length >= 40) return refus("Trop de choix pour ce projet.", 400);
+    const nouveau = { id: crypto.randomUUID(), ...choix, creeLe: new Date().toISOString() };
+    const { error } = await sb.from("kaizen_commandes").update({ projet: { ...(commande.projet || {}), choix: [...liste, nouveau] }, updated_at: new Date().toISOString() }).eq("id", commande.id);
+    if (error) return refus("Le choix n'a pas pu être enregistré.", 500);
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "equipe", type: "message", contenu: `📋 Un choix vous attend : ${choix.question}${choix.cout > 0 ? ` (${choix.cout} pièces d'or pour valider)` : " (gratuit)"}. Répondez dans « Ma commande ».` });
+    await notifier({
+      a: commande.email,
+      sujet: `📋 Un choix à faire pour votre application — commande ${commande.numero}`,
+      texte: `Bonjour ${commande.nom || ""},\n\nServer, votre maître du jeu, a besoin de votre avis :\n\n${choix.question}\n${choix.details ? `${choix.details}\n` : ""}\n${choix.options.map((o) => `• ${o}`).join("\n")}\n\n${choix.cout > 0 ? `Ce choix se valide avec ${choix.cout} pièces d'or.` : "Ce choix est gratuit."}\nRépondez depuis votre espace : ${lienClient}`,
+      repondreA: process.env.KAIZEN_EMAIL,
+    });
+    return NextResponse.json({ ok: true });
+  }
+  if (corps.action === "choix_retirer") {
+    const liste = Array.isArray(commande.projet?.choix) ? commande.projet.choix : [];
+    const ch = liste.find((x) => x.id === String(corps.choixId || ""));
+    if (!ch) return refus("Choix introuvable.", 404);
+    if (ch.reponse) return refus("Le client a déjà répondu : ce choix ne peut plus être retiré.", 409);
+    const { error } = await sb.from("kaizen_commandes").update({ projet: { ...(commande.projet || {}), choix: liste.filter((x) => x.id !== ch.id) } }).eq("id", commande.id);
+    if (error) return refus("Le choix n'a pas pu être retiré.", 500);
     return NextResponse.json({ ok: true });
   }
 

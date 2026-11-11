@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { bourse, debiter, SoldeInsuffisant } from "../../../lib/serveur/portefeuille.js";
 import { COUT_MODIF_SERVER } from "../../../lib/pieces.js";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette } from "../../../lib/serveur/supabase.js";
-import { validerMessage, nonLus, statut, liensPourClient } from "../../../lib/espace.js";
+import { validerMessage, nonLus, statut, liensPourClient, montantEnLigne } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
 import { mollieConfigure } from "../../../lib/serveur/mollie.js";
 import { demarrerPaiement, rafraichirPaiementsEnAttente } from "../../../lib/serveur/paiements.js";
@@ -69,6 +69,64 @@ export async function POST(request) {
   if (!commande) return refus("Commande introuvable.", 404);
 
   // Demande de modification de la maquette à Server : 30 pièces d'or prises dans la bourse du projet.
+  // Le client accepte EN UNE FOIS la maquette et l'offre de Server : étape suivante = payer l'acompte
+  // (ou commande en cours directement s'il n'y a rien à payer en ligne).
+  if (corps.action === "accepter_tout") {
+    const le = new Date().toISOString();
+    const offre = (commande.devis || []).find((d) => d.statut === "envoye");
+    if (offre) {
+      const { error: e1 } = await sb.from("kaizen_devis").update({ statut: "accepte", repondu_at: le }).eq("id", offre.id).eq("statut", "envoye");
+      if (e1) return refus("L'acceptation n'a pas pu être enregistrée.", 500);
+    }
+    const aPayer = offre ? montantEnLigne(offre) > 0 : false;
+    const nouveauStatut = offre ? (aPayer ? "devis_accepte" : "en_developpement") : commande.statut;
+    const { error } = await sb.from("kaizen_commandes").update({
+      statut: nouveauStatut,
+      projet: { ...(commande.projet || {}), maquetteValidee: true, maquetteAccepteeLe: commande.projet?.maquetteAccepteeLe || le },
+      updated_at: le,
+    }).eq("id", commande.id);
+    if (error) return refus("L'acceptation n'a pas pu être enregistrée.", 500);
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "client", contenu: offre ? `✅ J'accepte la maquette et l'offre (${offre.montant} €), merci !` : "✅ J'accepte la maquette, merci !" });
+    await notifier({
+      a: process.env.KAIZEN_EMAIL,
+      sujet: `✅ ${offre ? "Maquette et offre acceptées" : "Maquette acceptée"} — ${commande.numero} (${commande.nom || commande.email})`,
+      texte: `${commande.nom || commande.email} a accepté ${offre ? `la maquette et l'offre de ${offre.montant} €${aPayer ? " : il va régler l'acompte en ligne" : ""}` : "la maquette"} (commande ${commande.numero}).\n\nEspace Server : ${urlSite(request)}/admin`,
+      repondreA: commande.email,
+    }).catch(() => {});
+    return NextResponse.json({ ok: true, aPayer });
+  }
+
+  // Le client répond à un choix envoyé par Server (payant en pièces d'or si Server l'a décidé).
+  if (corps.action === "choix_repondre") {
+    const liste = Array.isArray(commande.projet?.choix) ? commande.projet.choix : [];
+    const ch = liste.find((x) => x.id === String(corps.choixId || ""));
+    if (!ch) return refus("Choix introuvable.", 404);
+    if (ch.reponse) return refus("Vous avez déjà fait ce choix.", 409);
+    const option = String(corps.option || "");
+    if (!ch.options.includes(option)) return refus("Choisissez une des réponses proposées.", 400);
+    let solde = null;
+    if (ch.cout > 0) {
+      const cleBourse = bourse(u.email, commande.projet?.projetLocal);
+      if (!cleBourse) return refus("Ouvrez ce projet depuis « Mes projets » sur cet appareil pour utiliser ses pièces d'or, ou écrivez à Server.", 400);
+      try { solde = await debiter(sb, cleBourse, ch.cout, `Choix validé : ${ch.question.slice(0, 80)} (${commande.numero})`); }
+      catch (e) {
+        if (e instanceof SoldeInsuffisant) return NextResponse.json({ erreur: e.message, solde: e.solde, manque: true }, { status: 402 });
+        return refus("Le paiement en pièces d'or est indisponible pour le moment.", 500);
+      }
+    }
+    const maj = liste.map((x) => (x.id === ch.id ? { ...x, reponse: option, reponduLe: new Date().toISOString() } : x));
+    const { error } = await sb.from("kaizen_commandes").update({ projet: { ...(commande.projet || {}), choix: maj }, updated_at: new Date().toISOString() }).eq("id", commande.id);
+    if (error) return refus("Votre choix n'a pas pu être enregistré.", 500);
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "client", contenu: `☑️ Mon choix — ${ch.question} → ${option}${ch.cout > 0 ? ` (−${ch.cout} 🪙)` : ""}` });
+    await notifier({
+      a: process.env.KAIZEN_EMAIL,
+      sujet: `☑️ Choix fait — ${commande.numero} (${commande.nom || commande.email})`,
+      texte: `${commande.nom || commande.email} a choisi :\n${ch.question}\n→ ${option}${ch.cout > 0 ? `\n(${ch.cout} pièces d'or payées)` : ""}\n\nEspace Server : ${urlSite(request)}/admin`,
+      repondreA: commande.email,
+    }).catch(() => {});
+    return NextResponse.json({ ok: true, solde });
+  }
+
   // Le client accepte la maquette envoyée par Server : Server est prévenu.
   if (corps.action === "maquette_accepter") {
     if (!commande.maquette) return refus("Pas encore de maquette.", 404);

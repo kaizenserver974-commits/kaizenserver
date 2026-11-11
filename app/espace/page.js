@@ -3,10 +3,10 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
-import { statut } from "../../lib/espace.js";
+import { statut, montantEnLigne } from "../../lib/espace.js";
 import MotDePasse from "../components/MotDePasse.js";
 import { COUT_MODIF_SERVER } from "../../lib/pieces.js";
-import { SuiviCommande, FilMessages, CarteDevis, BlocMaquette, date } from "../components/Espace.js";
+import { SuiviCommande, FilMessages, CarteDevis, BlocMaquette, date, euros } from "../components/Espace.js";
 
 const ONGLETS = [
   { id: "commandes", label: "Ma commande", icone: "🚚" },
@@ -110,15 +110,7 @@ function Espace() {
           <div className="titre-ligne">
             <div><h2>{c.recap?.titre || c.projet?.nom || "Mon application"}</h2><p className="discret">N° {c.numero} · commandée le {date(c.created_at)}</p></div>
             </div>
-          <SuiviCommande valeur={c.statut} majLe={c.updated_at} />
-          {c.maquette && (
-            <BlocMaquette
-              disponible
-              lire={async () => (await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
-            />
-          )}
-          {c.maquette && <AccepterMaquette c={c} recharger={charger} />}
-          {c.maquette && !c.projet?.maquetteValidee && <DemandeModification c={c} recharger={charger} />}
+          <ParcoursCommande c={c} recharger={charger} paiementEnLigne={donnees.paiementEnLigne} />
           {c.liens?.length > 0 && (
             <div className="liens-client">
               <h3>🔗 Vos liens</h3>
@@ -196,6 +188,178 @@ function Message({ titre, texte, lien, bouton }) {
         <a className="btn" href={lien}>{bouton}</a>
       </section>
     </main>
+  );
+}
+
+// ---------- Parcours de la commande, étape par étape ----------
+// 1. La maquette et l'offre (tarif, acompte) — accepter, ou demander une modification
+// 2. Payer l'acompte en ligne
+// 3. Votre commande est en cours — informations et choix envoyés par Server
+// 4. Application livrée
+const ETAPES_COMMANDE = [["maquette", "Maquette et offre"], ["paiement", "Paiement de l'acompte"], ["cours", "Commande en cours"], ["livree", "Livrée"]];
+
+function etapeCommande(c) {
+  if (c.statut === "livree") return "livree";
+  const offres = c.devis || [];
+  const offre = offres.find((d) => d.statut === "envoye") || [...offres].reverse().find((d) => d.statut === "accepte");
+  const accepte = c.projet?.maquetteValidee === true && (!offre || offre.statut === "accepte");
+  if (!accepte) return "maquette";
+  const aPayer = offre && offre.statut === "accepte" ? montantEnLigne(offre) : 0;
+  const paye = (c.paiements || []).some((p) => p.statut === "paid" && (!offre || p.devis_id === offre.id));
+  if (aPayer > 0 && !paye && c.statut !== "en_developpement") return "paiement";
+  return "cours";
+}
+
+function ParcoursCommande({ c, recharger, paiementEnLigne }) {
+  const etape = etapeCommande(c);
+  const index = ETAPES_COMMANDE.findIndex(([id]) => id === etape);
+  const [voirMaquette, setVoirMaquette] = useState(false);
+  const lire = async () => (await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html;
+  return (
+    <div className="parcours-commande">
+      <ol className="etapes-commande">
+        {ETAPES_COMMANDE.map(([id, label], i) => (
+          <li key={id} className={i < index ? "faite" : i === index ? "actuelle" : ""}><span>{i < index ? "✓" : i + 1}</span>{label}</li>
+        ))}
+      </ol>
+
+      {etape === "maquette" && (
+        !c.maquette ? (
+          <div className="etape-commande"><h3>🧞 Server prépare votre maquette</h3><p className="discret">Vous serez prévenu par e-mail dès qu'elle est prête, avec son offre.</p><SuiviCommande valeur={c.statut} majLe={c.updated_at} /></div>
+        ) : (
+          <div className="etape-commande">
+            <h3>1. Votre maquette et l'offre de Server</h3>
+            <BlocMaquette disponible ouvrir lire={lire} />
+            <OffreEtAcceptation c={c} recharger={recharger} />
+            <DemandeModification c={c} recharger={recharger} />
+          </div>
+        )
+      )}
+
+      {etape === "paiement" && <EtapePaiement c={c} paiementEnLigne={paiementEnLigne} />}
+
+      {(etape === "cours" || etape === "livree") && (
+        <div className="etape-commande">
+          <h3>{etape === "livree" ? "🚀 Votre application est livrée !" : "🛠️ Votre commande est en cours"}</h3>
+          <p className="discret">{etape === "livree" ? "Retrouvez ci-dessous vos liens et vos accès." : "Server réalise votre application. Il vous transmet ici ses informations et les choix à faire : répondez pour qu'il avance."}</p>
+          <SuiviCommande valeur={c.statut} majLe={c.updated_at} />
+          <ChoixClient c={c} recharger={recharger} />
+          {c.maquette && (
+            <div className="revoir-maquette">
+              <button className="btn petit secondaire" onClick={() => setVoirMaquette((x) => !x)}>{voirMaquette ? "Masquer la maquette" : "🖼️ Revoir la maquette acceptée"}</button>
+              {voirMaquette && <BlocMaquette disponible ouvrir lire={lire} />}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Étape 1 : l'offre (tarif, délai, acompte) et le bouton « J'accepte la maquette et l'offre ».
+function OffreEtAcceptation({ c, recharger }) {
+  const offre = (c.devis || []).find((d) => d.statut === "envoye");
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const enLigne = offre ? montantEnLigne(offre) : 0;
+  async function accepter() {
+    const texte = offre
+      ? `Accepter la maquette et l'offre de ${euros(offre.montant)} ?\n\nEn acceptant, vous acceptez les conditions générales de vente (page « Conditions de vente »).`
+      : "Accepter cette maquette ? Server sera prévenu et vous enverra son offre.";
+    if (!window.confirm(texte)) return;
+    setEnCours(true); setErreur("");
+    try { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "accepter_tout", commandeId: c.id }) }); await recharger(); }
+    catch (e) { setErreur(e.message); } finally { setEnCours(false); }
+  }
+  return (
+    <div className="accepter-maquette">
+      {offre ? (
+        <div className="offre-client">
+          <p className="discret">🧾 L'offre de Server pour réaliser votre application</p>
+          <p className="prix">{euros(offre.montant)}{offre.delai_semaines ? <small> · environ {offre.delai_semaines} semaine{offre.delai_semaines > 1 ? "s" : ""}</small> : null}</p>
+          {offre.details && <p className="devis-details">{offre.details}</p>}
+          <p>{enLigne > 0 ? <>💳 À régler en ligne après acceptation : <b>{offre.acompte_pct < 100 ? `acompte de ${offre.acompte_pct} % (${euros(enLigne)})` : euros(enLigne)}</b></> : "Server vous indiquera comment régler."}</p>
+        </div>
+      ) : <p className="discret">Server vous enverra son offre (tarif, délai) avec la maquette.</p>}
+      <p><b>{offre ? "La maquette et l'offre vous conviennent ?" : "Cette maquette vous plaît ?"}</b> Acceptez{offre ? "-les" : "-la"}, ou demandez une modification juste en dessous.</p>
+      <button className="btn grand" disabled={enCours} onClick={accepter}>{enCours ? "Envoi…" : offre ? "✅ J'accepte la maquette et l'offre" : "✅ J'accepte cette maquette"}</button>
+      {offre && <small className="discret">En acceptant, vous acceptez nos <a className="lien-cyan" href="/cgv" target="_blank" rel="noopener">conditions de vente</a>.</small>}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+    </div>
+  );
+}
+
+// Étape 2 : payer l'acompte (Mollie).
+function EtapePaiement({ c, paiementEnLigne }) {
+  const offre = [...(c.devis || [])].reverse().find((d) => d.statut === "accepte");
+  const [attente, setAttente] = useState(false);
+  const [erreur, setErreur] = useState("");
+  if (!offre) return null;
+  const montant = montantEnLigne(offre);
+  const libelle = offre.acompte_pct < 100 ? `l'acompte de ${offre.acompte_pct} % (${euros(montant)})` : euros(montant);
+  const enCours = (c.paiements || []).find((p) => p.devis_id === offre.id && ["open", "pending", "authorized"].includes(p.statut));
+  async function payer() {
+    setAttente(true); setErreur("");
+    try {
+      const r = await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "payer", commandeId: c.id, devisId: offre.id }) });
+      window.location.href = r.url;
+    } catch (e) { setErreur(e.message); setAttente(false); }
+  }
+  return (
+    <div className="etape-commande">
+      <h3>2. Payez l'acompte pour lancer votre application</h3>
+      <p>✅ Vous avez accepté la maquette et l'offre de <b>{euros(offre.montant)}</b>. Il reste à régler <b>{libelle}</b> : dès réception, Server lance la réalisation.</p>
+      {paiementEnLigne ? (
+        <div className="paiement">
+          <button className="btn grand" disabled={attente} onClick={payer}>{attente ? "Redirection vers le paiement…" : `💳 Payer ${libelle}`}</button>
+          <small className="discret">🔒 Paiement sécurisé par Mollie (carte bancaire, Apple Pay, virement…). {enCours ? "Un paiement est déjà en cours : vous pouvez le reprendre." : ""}</small>
+        </div>
+      ) : <p className="note">💳 Server vous indiquera comment régler {libelle}.</p>}
+      {erreur && <p className="alerte erreur">{erreur}</p>}
+    </div>
+  );
+}
+
+// Étape 3 : les choix envoyés par Server (gratuits ou validés avec des pièces d'or).
+function ChoixClient({ c, recharger }) {
+  const liste = Array.isArray(c.projet?.choix) ? c.projet.choix : [];
+  if (!liste.length) return <p className="note">📋 Aucun choix à faire pour le moment : Server vous préviendra par e-mail.</p>;
+  const aFaire = liste.filter((x) => !x.reponse);
+  return (
+    <div className="choix-client">
+      <h4>📋 Vos choix {aFaire.length ? <span className="badge">{aFaire.length} à faire</span> : null}</h4>
+      {[...aFaire, ...liste.filter((x) => x.reponse)].map((ch) => <UnChoix key={ch.id} c={c} ch={ch} recharger={recharger} />)}
+    </div>
+  );
+}
+
+function UnChoix({ c, ch, recharger }) {
+  const [option, setOption] = useState("");
+  const [etat, setEtat] = useState("");
+  async function valider() {
+    if (ch.cout > 0 && !window.confirm(`Valider « ${option} » pour ${ch.cout} pièces d'or ?`)) return;
+    setEtat("envoi");
+    try { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "choix_repondre", commandeId: c.id, choixId: ch.id, option }) }); setEtat(""); await recharger(); }
+    catch (e) { setEtat(e.message); }
+  }
+  if (ch.reponse) {
+    return <div className="un-choix fait"><p><b>{ch.question}</b></p><p>☑️ Votre choix : <b>{ch.reponse}</b>{ch.cout > 0 ? <small className="discret"> · {ch.cout} 🪙</small> : null}</p></div>;
+  }
+  return (
+    <div className="un-choix">
+      <div className="titre-ligne"><p><b>{ch.question}</b></p><span className={`badge ${ch.cout > 0 ? "badge-or" : "badge-gratuit"}`}>{ch.cout > 0 ? `🪙 ${ch.cout} pièces d'or` : "Gratuit"}</span></div>
+      {ch.details && <p className="discret">{ch.details}</p>}
+      <div className="options-choix">
+        {ch.options.map((o) => (
+          <label key={o} className={`option-choix ${option === o ? "choisie" : ""}`}>
+            <input type="radio" name={`choix-${ch.id}`} checked={option === o} onChange={() => setOption(o)} />
+            <span>{o}</span>
+          </label>
+        ))}
+      </div>
+      <button className="btn" disabled={!option || etat === "envoi"} onClick={valider}>{etat === "envoi" ? "Envoi…" : ch.cout > 0 ? `Valider mon choix (−${ch.cout} 🪙)` : "Valider mon choix"}</button>
+      {etat && etat !== "envoi" && <p className="alerte erreur">{etat}</p>}
+    </div>
   );
 }
 

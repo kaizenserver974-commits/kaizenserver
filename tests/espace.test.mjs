@@ -66,3 +66,13 @@ test("modification par Server : coordonnées et offres", () => {
   assert.equal(offreModifiable({ id: "d", statut: "accepte" }, []), false);
   assert.equal(offreModifiable({ id: "d", statut: "envoye" }, [{ devis_id: "d", statut: "paid" }]), false);
 });
+
+test("choix à faire par le client : question, 2 à 8 réponses, gratuit ou en pièces d'or", async () => {
+  const { validerChoix } = await import("../lib/espace.js");
+  const ok = validerChoix({ question: "Quelle couleur ?", options: "Bleu\nRouge\n\n", cout: "30" });
+  assert.deepEqual(ok.choix, { question: "Quelle couleur ?", details: "", options: ["Bleu", "Rouge"], cout: 30 });
+  assert.equal(validerChoix({ question: "Quelle couleur ?", options: ["Bleu"] }).erreur.includes("2 à 8"), true);
+  assert.ok(validerChoix({ question: "Quelle couleur ?", options: ["Bleu", "bleu"] }).erreur);
+  assert.ok(validerChoix({ question: "Q ?", options: ["A", "B"], cout: -5 }).erreur);
+  assert.equal(validerChoix({ question: "Quelle couleur ?", options: ["A", "B"] }).choix.cout, 0);
+});
