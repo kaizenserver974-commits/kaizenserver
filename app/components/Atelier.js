@@ -767,9 +767,15 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
 }
 
 // Server envoie la maquette au client : message dans son espace + e-mail avec le lien.
+const ACOMPTES_OFFRE = [[0, "Pas de paiement en ligne"], [30, "Acompte de 30 % en ligne"], [50, "Acompte de 50 % en ligne"], [100, "Totalité en ligne"]];
 export function EnvoiMaquette({ commande, apres, avant = null }) {
   const genie = commande.formule === "genie";
   const [mot, setMot] = useState("");
+  // L'offre (paiement) part obligatoirement avec le vœu, sauf si une offre est déjà en attente de réponse.
+  const enAttente = (commande.devis || []).find((d) => d.statut === "envoye");
+  const [nouvelle, setNouvelle] = useState(!enAttente);
+  const [offre, setOffre] = useState({ montant: "", delaiSemaines: "", acomptePct: 30, details: "" });
+  const montantOk = Number(String(offre.montant).replace(",", ".")) > 0;
   const [etat, setEtat] = useState({ type: "", texte: "" });
   const [enCours, setEnCours] = useState(false);
   if (!commande.maquette && !avant) return null;
@@ -779,22 +785,43 @@ export function EnvoiMaquette({ commande, apres, avant = null }) {
     try {
       // Dans l'atelier : on enregistre d'abord la maquette affichée (celle qu'on vient de finaliser).
       if (avant) { setEtat({ type: "succes", texte: "Enregistrement de la maquette affichée…" }); await avant(); }
-      const r = await api({ action: "maquette_envoyer", commandeId: commande.id, mot });
+      if (nouvelle && !montantOk) throw new Error("Indiquez le tarif de votre offre : le client doit pouvoir payer.");
+      const r = await api({ action: "maquette_envoyer", commandeId: commande.id, mot, ...(nouvelle ? { offre } : {}) });
       setEtat({ type: "succes", texte: r.email ? `✅ Envoyé ! ${commande.nom || "Le client"} a reçu un e-mail avec le lien de sa maquette, et un message dans son espace.` : "✅ Message envoyé dans l'espace du client (l'e-mail n'a pas pu partir : vérifiez RESEND_API_KEY dans Vercel)." });
-      setMot("");
+      setMot(""); setNouvelle(false); setOffre({ montant: "", delaiSemaines: "", acomptePct: 30, details: "" });
       apres?.();
     } catch (e) { setEtat({ type: "erreur", texte: e.message }); } finally { setEnCours(false); }
   }
   return (
     <div className="envoi-maquette">
-      <h3>{genie ? "🧞 Exaucer le vœu : envoyer la maquette au client" : "📩 Envoyer la maquette au client"}</h3>
+      <h3>{genie ? "🧞 Exaucer le vœu : envoyer la maquette et l'offre au client" : "📩 Envoyer la maquette et l'offre au client"}</h3>
       {avant && <p className="note"><b>La maquette affichée ci-dessus est enregistrée automatiquement puis envoyée</b> : c'est exactement elle que le client verra.</p>}
       <p className="note">{deja ? `Déjà envoyée le ${new Date(deja).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. Vous pouvez la renvoyer après une modification.` : "Le client recevra un e-mail avec le lien de sa maquette et un message dans son espace, où il pourra l'accepter ou demander une modification."}</p>
       <label className="champ" style={{ marginTop: 0 }}>
         <span>Votre mot pour le client <small className="discret">(facultatif)</small></span>
         <textarea rows={3} maxLength={1500} value={mot} onChange={(e) => setMot(e.target.value)} placeholder={genie ? "Ex. : Voici votre application telle que je l'imagine ! Dites-moi ce que vous en pensez." : "Ex. : Voici la maquette de votre application, j'attends votre avis."} />
       </label>
-      <button className="btn" disabled={enCours} onClick={envoyer}>{enCours ? "Envoi…" : genie ? "🧞 Vœu exaucé : envoyer au client" : "📩 Envoyer au client"}</button>
+      <div className="offre-voeu">
+        <b>🧾 Votre offre (paiement) — envoyée avec la maquette</b>
+        {enAttente && (
+          <label className="case" style={{ marginTop: 0 }}>
+            <input type="checkbox" checked={nouvelle} onChange={(e) => setNouvelle(e.target.checked)} />
+            <span>Une offre attend déjà la réponse du client ({new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(enAttente.montant)}) : elle sera rappelée. Cochez pour proposer une nouvelle offre.</span>
+          </label>
+        )}
+        {nouvelle && (
+          <div className="offre-champs">
+            <label className="champ" style={{ marginTop: 0 }}><span>Tarif (€) *</span><input inputMode="decimal" value={offre.montant} onChange={(e) => setOffre({ ...offre, montant: e.target.value })} placeholder="Ex. : 1500" /></label>
+            <label className="champ" style={{ marginTop: 0 }}><span>Délai (semaines)</span><input inputMode="numeric" value={offre.delaiSemaines} onChange={(e) => setOffre({ ...offre, delaiSemaines: e.target.value })} placeholder="Ex. : 6" /></label>
+            <label className="champ" style={{ marginTop: 0 }}><span>Paiement en ligne</span>
+              <select value={offre.acomptePct} onChange={(e) => setOffre({ ...offre, acomptePct: Number(e.target.value) })}>{ACOMPTES_OFFRE.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            </label>
+            <label className="champ offre-details" style={{ marginTop: 0 }}><span>Ce que comprend l'offre</span><textarea rows={2} maxLength={4000} value={offre.details} onChange={(e) => setOffre({ ...offre, details: e.target.value })} placeholder="Ex. : application mobile + espace de gestion, mise en ligne, 1 mois de suivi" /></label>
+          </div>
+        )}
+      </div>
+      <button className="btn" disabled={enCours || (nouvelle && !montantOk)} onClick={envoyer}>{enCours ? "Envoi…" : genie ? "🧞 Vœu exaucé : envoyer la maquette et l'offre" : "📩 Envoyer la maquette et l'offre"}</button>
+      {nouvelle && !montantOk && <small className="discret">Indiquez le tarif pour pouvoir exaucer le vœu.</small>}
       {etat.texte && <p className={`alerte ${etat.type === "erreur" ? "erreur" : "succes"}`}>{etat.texte}</p>}
     </div>
   );

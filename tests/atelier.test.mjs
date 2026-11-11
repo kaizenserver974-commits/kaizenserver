@@ -30,3 +30,13 @@ test("e-mail « vœu exaucé » : lien de la maquette, mot de Server échappé",
   assert.match(e.texte, /Voici <b>ta<\/b> moto/);
   assert.match(emailMaquetteEnvoyee({ nom: "A", numero: "KZ-2", genie: false, lienMaquette: "x", lienEspace: "y" }).sujet, /maquette est prête/);
 });
+
+test("e-mail « vœu exaucé » avec l'offre : tarif, délai, acompte en ligne", async () => {
+  const { emailMaquetteEnvoyee } = await import("../lib/commande.js");
+  const e = emailMaquetteEnvoyee({ nom: "Camille", numero: "KZ-1", genie: true, lienMaquette: "https://x/m", lienEspace: "https://x/e", offre: { montant: 1500, delai_semaines: 6, details: "Appli + suivi", acompte_pct: 30 } });
+  assert.match(e.sujet, /mon offre/);
+  assert.match(e.texte, /1\s?500,00\s?€/);
+  assert.match(e.texte, /6 semaines/);
+  assert.match(e.texte, /30 %/);
+  assert.match(e.html, /Accepter et payer dans mon espace/);
+});

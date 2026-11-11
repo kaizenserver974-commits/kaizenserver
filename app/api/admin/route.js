@@ -159,12 +159,27 @@ export async function POST(request) {
     if (!commande.maquette) return refus("Enregistrez d'abord une maquette pour ce projet.", 400);
     const mot = String(corps.mot || "").trim().slice(0, 1500);
     const genie = commande.formule === "genie";
+    // L'offre (tarif, délai, paiement en ligne) part en même temps que la maquette.
+    const offreEnAttente = (commande.devis || []).find((d) => d.statut === "envoye");
+    let offre = null;
+    if (corps.offre) {
+      const { devis, erreur } = validerDevis(corps.offre);
+      if (erreur) return refus(erreur, 400);
+      const { error: e1 } = await sb.from("kaizen_devis").insert({ commande_id: commande.id, ...devis });
+      if (e1) return refus("L'offre n'a pas pu être créée.", 500);
+      await sb.from("kaizen_commandes").update({ statut: "devis_envoye" }).eq("id", commande.id);
+      offre = devis;
+    } else if (offreEnAttente) {
+      offre = offreEnAttente; // rappel de l'offre déjà proposée
+    } else {
+      return refus("Proposez votre offre (tarif, délai) en même temps que le vœu : le client doit pouvoir payer.", 400);
+    }
     const lienMaquette = commande.maquette.jeton ? `${urlSite(request)}/maquette/${commande.maquette.jeton}` : lienClient;
-    const contenu = `${genie ? "🧞 Votre vœu est exaucé ! Votre maquette sur mesure est prête." : "🖼️ Votre maquette est prête."} Retrouvez-la ci-dessous : vous pouvez l'accepter ou demander une modification.${mot ? `\n\n${mot}` : ""}`;
+    const contenu = `${genie ? "🧞 Votre vœu est exaucé ! Votre maquette sur mesure est prête." : "🖼️ Votre maquette est prête."} Retrouvez-la ci-dessous${offre ? `, avec mon offre : ${new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(offre.montant)}${offre.delai_semaines ? `, environ ${offre.delai_semaines} semaines` : ""} (onglet Devis : accepter et payer)` : ""}. Vous pouvez aussi demander une modification.${mot ? `\n\n${mot}` : ""}`;
     const { error } = await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "equipe", type: "message", contenu });
     if (error) return refus("Le message n'a pas pu être envoyé.", 500);
     await sb.from("kaizen_commandes").update({ projet: { ...(commande.projet || {}), maquetteEnvoyeeLe: new Date().toISOString() }, updated_at: new Date().toISOString() }).eq("id", commande.id);
-    const email = emailMaquetteEnvoyee({ nom: commande.nom, numero: commande.numero, genie, mot, lienMaquette, lienEspace: lienClient });
+    const email = emailMaquetteEnvoyee({ nom: commande.nom, numero: commande.numero, genie, mot, lienMaquette, lienEspace: lienClient, offre });
     const envoye = await notifier({ a: commande.email, ...email, repondreA: process.env.KAIZEN_EMAIL });
     return NextResponse.json({ ok: true, email: envoye });
   }

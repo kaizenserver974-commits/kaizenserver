@@ -1227,3 +1227,7 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .en-analyse .etape .btn.grand:not(.secondaire) { position: relative; pointer-events: none; color: transparent; background: linear-gradient(135deg, #10b981, #34d399) !important; box-shadow: 0 0 26px rgba(16, 185, 129, 0.6); }
 .en-analyse .etape .btn.grand:not(.secondaire)::after { content: "✓ C'est parti…"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 800; }
 @keyframes valide-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.offre-voeu { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.4); }
+.offre-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.offre-champs .offre-details { grid-column: 1 / -1; }
+.offre-champs input, .offre-champs select, .offre-champs textarea { width: 100%; }
