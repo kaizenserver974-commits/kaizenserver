@@ -38,7 +38,7 @@ function Espace() {
         return;
       }
       setDonnees(d);
-      setChoisie((c) => c || d.commandes[0]?.id || null);
+      setChoisie((c) => (c && d.commandes.some((x) => x.id === c && x.statut !== "annulee") ? c : d.commandes.find((x) => x.statut !== "annulee")?.id || null));
       setEtat("pret");
     } catch (e) {
       if (e.status === 401) { await sb?.auth.signOut({ scope: "local" }).catch(() => {}); setEtat("deconnecte"); }
@@ -61,7 +61,7 @@ function Espace() {
   const action = async (corps) => { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify(corps) }); await charger(); };
 
   // Ouvrir les messages d'une commande les marque comme lus.
-  const commande = donnees?.commandes.find((c) => c.id === choisie);
+  const commande = donnees?.commandes.find((c) => c.id === choisie && c.statut !== "annulee");
   const aNonLus = commande?.messages.some((m) => m.auteur === "equipe" && !m.lu);
   useEffect(() => {
     if (onglet === "messages" && commande && aNonLus) action({ action: "lu", commandeId: commande.id }).catch(() => {});
@@ -72,7 +72,8 @@ function Espace() {
   if (etat === "deconnecte") return <Message titre="Connectez-vous" texte="Retrouvez vos commandes, vos devis et vos messages avec l'e-mail utilisé lors de votre commande." lien="/connexion" bouton="Se connecter" />;
   if (etat === "erreur") return <Message titre="Oups" texte={erreur} lien="/espace" bouton="Réessayer" />;
 
-  const tout = donnees.commandes;
+  const tout = donnees.commandes.filter((c) => c.statut !== "annulee"); // les demandes annulées disparaissent partout
+  const nonLusVisibles = tout.reduce((n, c) => n + (c.messages || []).filter((m) => m.auteur === "equipe" && !m.lu).length, 0);
   const commandes = tout.filter((c) => c.formule !== "contact" && c.statut !== "annulee"); // ni le fil « Message à Server », ni les demandes annulées
   const tousDevis = commandes.flatMap((c) => c.devis.map((d) => ({ ...d, commande: c })));
   const devisEnAttente = tousDevis.filter((d) => d.statut === "envoye").length;
@@ -91,7 +92,7 @@ function Espace() {
         {ONGLETS.map((o) => (
           <button key={o.id} role="tab" aria-selected={onglet === o.id} className={`onglet ${onglet === o.id ? "actif" : ""}`} onClick={() => changerOnglet(o.id)}>
             <span aria-hidden="true">{o.icone}</span> {o.label}
-            {o.id === "messages" && donnees.nonLus > 0 && <b className="pastille-compte">{donnees.nonLus}</b>}
+            {o.id === "messages" && nonLusVisibles > 0 && <b className="pastille-compte">{nonLusVisibles}</b>}
             {o.id === "devis" && devisEnAttente > 0 && <b className="pastille-compte">{devisEnAttente}</b>}
           </button>
         ))}
