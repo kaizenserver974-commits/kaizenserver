@@ -1209,3 +1209,4 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .bandeau-suivi { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 14px 18px; border-radius: 16px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(123, 92, 255, 0.2)); border: 1px solid rgba(16, 185, 129, 0.5); position: relative; z-index: 2; }
 .bandeau-suivi p { margin: 4px 0 0; font-size: 14px; }
 @media (min-width: 761px) { .bandeau-suivi { margin-top: 56px; } }
+.bourse-plafond { flex-basis: 100%; color: #fcd34d; font-size: 12px; line-height: 1.35; }

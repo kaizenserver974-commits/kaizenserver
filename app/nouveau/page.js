@@ -671,7 +671,7 @@ function CompteurFlottant() {
 
 // Bourse de pièces d'or, toujours visible en haut, avec le bouton pour en acheter.
 function BourseOr({ recharger }) {
-  const { connecte, solde, indisponible, erreur, charger } = usePortefeuille();
+  const { connecte, solde, indisponible, erreur, charger, plafondAtteint } = usePortefeuille();
   if (connecte === null) return <div className="bourse-or"><span className="bourse-solde">🪙 …</span></div>;
   if (connecte && solde === null && erreur) {
     return (
@@ -693,6 +693,7 @@ function BourseOr({ recharger }) {
     <div className="bourse-or">
       <span className="bourse-solde" title="Vos pièces d'or, gardées sur votre compte">🪙 <b>{indisponible ? "—" : solde ?? "…"}</b> pièces d'or</span>
       <button className="btn petit bourse-acheter" onClick={recharger}>＋ Acheter des pièces</button>
+      {plafondAtteint && <small className="bourse-plafond">⏳ Limite de 1000 pièces gratuites atteinte aujourd'hui (tous projets du compte). Les étapes rapportent de nouveau des pièces demain à 4 h (heure de La Réunion) ; vos pièces achetées restent utilisables.</small>}
     </div>
   );
 }
