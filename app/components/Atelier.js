@@ -628,25 +628,83 @@ function nettete(ctx, l, h, force) {
 const dimensions = (url) => new Promise((ok) => { const i = new Image(); i.onload = () => ok({ l: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => ok(null); i.src = url; });
 
 // Découpe d'une image : nombre d'écrans par ligne et nombre de lignes.
-function Decoupe({ couper }) {
+// Découpe d'une planche : nombre d'écrans par ligne et de lignes, et les bandes à enlever
+// (titre en haut, textes en bas, marges sur les côtés). Un aperçu montre les lignes de coupe.
+const POURCENTS = [0, 2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 18, 20, 22, 25, 28, 30, 35, 40];
+function Decoupe({ couper, url }) {
   const [n, setN] = useState(2);
   const [m, setM] = useState(1);
-  return (
-    <span className="decoupe-choix">
-      <span aria-hidden="true">✂️</span>
-      <label><small>Écrans côte à côte (de gauche à droite)</small>
-        <select value={n} onChange={(e) => setN(Number(e.target.value))}>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((x) => <option key={x} value={x}>{x} écran{x > 1 ? "s" : ""} par ligne</option>)}
-        </select>
-      </label>
-      <label><small>Lignes (de haut en bas)</small>
-        <select value={m} onChange={(e) => setM(Number(e.target.value))}>
-          {[1, 2, 3, 4, 5, 6].map((x) => <option key={x} value={x}>{x} ligne{x > 1 ? "s" : ""}</option>)}
-        </select>
-      </label>
-      <button type="button" className="btn petit" disabled={n * m < 2} onClick={() => couper(n, m)}>Couper en {n * m} écrans</button>
-    </span>
+  const [haut, setHaut] = useState(0);
+  const [bas, setBas] = useState(0);
+  const [cotes, setCotes] = useState(0);
+  const choixPct = (val, set, label) => (
+    <label><small>{label}</small>
+      <select value={val} onChange={(e) => set(Number(e.target.value))}>{POURCENTS.map((x) => <option key={x} value={x}>{x === 0 ? "rien" : `${x} %`}</option>)}</select>
+    </label>
   );
+  return (
+    <div className="decoupe-bloc">
+      <div className="decoupe-choix">
+        <span aria-hidden="true">✂️</span>
+        <label><small>Écrans côte à côte (de gauche à droite)</small>
+          <select value={n} onChange={(e) => setN(Number(e.target.value))}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((x) => <option key={x} value={x}>{x} écran{x > 1 ? "s" : ""} par ligne</option>)}
+          </select>
+        </label>
+        <label><small>Lignes (de haut en bas)</small>
+          <select value={m} onChange={(e) => setM(Number(e.target.value))}>
+            {[1, 2, 3, 4, 5, 6].map((x) => <option key={x} value={x}>{x} ligne{x > 1 ? "s" : ""}</option>)}
+          </select>
+        </label>
+        {choixPct(haut, setHaut, "Enlever en haut (titre)")}
+        {choixPct(bas, setBas, "Enlever en bas (textes)")}
+        {choixPct(cotes, setCotes, "Enlever sur les côtés")}
+        <button type="button" className="btn petit" disabled={n * m < 2 && !haut && !bas && !cotes} onClick={() => couper(n, m, { haut, bas, cotes })}>{n * m > 1 ? `Couper en ${n * m} écrans` : "Rogner l'image"}</button>
+      </div>
+      {url && (
+        <div className="apercu-decoupe" aria-label="Aperçu des lignes de coupe">
+          <img src={url} alt="" />
+          <i className="masque" style={{ top: 0, left: 0, right: 0, height: `${haut}%` }} />
+          <i className="masque" style={{ bottom: 0, left: 0, right: 0, height: `${bas}%` }} />
+          <i className="masque" style={{ top: `${haut}%`, bottom: `${bas}%`, left: 0, width: `${cotes}%` }} />
+          <i className="masque" style={{ top: `${haut}%`, bottom: `${bas}%`, right: 0, width: `${cotes}%` }} />
+          <div className="grille-coupe" style={{ top: `${haut}%`, bottom: `${bas}%`, left: `${cotes}%`, right: `${cotes}%`, gridTemplateColumns: `repeat(${n}, 1fr)`, gridTemplateRows: `repeat(${m}, 1fr)` }}>
+            {Array.from({ length: n * m }, (_, k) => <span key={k}>{k + 1}</span>)}
+          </div>
+        </div>
+      )}
+      <small className="discret">L'aperçu montre ce qui sera gardé : chaque case numérotée devient un écran. Les zones sombres sont enlevées.</small>
+    </div>
+  );
+}
+
+// Découpe une planche en écrans (lus ligne par ligne) : chaque écran devient sa propre image, ajoutée à la galerie.
+// marges : pourcentages à enlever en haut (titre), en bas (textes) et sur les côtés.
+async function decouperPlanche(url, n, m, { haut = 0, bas = 0, cotes = 0 } = {}, nom = "Planche", progression = () => {}) {
+  const img = await new Promise((ok, ko) => { const x = new Image(); x.onload = () => ok(x); x.onerror = () => ko(new Error("Image illisible")); x.src = url; });
+  const x0 = img.naturalWidth * cotes / 100, y0 = img.naturalHeight * haut / 100;
+  const lc = (img.naturalWidth * (1 - 2 * cotes / 100)) / n, hc = (img.naturalHeight * (1 - (haut + bas) / 100)) / m;
+  // Petits écrans : agrandis jusqu'à 2× avec un lissage de qualité, puis rendus plus nets.
+  const agrandir = Math.max(1, Math.min(2, 720 / lc));
+  const toile = document.createElement("canvas");
+  toile.width = Math.round(lc * agrandir); toile.height = Math.round(hc * agrandir);
+  const ctx = toile.getContext("2d", { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  const parts = [];
+  for (let r = 0; r < m; r++) {
+    for (let k = 0; k < n; k++) {
+      const numero = parts.length + 1;
+      progression(`Découpe : écran ${numero} sur ${n * m}…`);
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, toile.width, toile.height);
+      ctx.drawImage(img, x0 + k * lc, y0 + r * hc, lc, hc, 0, 0, toile.width, toile.height);
+      if (agrandir > 1.05) nettete(ctx, toile.width, toile.height, 0.35);
+      let donnees = toile.toDataURL("image/jpeg", 0.94);
+      if (donnees.length > 3_800_000) donnees = toile.toDataURL("image/jpeg", 0.85);
+      const repImg = await api({ action: "image_ajouter", image: donnees, description: `${nom} — écran ${numero}` });
+      parts.push({ id: repImg.image.id, url: urlImage(repImg.image.id) });
+    }
+  }
+  return parts;
 }
 
 // Choix des images qui deviennent les écrans de la maquette.
@@ -663,33 +721,12 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
   // chaque écran devient sa propre image (ajoutée à la galerie), lue ligne par ligne.
   const [decoupe, setDecoupe] = useState("");
   const [erreur, setErreur] = useState("");
-  async function couper(i, n, m) {
+  async function couper(i, n, m, marges = {}) {
     const e = ecrans[i];
     setErreur(""); setDecoupe("Découpe de l'image…");
     try {
-      const img = await new Promise((ok, ko) => { const x = new Image(); x.onload = () => ok(x); x.onerror = () => ko(new Error("Image illisible")); x.src = e.url; });
-      const lc = img.naturalWidth / n, hc = img.naturalHeight / m;
-      // Petits écrans (planche en basse définition) : agrandis jusqu'à 2× avec un lissage de qualité,
-      // puis rendus plus nets, pour un aperçu moins flou.
-      const agrandir = Math.max(1, Math.min(2, 720 / lc));
-      const toile = document.createElement("canvas");
-      toile.width = Math.round(lc * agrandir); toile.height = Math.round(hc * agrandir);
-      const ctx = toile.getContext("2d", { willReadFrequently: true });
-      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-      const parts = [];
-      for (let r = 0; r < m; r++) {
-        for (let k = 0; k < n; k++) {
-          const numero = parts.length + 1;
-          setDecoupe(`Découpe : écran ${numero} sur ${n * m}…`);
-          ctx.fillStyle = "#000"; ctx.fillRect(0, 0, toile.width, toile.height);
-          ctx.drawImage(img, k * lc, r * hc, lc, hc, 0, 0, toile.width, toile.height);
-          if (agrandir > 1.05) nettete(ctx, toile.width, toile.height, 0.35);
-          let donnees = toile.toDataURL("image/jpeg", 0.94);
-          if (donnees.length > 3_800_000) donnees = toile.toDataURL("image/jpeg", 0.85);
-          const rep = await api({ action: "image_ajouter", image: donnees, description: `${e.nom || "Planche"} — écran ${numero}` });
-          parts.push({ id: rep.image.id, url: urlImage(rep.image.id), nom: numero === 1 ? e.nom : `Écran ${i + numero}` });
-        }
-      }
+      const morceaux = await decouperPlanche(e.url, n, m, marges, e.nom || "Planche", setDecoupe);
+      const parts = morceaux.map((x, k) => ({ id: x.id, url: x.url, nom: k === 0 ? e.nom : `Écran ${i + k + 1}` }));
       setEcrans((l) => [...l.slice(0, i), ...parts, ...l.slice(i + 1)].slice(0, MAX_ECRANS));
       if (n * m > 6) setOnglets(false); // l'image a souvent sa propre barre de menu : on la rend cliquable avec « ▭ Zone cliquable »
     } catch (err) {
@@ -714,7 +751,7 @@ export function ChoixEcransImages({ valider, annuler, initial = null }) {
                 {style === "vitrine" && <input className="legende" value={e.legende ?? ""} maxLength={80} placeholder="Phrase au-dessus de l'écran (ex. Suivez l'entretien de votre moto)" onChange={(ev) => setEcrans((l) => l.map((x, j) => (j === i ? { ...x, legende: ev.target.value } : x)))} aria-label={`Phrase de l'écran ${i + 1}`} />}
                 <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, -1)} aria-label="Monter">↑</button>
                 <button type="button" className="btn petit secondaire" onClick={() => deplacer(i, 1)} aria-label="Descendre">↓</button>
-                {!e.decoupe && !decoupe && <Decoupe couper={(n, m) => couper(i, n, m)} />}
+                {!e.decoupe && !decoupe && <Decoupe url={e.url} couper={(n, m, marges) => couper(i, n, m, marges)} />}
                 <button type="button" className="btn petit secondaire" onClick={() => setEcrans((l) => l.filter((_, j) => j !== i))} aria-label="Retirer">×</button>
               </li>
             );
@@ -839,6 +876,27 @@ export function VitrineExpress({ titre, valider, annuler }) {
   const [erreur, setErreur] = useState("");
   const [galeriePour, setGaleriePour] = useState(null); // "signet" ou numéro de case
   const [telephone, setTelephone] = useState(false);
+  const [planche, setPlanche] = useState(""); // planche à découper pour remplir les emplacements
+  async function importerPlanche(fichier) {
+    if (!fichier) return;
+    setErreur(""); setAttente("Envoi de la planche…");
+    try {
+      const r = await api({ action: "image_ajouter", image: await versDataUrl(fichier, 4096, { qualite: 0.93, max: 3_800_000 }), description: `Planche — ${fichier.name}` });
+      setPlanche(urlImage(r.image.id));
+    } catch (e) { setErreur(e.message); } finally { setAttente(""); }
+  }
+  async function decouperDansVitrine(n, m, marges) {
+    setErreur(""); setAttente("Découpe de la planche…");
+    try {
+      const morceaux = await decouperPlanche(planche, n, m, marges, "Planche vitrine", setAttente);
+      // Les écrans découpés prennent place dans les emplacements, dans l'ordre (jusqu'à 12).
+      setCases((l) => {
+        const total = Math.min(12, Math.max(6, morceaux.length));
+        return Array.from({ length: total }, (_, k) => (morceaux[k] ? { url: morceaux[k].url, phrase: l[k]?.phrase || "" } : l[k] || { url: "", phrase: "" }));
+      });
+      setPlanche("");
+    } catch (e) { setErreur(`La découpe n'a pas abouti (${e.message}).`); } finally { setAttente(""); }
+  }
 
   const placer = (cible, url) => {
     if (cible === "signet") setSignet(url);
@@ -870,7 +928,7 @@ export function VitrineExpress({ titre, valider, annuler }) {
   return (
     <div className="vitrine-express">
       <h3>🛍️ Vitrine en 6 images</h3>
-      <p className="note">Ajoutez le signet (l'icône) et jusqu'à 6 écrans de l'application, avec une phrase pour chacun. La maquette sera présentée comme une fiche d'application.</p>
+      <p className="note">Ajoutez le signet (l'icône) et les écrans de l'application (un par emplacement, ou en découpant une planche), avec une phrase pour chacun. La maquette sera présentée comme une fiche d'application.</p>
       <div className="ve-entete">
         <div>
           <p className="ve-titre">Signet</p>
@@ -884,6 +942,22 @@ export function VitrineExpress({ titre, valider, annuler }) {
         </div>
       </div>
       {galeriePour === "signet" && <GalerieImages libelleChoisir="Prendre comme signet" choisir={(_id, url) => { placer("signet", url); setGaleriePour(null); }} />}
+      <div className="ve-planche">
+        <b>✂️ Remplir les emplacements avec une planche</b>
+        <p className="note">Vous avez une image avec plusieurs écrans côte à côte ? Découpez-la : chaque écran se place tout seul dans les emplacements ci-dessous, dans l'ordre.</p>
+        {!planche ? (
+          <div className="actions">
+            <label className="btn petit">📥 Importer une planche<input type="file" accept="image/*" hidden onChange={(e) => { importerPlanche(e.target.files?.[0]); e.target.value = ""; }} /></label>
+            <button type="button" className="btn petit secondaire" onClick={() => setGaleriePour(galeriePour === "planche" ? null : "planche")}>🖼️ Prendre dans ma galerie</button>
+          </div>
+        ) : (
+          <>
+            <Decoupe url={planche} couper={decouperDansVitrine} />
+            <button type="button" className="btn petit secondaire" onClick={() => setPlanche("")}>Changer de planche</button>
+          </>
+        )}
+        {galeriePour === "planche" && <GalerieImages libelleChoisir="Découper cette planche" choisir={(_id, url) => { setPlanche(url); setGaleriePour(null); }} />}
+      </div>
       <div className="ve-grille">
         {cases.map((c, i) => (
           <div key={i} className="ve-case">

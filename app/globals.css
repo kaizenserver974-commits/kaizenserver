@@ -1280,3 +1280,14 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .etiquette-client { position: absolute; left: 4px; bottom: 4px; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 999px; background: rgba(16, 185, 129, 0.9); color: #fff; }
 .vignette-client.ecartee .etiquette-client { background: rgba(100, 100, 120, 0.9); }
 .piece-image { margin: 0; display: grid; gap: 6px; justify-items: start; }
+
+/* Découpe : bandes à enlever + aperçu des lignes de coupe */
+.decoupe-bloc { flex-basis: 100%; display: grid; gap: 8px; }
+.apercu-decoupe { position: relative; max-width: 560px; border-radius: 10px; overflow: hidden; line-height: 0; }
+.apercu-decoupe img { width: 100%; height: auto; display: block; }
+.apercu-decoupe .masque { position: absolute; background: rgba(5, 6, 20, 0.72); }
+.grille-coupe { position: absolute; display: grid; outline: 2px solid #f5c542; }
+.grille-coupe span { border: 1px dashed rgba(245, 197, 66, 0.95); display: grid; place-items: center; color: #fff; font: 800 14px/1 system-ui, sans-serif; text-shadow: 0 1px 4px #000; }
+
+.ve-planche { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: rgba(245, 197, 66, 0.08); border: 1px dashed rgba(245, 197, 66, 0.5); }
+.ve-planche .note { margin: 0; }
