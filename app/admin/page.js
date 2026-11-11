@@ -135,6 +135,7 @@ export default function Admin() {
                 imagesClient={c.projet?.pieces?.length ? async () => ((await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "pieces_lire", commandeId: c.id }) })).pieces || []).filter((p) => p.type.startsWith("image/")) : null}
                 generer={async ({ consignes, images, partir, sansImagesClient }) => { const r = await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_generer", commandeId: c.id, consignes, images, partirDeLaMaquette: Boolean(partir), sansImagesClient: Boolean(sansImagesClient) }) }); await charger(); return r; }}
               />
+              {c.projet?.maquetteValidee === true && <AnnulerAcceptation c={c} action={action} />}
               <EnvoiMaquette key={`envoi-${c.id}`} commande={c} apres={charger} />
             </div>
 
@@ -213,6 +214,39 @@ function FormulaireOffre({ envoyer, annuler, paiementEnLigne, initial, libelle, 
 }
 
 // Images de référence et documents envoyés par le client avec sa demande.
+// Annuler (refuser) une maquette déjà acceptée par le client, tant que l'acompte n'est pas payé.
+function AnnulerAcceptation({ c, action }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [raison, setRaison] = useState("");
+  const [etat, setEtat] = useState("");
+  const offre = [...(c.devis || [])].reverse().find((d) => d.statut === "accepte");
+  const paye = offre && (c.paiements || []).some((p) => p.devis_id === offre.id && p.statut === "paid");
+  async function annuler() {
+    setEtat("envoi");
+    try { await action({ action: "acceptation_annuler", commandeId: c.id, raison }); setEtat(""); setOuvert(false); setRaison(""); }
+    catch (e) { setEtat(e.message); }
+  }
+  return (
+    <div className="annuler-acceptation">
+      <p>✅ Le client a accepté cette maquette{offre ? ` et l'offre de ${euros(offre.montant)}` : ""}.</p>
+      {paye ? <p className="note">L'acompte est payé : l'acceptation ne peut plus être annulée ici.</p> : !ouvert ? (
+        <button className="btn petit secondaire" onClick={() => setOuvert(true)}>↩️ Refuser / annuler cette acceptation</button>
+      ) : (
+        <div className="form-choix">
+          <label className="champ" style={{ marginTop: 0 }}><span>Message au client <small className="discret">(facultatif)</small></span>
+            <textarea rows={2} maxLength={1500} value={raison} onChange={(e) => setRaison(e.target.value)} placeholder="Ex. : Je vous prépare une version améliorée avant de lancer la réalisation." />
+          </label>
+          <div className="actions">
+            <button className="btn petit" disabled={etat === "envoi"} onClick={annuler}>{etat === "envoi" ? "Envoi…" : "Rouvrir la maquette (le client est prévenu)"}</button>
+            <button className="btn petit secondaire" onClick={() => setOuvert(false)}>Garder l'acceptation</button>
+          </div>
+        </div>
+      )}
+      {etat && etat !== "envoi" && <p className="alerte erreur">{etat}</p>}
+    </div>
+  );
+}
+
 // Copie une image du client dans la galerie de l'atelier (pour la placer soi-même dans la maquette).
 function BoutonGalerie({ piece }) {
   const [etat, setEtat] = useState("");

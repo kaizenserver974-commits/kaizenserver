@@ -154,6 +154,24 @@ export async function POST(request) {
   }
 
   // Server transmet un choix au client pendant la réalisation (gratuit ou payant en pièces d'or).
+  // Server annule l'acceptation de la maquette (et de l'offre non payée) : le client revient à l'étape
+  // « Maquette et offre », peut redemander une modification, et Server peut renvoyer une nouvelle maquette.
+  if (corps.action === "acceptation_annuler") {
+    const offre = [...(commande.devis || [])].reverse().find((d) => d.statut === "accepte");
+    const paye = offre && (commande.paiements || []).some((p) => p.devis_id === offre.id && p.statut === "paid");
+    if (paye) return refus("L'acompte de cette offre est déjà payé : l'acceptation ne peut plus être annulée ici (remboursez d'abord dans Mollie, puis écrivez au client).", 409);
+    const raison = String(corps.raison || "").trim().slice(0, 1500);
+    const le = new Date().toISOString();
+    if (offre) await sb.from("kaizen_devis").update({ statut: "envoye", repondu_at: null }).eq("id", offre.id);
+    const { maquetteValidee, maquetteAccepteeLe, ...reste } = commande.projet || {};
+    const { error } = await sb.from("kaizen_commandes").update({ statut: offre ? "devis_envoye" : "en_etude", projet: { ...reste, maquetteValidee: false }, updated_at: le }).eq("id", commande.id);
+    if (error) return refus("L'annulation n'a pas pu être enregistrée.", 500);
+    const texte = `↩️ Server a rouvert votre maquette : elle n'est plus acceptée${offre ? " (l'offre aussi)" : ""}. ${raison ? `\n\n${raison}\n\n` : ""}Vous pouvez la revoir, demander une modification, ou l'accepter de nouveau quand elle vous convient.`;
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "equipe", type: "message", contenu: texte });
+    await notifier({ a: commande.email, sujet: `↩️ Votre maquette est rouverte — commande ${commande.numero}`, texte: `Bonjour ${commande.nom || ""},\n\n${texte}\n\nVotre espace : ${lienClient}`, repondreA: process.env.KAIZEN_EMAIL });
+    return NextResponse.json({ ok: true });
+  }
+
   if (corps.action === "choix_ajouter") {
     const { choix, erreur } = validerChoix(corps);
     if (erreur) return refus(erreur, 400);

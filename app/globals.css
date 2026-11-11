@@ -1297,3 +1297,6 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .image-galerie.cochee { outline: 3px solid #ef4444; }
 .coche-galerie { position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: rgba(0, 0, 0, 0.6); border: 2px solid #fff; color: #fff; font-weight: 800; z-index: 2; }
 .image-galerie.cochee .coche-galerie { background: #ef4444; }
+
+.annuler-acceptation { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.4); display: grid; gap: 8px; }
+.annuler-acceptation p { margin: 0; }
