@@ -115,6 +115,10 @@ export default function Admin() {
               <div className="titre-ligne">
                 <div><h2>{c.recap?.titre || c.projet?.nom || "Application"}</h2><p className="discret">N° {c.numero} · {date(c.created_at)}</p></div>
                 <ChoixStatut c={c} action={action} />
+                <button className="btn petit secondaire lien-danger" title="Supprimer définitivement cette commande (test, doublon)" onClick={async () => {
+                  if (window.prompt(`Supprimer DÉFINITIVEMENT la commande ${c.numero} (maquette, offres, messages) ?\nTapez SUPPRIMER pour confirmer.`) !== "SUPPRIMER") return;
+                  try { await action({ action: "commande_supprimer", commandeId: c.id }); setChoisie(null); } catch (e) { window.alert(e.message); }
+                }}>🗑 Supprimer</button>
               </div>
               <FriseStatut valeur={c.statut} />
               <InfosProjet c={c} action={action} />

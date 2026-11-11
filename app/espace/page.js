@@ -73,7 +73,7 @@ function Espace() {
   if (etat === "erreur") return <Message titre="Oups" texte={erreur} lien="/espace" bouton="Réessayer" />;
 
   const tout = donnees.commandes;
-  const commandes = tout.filter((c) => c.formule !== "contact"); // le fil « Message à Server » n'est pas une commande
+  const commandes = tout.filter((c) => c.formule !== "contact" && c.statut !== "annulee"); // ni le fil « Message à Server », ni les demandes annulées
   const tousDevis = commandes.flatMap((c) => c.devis.map((d) => ({ ...d, commande: c })));
   const devisEnAttente = tousDevis.filter((d) => d.statut === "envoye").length;
 
@@ -235,6 +235,12 @@ function ParcoursCommande({ c, recharger, paiementEnLigne }) {
   return (
     <div className="parcours-commande">
       <BarrePieces c={c} />
+      {!(c.paiements || []).some((p) => p.statut === "paid") && c.statut !== "livree" && (
+        <button className="btn petit secondaire lien-danger annuler-demande" onClick={async () => {
+          if (!window.confirm(`Annuler votre demande ${c.numero} ? Elle disparaîtra de votre espace (les pièces d'or dépensées ne sont pas rendues).`)) return;
+          try { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "commande_annuler", commandeId: c.id }) }); await recharger(); } catch (e) { window.alert(e.message); }
+        }}>Annuler ma demande</button>
+      )}
       <ol className="etapes-commande">
         {ETAPES_COMMANDE.map(([id, label], i) => (
           <li key={id} className={i < index ? "faite" : i === index ? "actuelle" : ""}><span>{i < index ? "✓" : i + 1}</span>{label}</li>

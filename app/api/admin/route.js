@@ -156,6 +156,14 @@ export async function POST(request) {
   // Server transmet un choix au client pendant la réalisation (gratuit ou payant en pièces d'or).
   // Server annule l'acceptation de la maquette (et de l'offre non payée) : le client revient à l'étape
   // « Maquette et offre », peut redemander une modification, et Server peut renvoyer une nouvelle maquette.
+  // Server supprime définitivement une commande (test, doublon) : maquette, offres, messages, pièces jointes.
+  if (corps.action === "commande_supprimer") {
+    if ((commande.paiements || []).some((p) => p.statut === "paid")) return refus("Cette commande a un paiement reçu : passez-la plutôt en « Annulée » (et remboursez dans Mollie si besoin).", 409);
+    const { error } = await sb.from("kaizen_commandes").delete().eq("id", commande.id);
+    if (error) return refus(`La commande n'a pas pu être supprimée (${error.message}).`, 500);
+    return NextResponse.json({ ok: true });
+  }
+
   if (corps.action === "acceptation_annuler") {
     const offre = [...(commande.devis || [])].reverse().find((d) => d.statut === "accepte");
     const paye = offre && (commande.paiements || []).some((p) => p.devis_id === offre.id && p.statut === "paid");

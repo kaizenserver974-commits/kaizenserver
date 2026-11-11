@@ -71,6 +71,16 @@ export async function POST(request) {
   // Demande de modification de la maquette à Server : 30 pièces d'or prises dans la bourse du projet.
   // Le client accepte EN UNE FOIS la maquette et l'offre de Server : étape suivante = payer l'acompte
   // (ou commande en cours directement s'il n'y a rien à payer en ligne).
+  // Le client annule sa demande (tant qu'aucun paiement n'est reçu) : elle disparaît de son espace.
+  if (corps.action === "commande_annuler") {
+    if ((commande.paiements || []).some((p) => p.statut === "paid")) return refus("Un paiement a déjà été reçu : écrivez à Server pour annuler.", 409);
+    const { error } = await sb.from("kaizen_commandes").update({ statut: "annulee", updated_at: new Date().toISOString() }).eq("id", commande.id);
+    if (error) return refus("L'annulation n'a pas pu être enregistrée.", 500);
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "client", contenu: "⏸️ J'annule ma demande." });
+    await notifier({ a: process.env.KAIZEN_EMAIL, sujet: `⏸️ Demande annulée par le client — ${commande.numero} (${commande.nom || commande.email})`, texte: `${commande.nom || commande.email} a annulé sa demande ${commande.numero}.\n\n${urlSite(request)}/admin`, repondreA: commande.email }).catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
+
   if (corps.action === "accepter_tout") {
     const le = new Date().toISOString();
     const offre = (commande.devis || []).find((d) => d.statut === "envoye");
