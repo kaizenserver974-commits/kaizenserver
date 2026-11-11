@@ -19,7 +19,7 @@ export default function Admin() {
   // Menu « Tous les projets » : /admin?filtre=toutes
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    if (q.get("filtre") === "toutes") setFiltre("toutes");
+    if (["toutes", "preinscriptions", "messages", "commandes"].includes(q.get("filtre"))) setFiltre(q.get("filtre"));
     if (q.get("commande")) { setChoisie(q.get("commande")); setFiltre("toutes"); } // retour depuis l'atelier
   }, []);
 
@@ -43,7 +43,16 @@ export default function Admin() {
   }, [sb, charger]);
 
   const action = async (corps) => { await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify(corps) }); await charger(); };
-  const liste = useMemo(() => (donnees?.commandes || []).filter((c) => filtre === "toutes" || !["livree", "devis_refuse", "annulee"].includes(c.statut)), [donnees, filtre]);
+  const liste = useMemo(() => (donnees?.commandes || []).filter((c) =>
+    filtre === "toutes" ? true
+      : filtre === "preinscriptions" ? c.formule === "preinscription"
+      : filtre === "messages" ? c.formule === "contact"
+      : filtre === "commandes" ? !["preinscription", "contact"].includes(c.formule) && !["livree", "devis_refuse", "annulee"].includes(c.statut)
+      : !["livree", "devis_refuse", "annulee"].includes(c.statut)), [donnees, filtre]);
+  const nbPre = (donnees?.commandes || []).filter((c) => c.formule === "preinscription").length;
+  const nbMessages = (donnees?.commandes || []).filter((c) => c.formule === "contact").length;
+  // En changeant de filtre, on sélectionne le premier élément de la liste.
+  useEffect(() => { if (liste.length && !liste.some((c) => c.id === choisie)) setChoisie(liste[0].id); }, [filtre]); // eslint-disable-line react-hooks/exhaustive-deps
   const c = donnees?.commandes.find((x) => x.id === choisie);
   const clientNonLu = c?.messages.some((m) => m.auteur === "client" && !m.lu);
   useEffect(() => { if (c && clientNonLu) action({ action: "lu", commandeId: c.id }).catch(() => {}); }, [c?.id, clientNonLu]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -74,7 +83,10 @@ export default function Admin() {
         <div className="actions">
           {donnees.nonLus > 0 && <span className="badge">✉️ {donnees.nonLus} message{donnees.nonLus > 1 ? "s" : ""} non lu{donnees.nonLus > 1 ? "s" : ""}</span>}
           <select value={filtre} onChange={(e) => setFiltre(e.target.value)} aria-label="Filtre" style={{ width: "auto" }}>
-            <option value="actives">En cours</option>
+            <option value="actives">En cours (tout)</option>
+            <option value="commandes">🛒 Commandes et vœux</option>
+            <option value="preinscriptions">📣 Formulaires Facebook ({nbPre})</option>
+            <option value="messages">💬 Messages sans commande ({nbMessages})</option>
             <option value="toutes">Toutes</option>
           </select>
         </div>

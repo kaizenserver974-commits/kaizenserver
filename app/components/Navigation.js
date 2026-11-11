@@ -58,6 +58,7 @@ export function EnteteNav() {
         <span className="badge-server">🧞 Server</span>
         <a href="/admin">Projets en cours</a>
         <a href="/admin?filtre=toutes">Tous les projets</a>
+        <a href="/admin?filtre=preinscriptions">📣 Formulaires</a>
         <a href="/admin/atelier">🎨 Atelier</a>
         <a href="/espace?client=1">Voir comme un client</a>
         <a href="/" className="masque-mobile">Le site</a>
