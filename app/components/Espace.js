@@ -172,7 +172,10 @@ function reduireImage(fichier) {
 
 // Maquette d'un projet, chargée à la demande et affichée dans une iframe isolée.
 // Côté Server (generer fourni) : consignes et images de référence pour l'IA.
-export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "", jeton, ouvrir = false, acceptee = false, atelier = "" }) {
+export function BlocMaquette({ disponible, lire, generer, infos, consignesInitiales = "", jeton, ouvrir = false, acceptee = false, atelier = "", imagesClient = null }) {
+  const [deClient, setDeClient] = useState([]); // images envoyées par le client
+  const [avecClient, setAvecClient] = useState(true);
+  useEffect(() => { if (generer && imagesClient) imagesClient().then((l) => setDeClient(l.slice(0, 3))).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [galerie, setGalerie] = useState(false);
   const [copie, setCopie] = useState(false);
   const lien = jeton && typeof window !== "undefined" ? `${window.location.origin}/maquette/${jeton}` : "";
@@ -204,7 +207,7 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
     if (acceptee && !window.confirm("Le client a déjà accepté cette maquette. La remplacer par une nouvelle version ?")) return;
     setErreur(""); setAttente("L'IA dessine la maquette… (1 à 3 minutes, surtout avec des images)");
     try {
-      const r = await generer({ consignes, images, partir: disponible && partir });
+      const r = await generer({ consignes, images, partir: disponible && partir, sansImagesClient: !avecClient });
       setHtml(await lire());
       if (r?.source && r.source !== "ia") setErreur(`L'IA n'a pas abouti (${r.raison || "pas de réponse"}) : c'est le modèle simple qui s'affiche. Réessayez.`);
     } catch (e) { setErreur(e.message); } finally { setAttente(""); }
@@ -244,6 +247,22 @@ export function BlocMaquette({ disponible, lire, generer, infos, consignesInitia
             <span>✍️ Vos améliorations visuelles <small className="discret">(prioritaires sur tout le reste)</small></span>
             <textarea rows={4} maxLength={2000} value={consignes} onChange={(e) => setConsignes(e.target.value)} placeholder="Votre côté visuel : couleurs, ambiance, mise en page, écrans à soigner… Ex. : « thème sombre premium, accents verts, grandes cartes arrondies, barre de menu en bas ». L'IA reprend déjà tout ce que le client a renseigné." />
           </label>
+          {deClient.length > 0 && (
+            <div className="images-client-ia">
+              <label className="case" style={{ marginTop: 0 }}>
+                <input type="checkbox" checked={avecClient} onChange={(e) => setAvecClient(e.target.checked)} />
+                <span><b>🖼️ Utiliser les images du client</b> ({deClient.length}) comme modèle pour l'IA</span>
+              </label>
+              <div className="images-ref">
+                {deClient.map((p, i) => (
+                  <div key={i} className={`vignette vignette-client ${avecClient ? "" : "ecartee"}`} title={p.nom}>
+                    <img src={p.url} alt={p.nom} />
+                    <span className="etiquette-client">{avecClient ? "✓ Client" : "Écartée"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="images-ref">
             {images.map((src, i) => (
               <div key={i} className="vignette">

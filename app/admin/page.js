@@ -132,7 +132,8 @@ export default function Admin() {
                 infos={c.maquette ? `${c.projet?.maquetteValidee ? `✅ Maquette ACCEPTÉE par le client${c.projet?.maquetteAccepteeLe ? ` le ${date(c.projet.maquetteAccepteeLe)}` : ""}. ` : "⏳ Maquette pas encore acceptée par le client. "}${c.maquette.source === "ia" ? "Créée par l'IA" : c.maquette.source === "server" ? "Créée par Server dans l'atelier" : "Créée à partir du modèle"}, mise à jour le ${date(c.maquette.updated_at)}. Visible aussi par le client dans son espace.` : "Pas encore de maquette pour ce projet."}
                 lire={async () => (await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_lire", commandeId: c.id }) })).html}
                 consignesInitiales={c.projet?.idee && c.projet.idee.length >= 10 ? "" : (c.projet?.idee || "")}
-                generer={async ({ consignes, images, partir }) => { const r = await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_generer", commandeId: c.id, consignes, images, partirDeLaMaquette: Boolean(partir) }) }); await charger(); return r; }}
+                imagesClient={c.projet?.pieces?.length ? async () => ((await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "pieces_lire", commandeId: c.id }) })).pieces || []).filter((p) => p.type.startsWith("image/")) : null}
+                generer={async ({ consignes, images, partir, sansImagesClient }) => { const r = await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "maquette_generer", commandeId: c.id, consignes, images, partirDeLaMaquette: Boolean(partir), sansImagesClient: Boolean(sansImagesClient) }) }); await charger(); return r; }}
               />
               <EnvoiMaquette key={`envoi-${c.id}`} commande={c} apres={charger} />
             </div>
@@ -212,6 +213,18 @@ function FormulaireOffre({ envoyer, annuler, paiementEnLigne, initial, libelle, 
 }
 
 // Images de référence et documents envoyés par le client avec sa demande.
+// Copie une image du client dans la galerie de l'atelier (pour la placer soi-même dans la maquette).
+function BoutonGalerie({ piece }) {
+  const [etat, setEtat] = useState("");
+  async function ajouter() {
+    setEtat("envoi");
+    try { await appelAuthentifie("/api/admin", { method: "POST", body: JSON.stringify({ action: "image_ajouter", image: piece.url, description: `Client — ${piece.nom}` }) }); setEtat("ok"); }
+    catch (e) { setEtat(e.message); }
+  }
+  if (etat === "ok") return <small className="succes">✅ Dans votre galerie</small>;
+  return <><button className="btn petit secondaire" disabled={etat === "envoi"} onClick={ajouter}>{etat === "envoi" ? "Envoi…" : "📥 Ajouter à ma galerie"}</button>{etat && etat !== "envoi" && <small className="alerte erreur">{etat}</small>}</>;
+}
+
 function PiecesClient({ commandeId }) {
   const [pieces, setPieces] = useState(null);
   useEffect(() => {
@@ -223,10 +236,10 @@ function PiecesClient({ commandeId }) {
   return (
     <div className="carte">
       <h2>🖼️ Images et documents du client</h2>
-      <p className="note">Les images sont données automatiquement à l'IA quand vous améliorez la maquette (avec les vôtres, 3 au total).</p>
+      <p className="note">Les images du client sont <b>déjà données à l'IA</b> quand vous générez ou améliorez la maquette (bloc Maquette ci-dessus : « Images du client »). Vous pouvez aussi les mettre dans votre galerie pour l'atelier.</p>
       <div className="pieces-client">
         {pieces.map((p, i) => (p.type.startsWith("image/")
-          ? <a key={i} href={p.url} target="_blank" rel="noopener noreferrer" title={p.nom}><img src={p.url} alt={p.nom} /></a>
+          ? <figure key={i} className="piece-image"><a href={p.url} target="_blank" rel="noopener noreferrer" title={p.nom}><img src={p.url} alt={p.nom} /></a><BoutonGalerie piece={p} /></figure>
           : <a key={i} className="btn petit secondaire" href={p.url} download={p.nom}>📄 {p.nom}</a>))}
       </div>
     </div>

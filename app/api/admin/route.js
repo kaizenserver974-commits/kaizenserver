@@ -217,7 +217,7 @@ export async function POST(request) {
     try {
       const consignes = String(corps.consignes || "").trim().slice(0, 2000);
       // Images de Server d'abord, puis celles du client (3 au total).
-      const imagesClient = (await lirePiecesJointes(sb, commande.id))
+      const imagesClient = corps.sansImagesClient ? [] : (await lirePiecesJointes(sb, commande.id))
         .filter((p) => /^image\/(png|jpe?g|webp)$/.test(p.type)).map((p) => `data:${p.type};base64,${p.contenu}`);
       const images = validerImagesReference([...(corps.images || []), ...imagesClient]);
       const ideeActuelle = String(commande.projet?.idee || "").trim();
