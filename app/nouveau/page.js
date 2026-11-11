@@ -386,7 +386,7 @@ function Parcours() {
         ? <TableauJoueur jeu={projet.jeu} changer={() => setChoixPerso(true)} recharger={() => setRechargeOuverte(true)} />
         : (
           <div className="mode-classique">
-            <span>Mode classique · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu</button></span>
+            <span>Mode classique (les étapes ne rapportent pas de pièces d'or) · <button onClick={() => setChoixPerso(true)}>Passer en mode jeu pour en gagner</button></span>
             <BourseOr recharger={() => setRechargeOuverte(true)} />
           </div>
         )}
@@ -671,7 +671,7 @@ function CompteurFlottant() {
 
 // Bourse de pièces d'or, toujours visible en haut, avec le bouton pour en acheter.
 function BourseOr({ recharger }) {
-  const { connecte, solde, indisponible, erreur, charger, plafondAtteint, resteJour, plafondJour, illimite } = usePortefeuille();
+  const { connecte, solde, indisponible, erreur, charger, plafondAtteint, resteJour, plafondJour, illimite, echec, recompenses } = usePortefeuille();
   if (connecte === null) return <div className="bourse-or"><span className="bourse-solde">🪙 …</span></div>;
   if (connecte && solde === null && erreur) {
     return (
@@ -693,6 +693,12 @@ function BourseOr({ recharger }) {
     <div className="bourse-or">
       <span className="bourse-solde" title="Vos pièces d'or, gardées sur votre compte">🪙 <b>{indisponible ? "—" : solde ?? "…"}</b> pièces d'or</span>
       <button className="btn petit bourse-acheter" onClick={recharger}>＋ Acheter des pièces</button>
+      {echec && (
+        <div className="bourse-echec" role="alert">
+          <small>⚠️ Les pièces de cette étape n'ont pas pu être ajoutées : {echec.message}</small>
+          <button className="btn petit secondaire" onClick={() => recompenses(echec.cles)}>Réessayer</button>
+        </div>
+      )}
       {illimite && <small className="gratuites-jour">🎁 Pièces gratuites du jour : <b>sans limite</b> (compte de test)</small>}
       {typeof resteJour === "number" && (
         <div className={`gratuites-jour ${resteJour === 0 ? "epuise" : resteJour < 330 ? "bas" : ""}`} title="Pièces gratuites que les étapes du jeu peuvent encore vous rapporter aujourd'hui (tous projets)">

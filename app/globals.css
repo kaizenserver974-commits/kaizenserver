@@ -1217,3 +1217,4 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .gratuites-jour.bas b { color: #fcd34d; } .gratuites-jour.bas em { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
 .gratuites-jour.epuise b { color: #fca5a5; } .gratuites-jour.epuise em { background: #ef4444; }
 .gratuites-jour small { color: #fde68a; font-size: 12px; }
+.bourse-echec { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .bourse-echec small { color: #fca5a5; font-size: 12px; }

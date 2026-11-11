@@ -38,6 +38,8 @@ export async function POST(request) {
       erreur: schema
         ? (u.admin ? "Base de données à mettre à jour : lancez supabase/schema.sql dans Supabase (SQL Editor)." : "Les pièces d'or sont en cours d'installation. Réessayez un peu plus tard.")
         : "Le solde de pièces est indisponible pour le moment.",
+      // Détail technique visible seulement par Server et les comptes de test (pour diagnostiquer).
+      ...(sansPlafond(u.email, u.admin, process.env.KAIZEN_SANS_PLAFOND) ? { detail: String(e?.message || "inconnu").slice(0, 300) } : {}),
       schema,
     }, { status: 500 });
   }
