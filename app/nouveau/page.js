@@ -62,6 +62,7 @@ function Parcours() {
   const params = useSearchParams();
   const [projet, setProjet] = useState(null);
   const [chargement, setChargement] = useState("");
+  const [validation, setValidation] = useState(false); // étape en cours de validation (bouton vert)
   const [erreur, setErreur] = useState("");
   const [gain, setGain] = useState(null);
   const [lieuDebloque, setLieuDebloque] = useState(null);
@@ -207,8 +208,16 @@ function Parcours() {
     setProjet((p) => enregistrerProjet({ ...p, ...champs, ...(jeu ? { jeu } : {}) }));
   };
   const noter = (p, texte) => [...(p.journal || []), { date: new Date().toISOString(), texte }];
+  // Validation d'une étape : le bouton passe au vert « ✓ Étape validée ! » un instant avant de changer
+  // d'étape, pour qu'on voie bien que le clic est pris en compte (et qu'on ne clique pas deux fois).
   const allerA = (etape, cles = []) => {
     setErreur("");
+    if (cles.length && etape > (projet?.etape || 0)) {
+      if (validation) return;
+      setValidation(true);
+      setTimeout(() => { setValidation(false); maj({ etape }, cles); }, 650);
+      return;
+    }
     maj({ etape }, cles);
   };
 
@@ -348,7 +357,7 @@ function Parcours() {
           <div key={portefeuille.gain.cle} className="gain-or gain-intro" role="status" aria-live="polite">
             {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 {portefeuille.gain.achat ? "achetées, merci !" : "gratuites"}</strong>}
             {portefeuille.gain.montant > 0 && <span>Vous avez {portefeuille.solde} pièces d'or pour ce projet</span>}
-            {portefeuille.gain.plafond && <span className="gain-plafond">Limite de pièces gratuites du jour atteinte : revenez demain, ou achetez des pièces.</span>}
+            {portefeuille.gain.plafond && <span className="gain-plafond">Vos 1000 pièces offertes (3 projets) sont utilisées : achetez des pièces pour continuer.</span>}
           </div>
         )}
         {gain && <div className="recompense-intro"><Recompense key={gain.cle} gain={gain} univers={univers} /></div>}
@@ -359,7 +368,7 @@ function Parcours() {
 
   return (
     <main
-      className={`conteneur page ${apresIntro ? "apparition" : ""} ${enJeu ? "en-jeu" : ""} ${persoMonde?.monde ? "avec-monde" : ""} ${persoJoueur?.monde ? "avec-perso" : ""}`}
+      className={`conteneur page ${validation ? "en-validation" : ""} ${chargement ? "en-analyse" : ""} ${apresIntro ? "apparition" : ""} ${enJeu ? "en-jeu" : ""} ${persoMonde?.monde ? "avec-monde" : ""} ${persoJoueur?.monde ? "avec-perso" : ""}`}
       style={enJeu ? { "--jeu": univers.couleur, "--jeu-clair": univers.clair } : undefined}
     >
       {persoMonde?.monde && (
@@ -445,7 +454,7 @@ function Parcours() {
         <div key={portefeuille.gain.cle} className="gain-or" role="status" aria-live="polite">
           {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 {portefeuille.gain.achat ? "achetées, merci !" : "gratuites"}</strong>}
           {portefeuille.gain.montant > 0 && <span>Vous avez {portefeuille.solde} pièces d'or pour ce projet</span>}
-          {portefeuille.gain.plafond && <span className="gain-plafond">Limite de pièces gratuites du jour atteinte : revenez demain, ou achetez des pièces.</span>}
+          {portefeuille.gain.plafond && <span className="gain-plafond">Vos 1000 pièces offertes (3 projets) sont utilisées : achetez des pièces pour continuer.</span>}
         </div>
       )}
       <CompteurFlottant />
@@ -699,17 +708,17 @@ function BourseOr({ recharger }) {
           <button className="btn petit secondaire" onClick={() => recompenses(echec.cles)}>Réessayer</button>
         </div>
       )}
-      {illimite && <small className="gratuites-jour">🎁 Pièces gratuites du jour : <b>sans limite</b> (compte de test)</small>}
+      {illimite && <small className="gratuites-jour">🎁 Pièces offertes : <b>sans limite</b> (compte de test)</small>}
       {typeof resteJour === "number" && (
-        <div className={`gratuites-jour ${resteJour === 0 ? "epuise" : resteJour < 330 ? "bas" : ""}`} title="Pièces gratuites que les étapes du jeu peuvent encore vous rapporter aujourd'hui (tous projets)">
-          <span>🎁 Pièces gratuites du jour : <b>{resteJour}</b> / {plafondJour || 1000}</span>
+        <div className={`gratuites-jour ${resteJour === 0 ? "epuise" : resteJour < 330 ? "bas" : ""}`} title="Pièces offertes que les étapes du jeu peuvent encore vous rapporter (1000 par compte, soit 3 projets)">
+          <span>🎁 Pièces offertes restantes : <b>{resteJour}</b> / {plafondJour || 1000} <small className="discret">(3 projets offerts)</small></span>
           <i><em style={{ width: `${Math.round((resteJour / (plafondJour || 1000)) * 100)}%` }} /></i>
           {resteJour === 0
-            ? <small>Plus de pièces gratuites aujourd'hui : achetez des pièces pour continuer, ou revenez demain dès 4 h (heure de La Réunion).</small>
-            : resteJour < 330 ? <small>Bientôt épuisées : un projet complet en rapporte 330. Pensez à acheter des pièces.</small> : null}
+            ? <small>Vos 3 projets offerts sont utilisés : achetez des pièces pour continuer à créer.</small>
+            : resteJour < 330 ? <small>Bientôt épuisées : un projet complet en rapporte 330. Ensuite, il faudra acheter des pièces.</small> : null}
         </div>
       )}
-      {plafondAtteint && typeof resteJour !== "number" && <small className="bourse-plafond">⏳ Limite de 1000 pièces gratuites atteinte aujourd'hui (tous projets du compte). Les étapes rapportent de nouveau des pièces demain à 4 h (heure de La Réunion) ; vos pièces achetées restent utilisables.</small>}
+      {plafondAtteint && typeof resteJour !== "number" && <small className="bourse-plafond">⏳ Vos 1000 pièces offertes (3 projets) sont utilisées : les étapes ne rapportent plus de pièces. Achetez des pièces pour continuer ; vos pièces achetées restent utilisables.</small>}
     </div>
   );
 }

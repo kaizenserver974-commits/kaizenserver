@@ -1218,3 +1218,12 @@ button.depot-petit { cursor: pointer; font: inherit; color: inherit; }
 .gratuites-jour.epuise b { color: #fca5a5; } .gratuites-jour.epuise em { background: #ef4444; }
 .gratuites-jour small { color: #fde68a; font-size: 12px; }
 .bourse-echec { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .bourse-echec small { color: #fca5a5; font-size: 12px; }
+
+/* Validation d'une étape : le bouton principal passe au vert avec une coche. */
+.etape .navigation .btn:not(.secondaire), .etape .btn.grand { transition: transform 0.12s, background 0.25s, box-shadow 0.25s; }
+.etape .navigation .btn:not(.secondaire):active, .etape .btn.grand:active { transform: scale(0.95); }
+.en-validation .etape .navigation .btn:not(.secondaire):not(:disabled) { position: relative; min-width: 200px; white-space: nowrap; pointer-events: none; color: transparent; background: linear-gradient(135deg, #10b981, #34d399) !important; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.35), 0 0 28px rgba(16, 185, 129, 0.7); transform: scale(1.04); }
+.en-validation .etape .navigation .btn:not(.secondaire):not(:disabled)::after { content: "✓ Étape validée !"; position: absolute; inset: 0; white-space: nowrap; display: grid; place-items: center; color: #fff; font-weight: 800; animation: valide-pop 0.35s cubic-bezier(.2, 1.5, .4, 1); }
+.en-analyse .etape .btn.grand:not(.secondaire) { position: relative; pointer-events: none; color: transparent; background: linear-gradient(135deg, #10b981, #34d399) !important; box-shadow: 0 0 26px rgba(16, 185, 129, 0.6); }
+.en-analyse .etape .btn.grand:not(.secondaire)::after { content: "✓ C'est parti…"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 800; }
+@keyframes valide-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }

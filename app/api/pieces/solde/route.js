@@ -19,7 +19,7 @@ export async function POST(request) {
   if (!cleBourse) return NextResponse.json({ ok: true, solde: 0, email: u.email, sansProjet: true });
   try {
     let solde, gagne = 0, plafond = false;
-    // Server et les comptes de test n'ont pas de limite quotidienne ; les clients oui.
+    // Server et les comptes de test n'ont pas de limite de pièces offertes ; les clients : 1000 (3 projets).
     const illimite = sansPlafond(u.email, u.admin, process.env.KAIZEN_SANS_PLAFOND);
     if (Array.isArray(corps?.recompenses)) {
       // Server (administrateur) n'a pas de limite quotidienne : il peut tester librement.
