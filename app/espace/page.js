@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { supabaseNavigateur, appelAuthentifie } from "../../lib/supabaseClient.js";
 import { statut, montantEnLigne } from "../../lib/espace.js";
 import MotDePasse from "../components/MotDePasse.js";
-import { COUT_MODIF_SERVER } from "../../lib/pieces.js";
+import { COUT_MODIF_SERVER, COUT_ANNULATION } from "../../lib/pieces.js";
 import { SuiviCommande, FilMessages, CarteDevis, BlocMaquette, date, euros } from "../components/Espace.js";
 
 const ONGLETS = [
@@ -237,9 +237,9 @@ function ParcoursCommande({ c, recharger, paiementEnLigne }) {
       <BarrePieces c={c} />
       {!(c.paiements || []).some((p) => p.statut === "paid") && c.statut !== "livree" && (
         <button className="btn petit secondaire lien-danger annuler-demande" onClick={async () => {
-          if (!window.confirm(`Annuler votre demande ${c.numero} ? Elle disparaîtra de votre espace (les pièces d'or dépensées ne sont pas rendues).`)) return;
+          if (!window.confirm(`Annuler votre demande ${c.numero} pour ${COUT_ANNULATION} pièces d'or ? Elle disparaîtra de votre espace (les pièces d'or déjà dépensées ne sont pas rendues).`)) return;
           try { await appelAuthentifie("/api/espace", { method: "POST", body: JSON.stringify({ action: "commande_annuler", commandeId: c.id }) }); await recharger(); } catch (e) { window.alert(e.message); }
-        }}>Annuler ma demande</button>
+        }}>Annuler ma demande (−{COUT_ANNULATION} 🪙)</button>
       )}
       <ol className="etapes-commande">
         {ETAPES_COMMANDE.map(([id, label], i) => (

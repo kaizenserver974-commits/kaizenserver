@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { bourse, debiter, SoldeInsuffisant } from "../../../lib/serveur/portefeuille.js";
-import { COUT_MODIF_SERVER } from "../../../lib/pieces.js";
+import { COUT_MODIF_SERVER, COUT_ANNULATION } from "../../../lib/pieces.js";
 import { supabaseAdmin, supabaseConfigure, utilisateur, chargerCommandes, lireMaquette } from "../../../lib/serveur/supabase.js";
 import { validerMessage, nonLus, statut, liensPourClient, montantEnLigne } from "../../../lib/espace.js";
 import { notifier, urlSite } from "../../../lib/serveur/email.js";
@@ -74,11 +74,20 @@ export async function POST(request) {
   // Le client annule sa demande (tant qu'aucun paiement n'est reçu) : elle disparaît de son espace.
   if (corps.action === "commande_annuler") {
     if ((commande.paiements || []).some((p) => p.statut === "paid")) return refus("Un paiement a déjà été reçu : écrivez à Server pour annuler.", 409);
+    // Annuler coûte COUT_ANNULATION pièces d'or, prises dans la bourse du projet.
+    const cleBourse = bourse(u.email, commande.projet?.projetLocal);
+    if (!cleBourse) return refus("Ouvrez ce projet depuis « Mes projets » sur cet appareil pour utiliser ses pièces d'or, ou écrivez à Server.", 400);
+    let solde;
+    try { solde = await debiter(sb, cleBourse, COUT_ANNULATION, `Annulation de la demande ${commande.numero}`); }
+    catch (e) {
+      if (e instanceof SoldeInsuffisant) return NextResponse.json({ erreur: `Il vous faut ${COUT_ANNULATION} pièces d'or pour annuler : achetez des pièces, ou écrivez à Server.`, solde: e.solde, manque: true }, { status: 402 });
+      return refus("Le paiement en pièces d'or est indisponible pour le moment.", 500);
+    }
     const { error } = await sb.from("kaizen_commandes").update({ statut: "annulee", updated_at: new Date().toISOString() }).eq("id", commande.id);
     if (error) return refus("L'annulation n'a pas pu être enregistrée.", 500);
-    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "client", contenu: "⏸️ J'annule ma demande." });
+    await sb.from("kaizen_messages").insert({ commande_id: commande.id, auteur: "client", contenu: `⏸️ J'annule ma demande (−${COUT_ANNULATION} 🪙).` });
     await notifier({ a: process.env.KAIZEN_EMAIL, sujet: `⏸️ Demande annulée par le client — ${commande.numero} (${commande.nom || commande.email})`, texte: `${commande.nom || commande.email} a annulé sa demande ${commande.numero}.\n\n${urlSite(request)}/admin`, repondreA: commande.email }).catch(() => {});
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, solde });
   }
 
   if (corps.action === "accepter_tout") {
