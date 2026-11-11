@@ -174,7 +174,7 @@ function Parcours() {
     (async () => {
       try {
         const r = await appeler("/api/pieces/verifier", { achat: achatRetour });
-        portefeuille.fixerSolde(r.solde);
+        portefeuille.fixerSolde(r.solde, 0, r.statut === "paid" && r.pieces > 0 && !r.deja ? r.pieces : 0);
         if (r.statut === "paid" && r.pieces > 0) {
           setProjet((p) => enregistrerProjet({ ...p, journal: [...(p.journal || []), { date: new Date().toISOString(), texte: `Recharge de ${r.pieces} pièces` }] }));
           setInfoAchat(`🪙 +${r.pieces} pièces ajoutées. Merci !`);
@@ -346,7 +346,7 @@ function Parcours() {
         {/* Les pièces gagnées à l'étape validée s'annoncent aussi pendant la vidéo. */}
         {portefeuille.gain && (
           <div key={portefeuille.gain.cle} className="gain-or gain-intro" role="status" aria-live="polite">
-            {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 gratuites</strong>}
+            {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 {portefeuille.gain.achat ? "achetées, merci !" : "gratuites"}</strong>}
             {portefeuille.gain.montant > 0 && <span>Vous avez {portefeuille.solde} pièces d'or pour ce projet</span>}
             {portefeuille.gain.plafond && <span className="gain-plafond">Limite de pièces gratuites du jour atteinte : revenez demain, ou achetez des pièces.</span>}
           </div>
@@ -443,7 +443,7 @@ function Parcours() {
 
       {portefeuille.gain && (
         <div key={portefeuille.gain.cle} className="gain-or" role="status" aria-live="polite">
-          {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 gratuites</strong>}
+          {portefeuille.gain.montant > 0 && <strong>+{portefeuille.gain.montant} 🪙 {portefeuille.gain.achat ? "achetées, merci !" : "gratuites"}</strong>}
           {portefeuille.gain.montant > 0 && <span>Vous avez {portefeuille.solde} pièces d'or pour ce projet</span>}
           {portefeuille.gain.plafond && <span className="gain-plafond">Limite de pièces gratuites du jour atteinte : revenez demain, ou achetez des pièces.</span>}
         </div>
@@ -671,7 +671,7 @@ function CompteurFlottant() {
 
 // Bourse de pièces d'or, toujours visible en haut, avec le bouton pour en acheter.
 function BourseOr({ recharger }) {
-  const { connecte, solde, indisponible, erreur, charger, plafondAtteint, resteJour, plafondJour } = usePortefeuille();
+  const { connecte, solde, indisponible, erreur, charger, plafondAtteint, resteJour, plafondJour, illimite } = usePortefeuille();
   if (connecte === null) return <div className="bourse-or"><span className="bourse-solde">🪙 …</span></div>;
   if (connecte && solde === null && erreur) {
     return (
@@ -693,6 +693,7 @@ function BourseOr({ recharger }) {
     <div className="bourse-or">
       <span className="bourse-solde" title="Vos pièces d'or, gardées sur votre compte">🪙 <b>{indisponible ? "—" : solde ?? "…"}</b> pièces d'or</span>
       <button className="btn petit bourse-acheter" onClick={recharger}>＋ Acheter des pièces</button>
+      {illimite && <small className="gratuites-jour">🎁 Pièces gratuites du jour : <b>sans limite</b> (compte de test)</small>}
       {typeof resteJour === "number" && (
         <div className={`gratuites-jour ${resteJour === 0 ? "epuise" : resteJour < 330 ? "bas" : ""}`} title="Pièces gratuites que les étapes du jeu peuvent encore vous rapporter aujourd'hui (tous projets)">
           <span>🎁 Pièces gratuites du jour : <b>{resteJour}</b> / {plafondJour || 1000}</span>

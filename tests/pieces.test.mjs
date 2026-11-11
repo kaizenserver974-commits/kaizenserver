@@ -34,3 +34,12 @@ test("revenir en arrière puis repasser une étape ne redonne pas de pièces", (
   }
   assert.equal(solde({ jeu }), avant);
 });
+
+test("comptes sans limite quotidienne : Server, le compte de test, la variable Vercel", async () => {
+  const { sansPlafond } = await import("../lib/pieces.js");
+  assert.equal(sansPlafond("portail.mcssud@gmail.com"), true);
+  assert.equal(sansPlafond(" Portail.MCSSUD@gmail.com "), true);
+  assert.equal(sansPlafond("client@example.com"), false);
+  assert.equal(sansPlafond("client@example.com", true), true);
+  assert.equal(sansPlafond("b@b.fr", false, "a@a.fr, b@b.fr"), true);
+});

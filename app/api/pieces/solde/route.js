@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, utilisateur } from "../../../../lib/serveur/supabase.js";
 import { lireSolde, crediterRecompenses, historique, bourse, resteDuJour } from "../../../../lib/serveur/portefeuille.js";
-import { PLAFOND_GRATUIT_JOUR } from "../../../../lib/pieces.js";
+import { PLAFOND_GRATUIT_JOUR, sansPlafond } from "../../../../lib/pieces.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,15 +19,17 @@ export async function POST(request) {
   if (!cleBourse) return NextResponse.json({ ok: true, solde: 0, email: u.email, sansProjet: true });
   try {
     let solde, gagne = 0, plafond = false;
+    // Server et les comptes de test n'ont pas de limite quotidienne ; les clients oui.
+    const illimite = sansPlafond(u.email, u.admin, process.env.KAIZEN_SANS_PLAFOND);
     if (Array.isArray(corps?.recompenses)) {
       // Server (administrateur) n'a pas de limite quotidienne : il peut tester librement.
-      ({ solde, gagne, plafond } = await crediterRecompenses(sb, u.email, corps.projet, corps.recompenses.map(String)));
+      ({ solde, gagne, plafond } = await crediterRecompenses(sb, u.email, corps.projet, corps.recompenses.map(String), { sansPlafond: illimite }));
     } else {
       solde = await lireSolde(sb, cleBourse);
     }
     const mouvements = corps?.historique ? await historique(sb, cleBourse) : undefined;
-    const resteJour = await resteDuJour(sb, u.email).catch(() => null);
-    return NextResponse.json({ ok: true, solde, gagne, plafond, resteJour, plafondJour: PLAFOND_GRATUIT_JOUR, email: u.email, ...(mouvements ? { mouvements } : {}) });
+    const resteJour = illimite ? null : await resteDuJour(sb, u.email).catch(() => null);
+    return NextResponse.json({ ok: true, solde, gagne, plafond, resteJour, plafondJour: PLAFOND_GRATUIT_JOUR, illimite, email: u.email, ...(mouvements ? { mouvements } : {}) });
   } catch (e) {
     console.error("Kaizen portefeuille :", e?.message);
     // Tables ou fonctions absentes : supabase/schema.sql n'a pas été lancé.
